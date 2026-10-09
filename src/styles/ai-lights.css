@@ -1,0 +1,144 @@
+/* AI lights: a pulse of colour running around an element's rim (components/ui/ai-lights).
+ * The body (.ai-lights) has 1px of padding: that gap is where the ring lives. Its glow layers sit
+ * outside it by their own mask padding, under the face. Each layer shows a conic of COLOUR through a
+ * canvas-drawn mask of OPACITY, and the pulse is one-shot: it lights, holds, then fades while the
+ * start angle swings back and the stops push out, so the wedge tightens at its head as it dies.
+ * The start angles (60deg -> -90deg) put the colour on the lit ends of a wide pill at the peak; the
+ * reference values (180deg -> 30deg) suit a squarer card. */
+
+/* registered so the browser can interpolate them (unregistered, the gradient jumps) */
+@property --ai-start {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 60deg;
+}
+@property --ai-s1 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 16deg;
+}
+@property --ai-s2 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 30deg;
+}
+@property --ai-s3 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 43deg;
+}
+@property --ai-s4 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 59deg;
+}
+@property --ai-s5 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 72deg;
+}
+@property --ai-s6 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 84deg;
+}
+
+.ai-lights {
+  position: relative;
+  isolation: isolate;
+}
+
+.ai-lights-layer {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: conic-gradient(
+    from var(--ai-start) at 50% 50%,
+    var(--ai-c1, #005bf6) 0deg,
+    var(--ai-c2, #b0c6e9) var(--ai-s1),
+    var(--ai-c3, #feca00) var(--ai-s2),
+    var(--ai-c4, #ff1c11) var(--ai-s3),
+    var(--ai-c5, #ff00ea) var(--ai-s4),
+    var(--ai-c6, #ffa2fbcc) var(--ai-s5),
+    transparent var(--ai-s6),
+    transparent 324deg,
+    var(--ai-tail, #95c1ffa1) 349deg,
+    var(--ai-c1, #005bf6) 360deg
+  );
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.ai-lights[data-playing='true'] .ai-lights-layer {
+  animation: ai-pulse 1.6s cubic-bezier(0.26, 0.94, 0.6, 1) both;
+}
+
+@keyframes ai-pulse {
+  0% {
+    opacity: 0;
+    --ai-start: 60deg;
+    --ai-s1: 16deg;
+    --ai-s2: 30deg;
+    --ai-s3: 43deg;
+    --ai-s4: 59deg;
+    --ai-s5: 72deg;
+    --ai-s6: 84deg;
+  }
+  10% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+    --ai-start: 60deg;
+    --ai-s1: 16deg;
+    --ai-s2: 30deg;
+    --ai-s3: 43deg;
+    --ai-s4: 59deg;
+    --ai-s5: 72deg;
+    --ai-s6: 84deg;
+  }
+  100% {
+    opacity: 0;
+    --ai-start: -90deg;
+    --ai-s1: 6deg;
+    --ai-s2: 11deg;
+    --ai-s3: 17deg;
+    --ai-s4: 40deg;
+    --ai-s5: 90deg;
+    --ai-s6: 120deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-lights-layer {
+    display: none;
+  }
+}
+
+/* Constant mode: a steady light-blue halo round the whole rim (the masks are drawn with EVEN_STOPS),
+   breathing gently. Only opacity animates, which the compositor handles on its own. */
+.ai-lights.is-constant .ai-lights-layer {
+  background: conic-gradient(from 220deg at 50% 50%, #4fd1e8, #a6ecff, #5aa8ff, #7fd0ff, #c4f3ff, #4c8dff, #4fd1e8);
+  opacity: 0.9;
+  animation: ai-breathe 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes ai-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-lights.is-constant .ai-lights-layer {
+    display: block;
+    animation: none;
+    opacity: 0.8;
+  }
+}

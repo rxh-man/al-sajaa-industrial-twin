@@ -1,0 +1,225 @@
+/* ================= map layers (data/geo.ts, components/geo) ================= */
+
+.geo-neighbour {
+  fill: #0e1822;
+  stroke: rgba(148, 172, 204, 0.2);
+  stroke-width: 0.6px;
+}
+
+.geo-uae {
+  fill: #142636;
+  stroke: rgba(79, 209, 232, 0.65);
+  stroke-width: 0.8px;
+  stroke-linejoin: round;
+}
+
+/* OpenStreetMap land continues the UAE fill seamlessly; Abu Dhabi Island is lifted */
+.geo-land {
+  fill: #142636;
+}
+
+.geo-island,
+.geo-coast {
+  fill: #193449;
+}
+
+.geo-land-edge,
+.geo-island-edge,
+.geo-coast-edge {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.geo-land-edge {
+  stroke: rgba(79, 209, 232, 0.5);
+  stroke-width: 0.6px;
+}
+
+.geo-island-edge,
+.geo-coast-edge {
+  stroke: rgba(79, 209, 232, 0.9);
+  stroke-width: 0.9px;
+}
+
+.geo-minor,
+.geo-major,
+.geo-named,
+.geo-hamdan {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.geo-minor {
+  stroke: rgba(122, 150, 176, 0.24);
+  stroke-width: 0.7px;
+}
+
+.geo-major {
+  stroke: rgba(150, 190, 214, 0.42);
+  stroke-width: 1.1px;
+}
+
+.geo-named {
+  stroke: rgba(175, 222, 240, 0.7);
+  stroke-width: 1.5px;
+}
+
+.geo-hamdan {
+  stroke: var(--amber);
+  stroke-width: 2.4px;
+  filter: drop-shadow(0 0 4px rgba(245, 181, 68, 0.55));
+}
+
+.geo-footprint {
+  fill: rgba(79, 209, 232, 0.07);
+  stroke: var(--cyan);
+  stroke-width: 1.3px;
+  stroke-dasharray: 6 4;
+}
+
+/* ================= locator card (left rail) ================= */
+
+.loc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.loc-ar {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.loc-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background: radial-gradient(ellipse at 30% 30%, rgba(20, 44, 64, 0.55), rgba(6, 12, 19, 0.9));
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.loc-city {
+  fill: var(--text-2);
+}
+
+.loc-capital {
+  fill: var(--cyan);
+}
+
+.loc-box {
+  fill: rgba(79, 209, 232, 0.12);
+  stroke: var(--cyan);
+  stroke-width: 0.8;
+}
+
+.loc-leader {
+  stroke: rgba(79, 209, 232, 0.4);
+  stroke-width: 0.7;
+}
+
+.loc-lens-bg {
+  fill: #08131c;
+}
+
+.loc-lens-rim {
+  fill: none;
+  stroke: rgba(79, 209, 232, 0.7);
+  stroke-width: 1;
+}
+
+.loc-footprint {
+  fill: rgba(79, 209, 232, 0.3);
+  stroke: var(--cyan);
+  stroke-width: 0.6px;
+}
+
+.loc-site {
+  fill: var(--cyan);
+  stroke: #04121a;
+  stroke-width: 0.8;
+}
+
+.loc-pulse {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: locPulse 2.2s var(--ease-out) infinite;
+}
+
+.loc.is-alert .loc-site {
+  fill: var(--red);
+}
+
+.loc.is-alert .loc-pulse {
+  stroke: var(--red);
+  animation-duration: 1.2s;
+}
+
+@keyframes locPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+.loc-label {
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--text-2);
+}
+
+.loc-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.loc-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.loc-name svg {
+  color: var(--cyan);
+  flex: none;
+}
+
+.loc.is-alert .loc-name svg {
+  color: var(--red);
+}
+
+.loc-sub {
+  font-size: 10.5px;
+  color: var(--text-2);
+  padding-left: 17px;
+}
+
+.loc-attrib {
+  font-size: 8.5px;
+  color: var(--text-3);
+  padding: 0 2px;
+}
+
+@media (max-height: 760px) {
+  .loc-map {
+    display: none;
+  }
+}

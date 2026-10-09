@@ -1,0 +1,92 @@
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --bg-0: #04070c;
+  --bg-1: #070b12;
+  --panel: rgba(8, 12, 19, 0.86);
+  --panel-solid: #0a0f17;
+  --card: rgba(16, 23, 34, 0.72);
+  --card-hi: rgba(22, 31, 45, 0.85);
+  --line: rgba(148, 172, 204, 0.11);
+  --line-2: rgba(148, 172, 204, 0.18);
+  --line-3: rgba(148, 172, 204, 0.3);
+
+  /* text */
+  --text-0: #eaf0f7;
+  --text-1: #aab6c6;
+  --text-2: #6f7d8f;
+  --text-3: #4a5666;
+
+  /* signal colours */
+  --cyan: #4fd1e8;
+  --cyan-soft: rgba(79, 209, 232, 0.14);
+  --blue: #4c8dff;
+  --blue-soft: rgba(76, 141, 255, 0.14);
+  --emerald: #34d399;
+  --emerald-soft: rgba(52, 211, 153, 0.13);
+  --amber: #f5b544;
+  --amber-soft: rgba(245, 181, 68, 0.14);
+  --red: #ff5d52;
+  --red-soft: rgba(255, 93, 82, 0.14);
+
+  /* infrastructure layers */
+  --water: #38b6f0;
+  --electric: #f0c23b;
+  --telecom: #2fd0b0;
+  --sewage: #e09547;
+  --cooling: #a8eaf5;
+
+  /* the decision surface (the agents' approval card, the landing call-to-action) */
+  --instrument: #0d1726;
+  --instrument-row: #16233a;
+  --instrument-ink: #eaf0f7;
+  --instrument-ink-2: #8a99ad;
+
+  /* accent aliases used by the agents panel and the landing page */
+  --dusk-1: #4fd1e8;
+  --dusk-2: #4c8dff;
+  --dusk-3: #f5b544;
+
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 7px;
+  /* names used by the agents panel and landing (Tailwind keeps its own rounded-* scale) */
+  --radius-panel: var(--radius-lg);
+  --radius-card: var(--radius-md);
+  --radius-chip: var(--radius-sm);
+
+  --font-sans: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Sans Variable', 'Instrument Sans', 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Fragment Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* layout (the right rail is wide enough for the agents panel) */
+  --header-h: 56px;
+  --rail-l: 236px;
+  --rail-r: 344px;
+  --gap: 12px;
+}
+
+@media (max-width: 1600px) {
+  :root {
+    --rail-l: 224px;
+    --rail-r: 328px;
+    --gap: 10px;
+  }
+}
+
+@media (max-width: 1360px) {
+  :root {
+    --rail-l: 212px;
+    --rail-r: 312px;
+  }
+}
+
+@media (max-height: 900px) {
+  :root {
+    --header-h: 52px;
+  }
+}

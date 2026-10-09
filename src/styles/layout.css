@@ -1,0 +1,208 @@
+.app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+}
+
+.stage canvas {
+  display: block;
+  outline: none;
+  touch-action: none;
+}
+
+/* ---------- frame ---------- */
+
+.hdr {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-h);
+  z-index: 40;
+}
+
+/* rails float as content-height cards so the city stays visible beneath them */
+.rail {
+  position: absolute;
+  top: var(--header-h);
+  max-height: calc(100% - var(--header-h) - var(--gap));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rail-l {
+  left: var(--gap);
+  width: var(--rail-l);
+}
+
+.rail-r {
+  right: var(--gap);
+  width: var(--rail-r);
+}
+
+
+.viewport {
+  position: absolute;
+  top: calc(var(--header-h) + 2px);
+  left: calc(var(--rail-l) + var(--gap) * 2);
+  right: calc(var(--rail-r) + var(--gap) * 2);
+  bottom: var(--gap);
+  z-index: 25;
+  pointer-events: none;
+}
+
+.viewport > div > * {
+  pointer-events: auto;
+}
+
+.vp-tl {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.vp-tr {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.vp-tc {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(620px, 56%);
+}
+
+.vp-bl {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+.vp-bc {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+/* ---------- boot choreography ---------- */
+
+.panel-enter {
+  transition:
+    opacity 0.7s var(--ease-out) var(--enter-delay, 0ms),
+    transform 0.95s var(--ease-out) var(--enter-delay, 0ms);
+}
+
+.boot-loading .panel-enter,
+.boot-intro .panel-enter {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-loading .rail-l,
+.boot-intro .rail-l {
+  transform: translateX(-28px);
+}
+
+.boot-loading .rail-r,
+.boot-intro .rail-r {
+  transform: translateX(28px);
+}
+
+.boot-loading .hdr,
+.boot-intro .hdr {
+  transform: translateY(-10px);
+}
+
+.boot-loading .vp-bc,
+.boot-intro .vp-bc {
+  transform: translate(-50%, 16px);
+}
+
+.boot-ready .vp-bc {
+  transform: translate(-50%, 0);
+}
+
+/* ---------- compact / small screens ---------- */
+
+.drawer-toggles {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --rail-l: 280px;
+    --rail-r: 300px;
+  }
+
+  .app.is-compact .rail {
+    top: calc(var(--header-h) + 44px);
+    bottom: calc(var(--gap) + 64px);
+    transition: transform 0.45s var(--ease-out), opacity 0.35s ease;
+    z-index: 45;
+  }
+
+  .app.is-compact .rail-l {
+    transform: translateX(calc(-100% - 24px));
+  }
+
+  .app.is-compact .rail-r {
+    transform: translateX(calc(100% + 24px));
+  }
+
+  .app.is-compact.drawer-left .rail-l,
+  .app.is-compact.drawer-right .rail-r {
+    transform: none;
+  }
+
+  .app.is-compact .viewport {
+    left: var(--gap);
+    right: var(--gap);
+  }
+
+  .drawer-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: absolute;
+    left: var(--gap);
+    bottom: calc(var(--gap) + 72px);
+    z-index: 46;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --header-h: 52px;
+    --gap: 8px;
+  }
+
+  .vp-tl,
+  .vp-tr {
+    top: 46px;
+  }
+
+  .vp-tc {
+    width: calc(100% - 16px);
+    top: 92px;
+  }
+}

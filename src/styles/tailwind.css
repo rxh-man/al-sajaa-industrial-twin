@@ -1,0 +1,44 @@
+/*
+ * Tailwind v4 for the shadcn components (landing page, navbar, rail TOC).
+ * No preflight: the 3D twin keeps its own reset. Utilities are unlayered so a class like
+ * `px-3` still beats the twin's element resets (`button { padding: 0 }`).
+ */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' source(none);
+
+@source '../components/ui';
+@source '../components/landing';
+@source '../components/evilcharts';
+@source '../components/agents';
+
+/* shadcn's semantic colours, mapped onto the twin's dark tokens (tokens.css): one palette, not two */
+@theme inline {
+  --color-background: var(--bg-1);
+  --color-foreground: var(--text-0);
+  --color-muted: var(--card);
+  --color-muted-foreground: var(--text-1);
+  --color-subtle: var(--text-2);
+  --color-border: var(--line-2);
+  --color-ring: var(--line-3);
+  --color-primary: var(--text-0);
+  --color-primary-foreground: var(--bg-0);
+  --color-panel: var(--panel-solid);
+  --color-instrument: var(--instrument);
+  --color-instrument-row: var(--instrument-row);
+  --color-instrument-ink: var(--instrument-ink);
+  --color-instrument-ink-2: var(--instrument-ink-2);
+  --color-dusk: var(--dusk-1);
+  --color-dusk-2: var(--dusk-2);
+  --color-dusk-3: var(--dusk-3);
+  --color-amber: var(--amber);
+  --color-accent: var(--cyan);
+  --color-accent-soft: var(--cyan-soft);
+  --color-emerald: var(--emerald);
+  --font-display: var(--font-display);
+}
+
+/* raw variables some registry components read directly (e.g. rail-toc's colour-mix) */
+:root {
+  --background: var(--bg-1);
+  --foreground: var(--text-0);
+}
