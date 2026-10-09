@@ -81,10 +81,10 @@ export const CITY_SEA_LABEL: Place = { name: 'Arabian Gulf', ar: 'الخليج �
 export const DISTRICT_SEA_LABEL: Place = { name: 'Arabian Gulf', ar: 'الخليج العربي', lon: 54.3625, lat: 24.4995 };
 
 export const PLACE = {
-  district: 'Al Danah',
-  districtAr: 'الدانة',
-  city: 'Abu Dhabi',
-  cityAr: 'أبوظبي',
+  district: 'Al Sajaa',
+  districtAr: 'السجعة',
+  city: 'Sharjah',
+  cityAr: 'الشارقة',
   country: 'United Arab Emirates',
   countryShort: 'UAE',
   /** District label point (inside Al Danah, OpenStreetMap admin boundary). */
