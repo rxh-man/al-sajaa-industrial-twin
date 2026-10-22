@@ -59,7 +59,8 @@ export function CameraRig() {
     c.truckSpeed = 1.6;
     c.dollyToCursor = true;
     c.infinityDolly = false;
-    c.setBoundary(new Box3(new Vector3(-96, -48, -86), new Vector3(96, 26, 104)));
+    // the combined world (baseline plus expansion, see DIORAMA in city.ts) so every place can be framed
+    c.setBoundary(new Box3(new Vector3(-320, -48, -240), new Vector3(204, 26, 100)));
     c.boundaryEnclosesCamera = false;
     const p = POSES.intro;
     c.setLookAt(...p.pos, ...p.target, false);
@@ -76,6 +77,24 @@ export function CameraRig() {
     const unsub = useTwinStore.subscribe((s, prev) => {
       if (s.shot.nonce === prev.shot.nonce) return;
       startShot(s.shot.id);
+    });
+    return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // frame a place (or all places): a pose looking down at the point from a distance set by its radius
+  useEffect(() => {
+    const unsub = useTwinStore.subscribe((s, prev) => {
+      const f = s.placeFocus;
+      if (!f || f.nonce === prev.placeFocus?.nonce) return;
+      const c = ref.current;
+      if (!c) return;
+      c.getPosition(tmpPos);
+      c.getTarget(tmpTgt);
+      const r = Math.max(4, f.r);
+      const to = new Vector3(f.x + r * 0.55, r * 0.9 + 3, f.z + r * 0.8);
+      const toT = new Vector3(f.x, 0, f.z);
+      tween.current = { kind: 'pose', fromPos: tmpPos.clone(), fromTgt: tmpTgt.clone(), toPos: to, toTgt: toT, t0: now.current, dur: 2.2, ease: easeInOut };
     });
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps

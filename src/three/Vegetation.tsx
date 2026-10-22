@@ -1,3 +1,4 @@
+import { ALSAJAA_INLAND } from '../config/overrides';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { BoxGeometry, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Intersection, type Raycaster } from 'three';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -304,7 +305,7 @@ function placePlants(): Plant[] {
   }
 
   // Corniche promenade: an unbroken line of palms
-  for (let x = -73; x <= 73; x += 4.4) {
+  for (let x = -73; x <= 73 && !ALSAJAA_INLAND; x += 4.4) {
     if (Math.abs(x % 10) < 1.2) continue;
     add(rng() < 0.85 ? 1 : 0, x + (rng() - 0.5), 65.7 + (rng() - 0.5) * 0.5, 0.86 + rng() * 0.3);
   }

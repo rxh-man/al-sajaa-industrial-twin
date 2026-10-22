@@ -1,0 +1,11 @@
+{
+  "name": "Station parking",
+  "note": "Procedural addition for the Etihad Rail Station (not survey data). Units: 1 = 10 m.",
+  "rect": [-12, -76, 6, -61],
+  "bayPitch": 0.3,
+  "bayDepth": 0.6,
+  "access": [[-0.62, -57.2], [-0.62, -61.0]],
+  "walk": [[-0.62, -61.0], [-0.62, -52.0]],
+  "accessWidth": 1.0,
+  "walkWidth": 0.5
+}

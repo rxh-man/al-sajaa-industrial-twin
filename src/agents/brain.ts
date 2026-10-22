@@ -143,8 +143,8 @@ interface Road {
 }
 
 const ROADS: Road[] = [
-  { id: 'lane', label: 'Close one lane for 6 hours', done: 'Closed one lane of Khalifa Street for 6 hours', note: 'Ambulances still get through', hours: 6, keepsAccess: true },
-  { id: 'street', label: 'Close the whole street for 4 hours', done: 'Closed Khalifa Street for 4 hours', note: 'Faster, but ambulances take a 4-minute detour', hours: 4, keepsAccess: false },
+  { id: 'lane', label: 'Close one lane for 6 hours', done: 'Closed one lane of the main road for 6 hours', note: 'Ambulances still get through', hours: 6, keepsAccess: true },
+  { id: 'street', label: 'Close the whole street for 4 hours', done: 'Closed the main road for 4 hours', note: 'Faster, but ambulances take a 4-minute detour', hours: 4, keepsAccess: false },
   { id: 'night', label: 'Wait for tonight, no closure', done: 'Moved the work to tonight', note: 'No traffic, but the crew starts 10 hours later', hours: 0, keepsAccess: true },
 ];
 
@@ -209,7 +209,7 @@ export function questionsFor(policy: Policy): Question[] {
       id: 'road',
       t: Q_T.road,
       agent: 'plan',
-      ask: 'How should we handle traffic on Khalifa Street?',
+      ask: 'How should we handle traffic on the main road?',
       context: `${POI.hospital.name} is ${POI.hospital.distanceM} m away and its ambulances use this street`,
       choices: ROADS.map((r) => ({
         id: r.id,
@@ -289,7 +289,7 @@ export function buildRun(policy: Policy, answers: Answers): AgentRun {
       agent: 'watch',
       title: 'Spotted small changes near area B-12',
       detail: 'Pressure down 2.7% · ground getting wetter',
-      steps: ['Read 216 sensors across downtown', '3 pressure sensors in B-12 down 2.7%', 'Ground near Khalifa Street getting wetter'],
+      steps: ['Read 216 sensors across the district (simulated)', '3 pressure sensors in B-12 down 2.7% (simulated)', 'Ground near the main road getting wetter (simulated)'],
     },
     {
       id: 'link',

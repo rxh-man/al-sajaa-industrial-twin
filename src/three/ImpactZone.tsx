@@ -155,7 +155,7 @@ function PoiBadges() {
   );
 }
 
-/** Khalifa Street closure-risk overlay (amber → red when projected / burst). */
+/** Main-road closure-risk overlay (simulated; amber → red when projected / burst). */
 function RoadAlert() {
   const mat = useMemo(
     () =>
@@ -222,7 +222,7 @@ function RoadAlert() {
       <FadeHtml position={[-24, 0.6, 2.5]} opacity={() => live.road} zIndex={23}>
         <div className={`road-chip ${future ? 'is-closed' : ''}`}>
           <Construction size={13} strokeWidth={2.2} />
-          <span>Khalifa St</span>
+          <span>Main road (simulated)</span>
           <b>{future ? 'CLOSED' : 'at risk'}</b>
         </div>
       </FadeHtml>

@@ -1,12 +1,13 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { BoxGeometry, InstancedBufferAttribute, InstancedMesh, Matrix4, Quaternion, Vector3, type Intersection, type Raycaster } from 'three';
+import { BoxGeometry, InstancedBufferAttribute, InstancedMesh, Matrix4, Quaternion, Vector3, type Intersection, type Material, type Raycaster } from 'three';
 import { AD, AD_BUILDING_ID0, place, type AdBuilding } from '../data/abudhabi';
 import { sectorAt } from '../data/city';
 import { live } from '../simulation/runtime';
 import { G } from './shaders/globals';
 import { useTwinStore } from '../store/useTwinStore';
 import { createBuildingGhostMaterial, createBuildingSolidMaterial } from './materials/buildingMaterials';
+import { variantFor, variantGeometry, type VariantSpec } from './buildingVariants';
 
 const noRaycast = (_r: Raycaster, _i: Intersection[]) => {};
 
@@ -65,6 +66,8 @@ function look(b: AdBuilding): { style: number; tint: RGB; lit: number } {
       return { style: WARM, tint: [0.8, 0.72, 0.58], lit: 0.2 };
     case 'house':
       return { style: WARM, tint: pick(SAND, r2), lit: 0.3 };
+    case 'pool':
+      return { style: RESIDENTIAL, tint: [0.36, 0.66, 0.82], lit: 0.45 };
     case 'utility':
     case 'roof':
       return { style: INDUSTRIAL, tint: [0.6, 0.59, 0.56], lit: 0.1 };
@@ -101,7 +104,8 @@ const SCHOOL = place('school');
 const SHOP_KINDS = new Set(['building', 'residential', 'office', 'mall', 'hotel', 'tower']);
 
 export function AbuDhabiBuildings() {
-  const boxes = useMemo(() => AD.buildings.flatMap((b, bi) => b.b.map((box) => ({ b, bi, box }))), []);
+  // baseline buildings keep their box shells; procedural expansion buildings use the variant catalogue
+  const boxes = useMemo(() => AD.buildings.flatMap((b, bi) => (b.procedural ? [] : b.b.map((box) => ({ b, bi, box })))), []);
 
   const geometry = useMemo(() => {
     const g = new BoxGeometry(1, 1, 1);
@@ -166,6 +170,10 @@ export function AbuDhabiBuildings() {
     solid.visible = gx < 0.995;
     ghost.visible = gx > 0.004;
     solidMat.depthWrite = gx < 0.55;
+    // Opaque while the city is solid, so the renderer depth-sorts it with the other opaque meshes.
+    // Transparent only during the X-ray fade. Keeping it transparent all the time sorts the whole
+    // instanced mesh as one object, which let the transparent pass draw over the Tasheel Centre mall.
+    solidMat.transparent = gx > 0.001;
     solid.castShadow = gx < 0.5;
     solid.raycast = gx > 0.5 || live.exploded > 0.3 ? noRaycast : InstancedMesh.prototype.raycast;
   });
@@ -196,6 +204,122 @@ export function AbuDhabiBuildings() {
         }}
       />
       <instancedMesh ref={ghostRef} args={[geometry, ghostMat, boxes.length]} frustumCulled={false} raycast={noRaycast} renderOrder={5} />
+      <VariantBuildings solidMat={solidMat} ghostMat={ghostMat} />
+    </group>
+  );
+}
+
+/** One instanced mesh per catalogue variant, for the procedural expansion buildings. */
+function VariantBuildings({ solidMat, ghostMat }: { solidMat: Material; ghostMat: Material }) {
+  const groups = useMemo(() => {
+    const map = new Map<number, { spec: VariantSpec; items: { b: AdBuilding; bi: number }[] }>();
+    AD.buildings.forEach((b, bi) => {
+      if (!b.procedural || b.b.length === 0) return;
+      const spec = variantFor(b);
+      const g = map.get(spec.id) ?? { spec, items: [] };
+      g.items.push({ b, bi });
+      map.set(spec.id, g);
+    });
+    return [...map.values()].sort((a, b) => a.spec.id - b.spec.id);
+  }, []);
+  return (
+    <>
+      {groups.map((g) => (
+        <VariantMesh key={g.spec.id} spec={g.spec} items={g.items} solidMat={solidMat} ghostMat={ghostMat} />
+      ))}
+    </>
+  );
+}
+
+function VariantMesh({ spec, items, solidMat, ghostMat }: { spec: VariantSpec; items: { b: AdBuilding; bi: number }[]; solidMat: Material; ghostMat: Material }) {
+  const solidRef = useRef<InstancedMesh>(null);
+  const ghostRef = useRef<InstancedMesh>(null);
+  const geometry = useMemo(() => {
+    const g = variantGeometry(spec);
+    const n = items.length;
+    const aSeed = new Float32Array(n);
+    const aBldg = new Float32Array(n);
+    const aStyle = new Float32Array(n);
+    const aLit = new Float32Array(n);
+    const aPoi = new Float32Array(n);
+    const aShop = new Float32Array(n);
+    const aTint = new Float32Array(n * 3);
+    const aCenter = new Float32Array(n * 2);
+    items.forEach(({ b, bi }, i) => {
+      const lk = look(b);
+      aSeed[i] = ((b.id * 0.618034) % 1) * 9.7 + 0.3;
+      aBldg[i] = AD_BUILDING_ID0 + bi;
+      aStyle[i] = lk.style;
+      aLit[i] = lk.lit;
+      aPoi[i] = 0;
+      aShop[i] = SHOP_KINDS.has(b.k) && b.y === 0 && onMainStreet(b.b[0]) ? 1 : 0;
+      aTint.set(lk.tint, i * 3);
+      aCenter.set(b.c, i * 2);
+    });
+    g.setAttribute('aSeed', new InstancedBufferAttribute(aSeed, 1));
+    g.setAttribute('aBldg', new InstancedBufferAttribute(aBldg, 1));
+    g.setAttribute('aStyle', new InstancedBufferAttribute(aStyle, 1));
+    g.setAttribute('aLit', new InstancedBufferAttribute(aLit, 1));
+    g.setAttribute('aPoi', new InstancedBufferAttribute(aPoi, 1));
+    g.setAttribute('aShop', new InstancedBufferAttribute(aShop, 1));
+    g.setAttribute('aTint', new InstancedBufferAttribute(aTint, 3));
+    g.setAttribute('aCenter', new InstancedBufferAttribute(aCenter, 2));
+    return g;
+  }, [spec, items]);
+
+  useLayoutEffect(() => {
+    const solid = solidRef.current!;
+    const ghost = ghostRef.current!;
+    const m = new Matrix4();
+    const q = new Quaternion();
+    items.forEach(({ b }, i) => {
+      const [x1, z1, x2, z2] = b.b[0];
+      m.compose(new Vector3((x1 + x2) / 2, b.y, (z1 + z2) / 2), q, new Vector3(x2 - x1, b.h, z2 - z1));
+      solid.setMatrixAt(i, m);
+    });
+    solid.instanceMatrix.needsUpdate = true;
+    ghost.instanceMatrix = solid.instanceMatrix;
+    solid.computeBoundingSphere();
+    ghost.computeBoundingSphere();
+  }, [items]);
+
+  useFrame(() => {
+    const solid = solidRef.current;
+    const ghost = ghostRef.current;
+    if (!solid || !ghost) return;
+    const gx = G.uXray.value;
+    solid.visible = gx < 0.995;
+    ghost.visible = gx > 0.004;
+    solid.castShadow = gx < 0.5;
+    solid.raycast = gx > 0.5 || live.exploded > 0.3 ? noRaycast : InstancedMesh.prototype.raycast;
+  });
+
+  const setHover = useTwinStore((s) => s.setHover);
+  const setHoverSector = useTwinStore((s) => s.setHoverSector);
+  const select = useTwinStore((s) => s.select);
+
+  return (
+    <group>
+      <instancedMesh
+        ref={solidRef}
+        args={[geometry, solidMat, items.length]}
+        castShadow
+        receiveShadow
+        onPointerMove={(e) => {
+          if (e.instanceId === undefined) return;
+          e.stopPropagation();
+          const { b, bi } = items[e.instanceId];
+          setHover({ kind: 'building', id: AD_BUILDING_ID0 + bi });
+          setHoverSector(sectorAt(b.c[0], b.c[1])?.id ?? null);
+        }}
+        onPointerOut={() => setHover(null)}
+        onClick={(e) => {
+          if (e.delta > 4 || e.instanceId === undefined) return;
+          e.stopPropagation();
+          select({ info: { kind: 'building', id: AD_BUILDING_ID0 + items[e.instanceId].bi }, point: [e.point.x, e.point.y, e.point.z] });
+        }}
+      />
+      <instancedMesh ref={ghostRef} args={[geometry, ghostMat, items.length]} frustumCulled={false} raycast={noRaycast} renderOrder={5} />
     </group>
   );
 }

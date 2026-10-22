@@ -12,9 +12,9 @@ const S1 = W / (X1 - X0);
 const H = Math.round((Y1 - Y0) * S1);
 const uae = (x: number, y: number): [number, number] => [(x - X0) * S1, (y - Y0) * S1];
 
-// magnifier over the open Gulf, showing Abu Dhabi Island
-const CITY_C = project(54.392, 24.474);
-const CITY_R = 9.5; // km shown from the lens centre to its rim
+// magnifier over the open Gulf, showing Al Sajaa, Sharjah
+const CITY_C = project(55.436, 25.337);
+const CITY_R = 3.5; // km shown from the lens centre to its rim
 const LENS: [number, number] = [41, 37];
 const LENS_R = 33;
 const S2 = LENS_R / CITY_R;
@@ -34,7 +34,7 @@ const SITE = sceneToMap(0, 0);
 const SITE_LENS = lens(SITE[0], SITE[1]);
 const [SITE_LON, SITE_LAT] = sceneToLonLat(0, 0);
 
-/** Where the twin is: UAE overview with a lens on Abu Dhabi Island and the Al Danah site. */
+/** Where the twin is: UAE overview with a lens on Al Sajaa, Sharjah. */
 export function LocatorCard() {
   const alert = useTwinStore((s) => (s.snap.localized && !s.snap.resolved) || s.future);
   return (
@@ -45,7 +45,7 @@ export function LocatorCard() {
           {PLACE.districtAr}، {PLACE.cityAr}
         </span>
       </header>
-      <svg className="loc-map" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Map of the United Arab Emirates with Abu Dhabi Island magnified">
+      <svg className="loc-map" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Map of the United Arab Emirates with Al Sajaa, Sharjah magnified">
         <defs>
           <clipPath id="loc-lens-clip">
             <circle cx={LENS[0]} cy={LENS[1]} r={LENS_R} />
@@ -74,7 +74,7 @@ export function LocatorCard() {
         </g>
         <circle className="loc-lens-rim" cx={LENS[0]} cy={LENS[1]} r={LENS_R} />
         <text className="loc-label" x={LENS[0]} y={LENS[1] + LENS_R + 9} textAnchor="middle">
-          Abu Dhabi Island
+          Al Sajaa, Sharjah
         </text>
       </svg>
       <div className="loc-text">

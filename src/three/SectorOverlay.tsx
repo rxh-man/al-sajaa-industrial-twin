@@ -16,7 +16,7 @@ function AlertLabel() {
   useFrame(() => {
     const healed = live.healed > 0.5;
     const sev = live.sectorSeverity > 0.5;
-    const state = healed ? 'STABLE' : sev ? 'INCIDENT' : 'ANOMALY';
+    const state = (healed ? 'STABLE' : sev ? 'INCIDENT' : 'ANOMALY') + ' · SIMULATED';
     const tone = healed ? 'ok' : sev ? 'alert' : 'warn';
     if (stateRef.current && stateRef.current.textContent !== state) stateRef.current.textContent = state;
     if (boxRef.current && boxRef.current.dataset.tone !== tone) boxRef.current.dataset.tone = tone;

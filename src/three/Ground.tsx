@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { BufferGeometry, Float32BufferAttribute, Mesh, PlaneGeometry } from 'three';
 import { DIORAMA, RIVER } from '../data/city';
+import { ALSAJAA_INLAND } from '../config/overrides';
 import { onLand } from '../data/abudhabi';
 import { TRENCH } from '../data/incident';
 import { live } from '../simulation/runtime';
@@ -39,6 +40,9 @@ export function wall(points: [number, number][], y0: number, y1: number) {
  * The cut faces of the slab. Along each edge, land shows soil from the bottom up to
  * street level; where the edge runs through the sea, soil stops at the sea bed.
  */
+/** inland Al Sajaa: the whole plate is land, so no coastline wall is built */
+const landAt = (x: number, z: number) => (ALSAJAA_INLAND ? true : onLand(x, z));
+
 export function Diorama() {
   const soil = useMemo(() => createSoilMaterial(), []);
   const bed = useMemo(() => createPropMaterial({ color: '#0d1114', roughness: 1 }), []);
@@ -58,10 +62,10 @@ export function Diorama() {
       const L = Math.hypot(bx - ax, bz - az);
       const n = Math.ceil(L / step);
       let runStart = 0;
-      let runLand = onLand(ax + (bx - ax) * 0.001, az + (bz - az) * 0.001);
+      let runLand = landAt(ax + (bx - ax) * 0.001, az + (bz - az) * 0.001);
       for (let i = 1; i <= n; i++) {
         const t = i / n;
-        const land = i < n ? onLand(ax + (bx - ax) * t, az + (bz - az) * t) : !runLand;
+        const land = i < n ? landAt(ax + (bx - ax) * t, az + (bz - az) * t) : !runLand;
         if (land !== runLand || i === n) {
           const t0 = runStart / n;
           const p0: [number, number] = [ax + (bx - ax) * t0, az + (bz - az) * t0];
@@ -81,7 +85,7 @@ export function Diorama() {
       {faces.map((g, i) => (
         <mesh key={i} geometry={g} material={soil} />
       ))}
-      {waterFaces.map((g, i) => (
+      {!ALSAJAA_INLAND && waterFaces.map((g, i) => (
         <mesh key={`w${i}`} geometry={g} material={water} />
       ))}
       {/* bottom of the slab */}

@@ -1,0 +1,20 @@
+{
+  "sha256": "1a5870521d0768007cc56adf03e9f657ba389ce861111e3b80137d18f8e576f4",
+  "counts": {
+    "land": 139,
+    "coast": 137,
+    "roads": 70,
+    "buildings": 748,
+    "parks": 48,
+    "palms": 305,
+    "places": 17,
+    "labels": 14
+  },
+  "rect": {
+    "minX": -152,
+    "maxX": 120,
+    "minZ": -80,
+    "maxZ": 46
+  },
+  "roadKeys": 3057
+}

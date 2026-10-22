@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { BoxGeometry, BufferGeometry, Color, CylinderGeometry, EdgesGeometry, Float32BufferAttribute, Group, InstancedMesh, LineBasicMaterial, LineSegments, Matrix4, Quaternion, ShaderMaterial, Vector3, type Intersection, type Raycaster } from 'three';
 import { LAYERS, LAYER_ORDER, NETWORKS, networkLengthM, type LayerId } from '../data/networks';
 import { SENSORS } from '../data/sensors';
-import { DIORAMA, RIVER } from '../data/city';
+import { BASE_BOUNDS as DIORAMA, RIVER } from '../data/city';
 import { AD } from '../data/abudhabi';
 import { live } from '../simulation/runtime';
 import { NetworkLayer } from './networks/NetworkLayer';

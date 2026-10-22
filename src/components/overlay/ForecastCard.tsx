@@ -39,7 +39,7 @@ export function ForecastCard() {
           </linearGradient>
         </defs>
         <rect x="0" y="0" width={W} height={H} fill="url(#fc-bg)" rx="4" />
-        <rect x={X(a)} y="0" width={X(b) - X(a)} height={H} className="forecast-window" />
+        <rect x={Math.min(X(a), X(b))} y="0" width={Math.max(0, Math.abs(X(b) - X(a)))} height={H} className="forecast-window" />
         {show && <path d={curve} className="forecast-line" pathLength={1} />}
         <circle cx={X(0) + 3} cy={Y(67)} r="3.5" className="forecast-now" />
         {future && <line x1={X(48)} x2={X(48)} y1="0" y2={H} className="forecast-future" />}

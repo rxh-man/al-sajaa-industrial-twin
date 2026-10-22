@@ -1,5 +1,6 @@
-import { AD, onLand, type XZ } from './abudhabi';
+import { AD_BASE as AD, onLandBase as onLand, type XZ } from './abudhabi';
 import { TRENCH } from './incident';
+import { ALSAJAA_INLAND } from '../config/overrides';
 
 /**
  * Street lighting for the dusk city: lamps along both kerbs of the real main roads and a row
@@ -52,7 +53,8 @@ function build() {
   const promenade: Lamp[] = [];
 
   // the Corniche promenade first, so road lamps keep their distance from it
-  for (const p of along(AD.coast, PROMENADE_SPACING)) {
+  // inland Al Sajaa has no Corniche seawall, so no promenade lamp row (src/config/overrides.ts)
+  for (const p of ALSAJAA_INLAND ? [] : along(AD.coast, PROMENADE_SPACING)) {
     // which side of the seawall is land?
     let nx = -p.tz;
     let nz = p.tx;

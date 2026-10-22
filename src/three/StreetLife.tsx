@@ -4,6 +4,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { SECTORS, PLINTH_H } from '../data/city';
 import { mulberry32 } from '../data/rng';
 import { G } from './shaders/globals';
+import { ALSAJAA_INLAND } from '../config/overrides';
 import { patchMaterial } from './shaders/patch';
 import { createGlowMaterial, createPropMaterial } from './materials/surfaceMaterials';
 
@@ -141,8 +142,8 @@ function Pedestrians() {
         add(s.x, s.z, r, r, 0.42 + rng() * 0.22);
       }
     }
-    // Corniche promenade
-    for (let k = 0; k < 70; k++) add((rng() - 0.5) * 8, 62.95, 70 + rng() * 3, 0.25 + rng() * 0.3, 0.4 + rng() * 0.2);
+    // promenade crowd along the old seawall: none inland (Al Sajaa has no coast)
+    for (let k = 0; !ALSAJAA_INLAND && k < 70; k++) add((rng() - 0.5) * 8, 62.95, 70 + rng() * 3, 0.25 + rng() * 0.3, 0.4 + rng() * 0.2);
     const g = personGeometry();
     const count = loops.length / 4;
     g.setAttribute('aLoop', new InstancedBufferAttribute(new Float32Array(loops), 4));
@@ -236,7 +237,7 @@ function Benches() {
     const back = new BoxGeometry(0.62, 0.1, 0.025).translate(0, 0.15, -0.065);
     const l1 = new BoxGeometry(0.03, 0.085, 0.12).translate(0.27, 0.042, 0);
     const l2 = new BoxGeometry(0.03, 0.085, 0.12).translate(-0.27, 0.042, 0);
-    return mergeGeometries([seat, back, l1, l2].map((g) => g.toNonIndexed()), false)!;
+    return mergeGeometries([seat, back, l1, l2].map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
   }, []);
   useLayoutEffect(() => {
     const m = new Matrix4();

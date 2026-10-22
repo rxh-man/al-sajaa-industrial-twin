@@ -38,7 +38,7 @@ type Facts = ReturnType<typeof factsNow>;
 export function builtInAnswer(q: string, f: Facts): string {
   const s = q.toLowerCase();
   const find = (re: RegExp) => f.done.find((d) => re.test(d.did));
-  if (!f.incident) return 'Everything is normal. Watch is checking the sensors across downtown and nothing needs fixing right now.';
+  if (!f.incident) return 'Everything is normal. Watch is checking the sensors across the district and nothing needs fixing right now.';
   if (/crew|team|who|send|dispatch/.test(s)) {
     const d = find(/^Sent Crew 07/);
     return d ? `${d.did}. ${d.compared?.filter((c) => !c.startsWith('CHOSEN')).map((c) => c.replace('not chosen: ', '')).join('; ')}.` : 'No crew has been sent yet. Dispatch picks the closest free crew with the right skills once the plan is set.';

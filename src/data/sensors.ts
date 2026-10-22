@@ -24,7 +24,7 @@ const lz = (l: LayerId, j: number) => STREET_Z[j] + LAYERS[l].offset;
 type Def = Omit<Sensor, 'index'>;
 
 const DEFS: Def[] = [
-  // ---- incident cluster (area B-12 / Khalifa Street) ----
+  // ---- incident cluster (area B-12 / main road), simulated ----
   { id: 'P-14', type: 'pressure', layer: 'water', x: wx(2), y: W.depth, z: wz(2), cluster: true },
   { id: 'P-17', type: 'pressure', layer: 'water', x: -2.4, y: W.depth, z: wz(2), cluster: true },
   { id: 'P-22', type: 'pressure', layer: 'water', x: wx(3), y: W.depth, z: wz(2), cluster: true },

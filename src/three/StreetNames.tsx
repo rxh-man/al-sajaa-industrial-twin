@@ -4,6 +4,8 @@ import { SEA, STREET_X, STREET_Z } from '../data/city';
 import { STREET_X_REAL, STREET_Z_REAL, SEA_LABELS, type RealStreet } from '../data/geo';
 import { live } from '../simulation/runtime';
 import { FadeHtml } from './labels/FadeHtml';
+import { ALSAJAA_INLAND } from '../config/overrides';
+import { UNNAMED_COAST_ROAD } from '../data/abudhabi';
 
 interface Sign {
   street: RealStreet;
@@ -13,7 +15,7 @@ interface Sign {
 // mid-block on each named street, placed to stay clear of the rails and controls in the overview shot
 const ALONG: Record<string, number> = { '7': 0, '5': 28, '3': 28, '1': 28, '20': 44, '22': -16 };
 const SIGNS: Sign[] = [
-  ...STREET_Z_REAL.flatMap((s, j) => (s ? [{ street: s, pos: [ALONG[s.route], 0.5, STREET_Z[j]] as [number, number, number] }] : [])),
+  ...STREET_Z_REAL.flatMap((s, j) => (s && !(ALSAJAA_INLAND && s.name === UNNAMED_COAST_ROAD) ? [{ street: s, pos: [ALONG[s.route], 0.5, STREET_Z[j]] as [number, number, number] }] : [])),
   ...STREET_X_REAL.flatMap((s, i) => (s ? [{ street: s, pos: [STREET_X[i], 0.5, ALONG[s.route]] as [number, number, number] }] : [])),
 ];
 
@@ -48,6 +50,7 @@ export function StreetNames() {
           </div>
         </FadeHtml>
       ))}
+      {!ALSAJAA_INLAND && (
       <FadeHtml position={[0, SEA.level + 0.4, 76]} center zIndex={3} opacity={() => quiet() * near([0, 0, 76])}>
         <div className="sea-label">
           <span>{GULF.name}</span>
@@ -56,6 +59,7 @@ export function StreetNames() {
           </span>
         </div>
       </FadeHtml>
+      )}
     </group>
   );
 }

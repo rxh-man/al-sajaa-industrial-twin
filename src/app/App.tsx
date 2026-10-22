@@ -12,6 +12,9 @@ import { SignalRail } from '../components/dashboard/SignalRail';
 import { AgentsPanel } from '../components/agents/AgentsPanel';
 import { LayerPanel } from '../components/overlay/LayerPanel';
 import { CameraPresets, ViewToggles } from '../components/overlay/ViewControls';
+import { ServiceGuide } from '../components/overlay/ServiceGuide';
+import { Forecast48Panel, EmergencyBar } from '../components/overlay/Forecast48Panel';
+import { ProvenanceLegend } from '../components/overlay/ProvenanceLegend';
 import { FutureOverlay, ScenarioCaption, ScenarioMenu, ScenarioTransport } from '../components/overlay/ScenarioOverlay';
 import { CompareOverlay } from '../components/overlay/CompareOverlay';
 import { ForecastCard } from '../components/overlay/ForecastCard';
@@ -76,6 +79,7 @@ export function App() {
           camera={{ fov: 34, near: 0.4, far: 2400, position: POSES.intro.pos }}
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
           onCreated={({ gl }) => {
+            performance.mark('canvas:created');
             gl.toneMappingExposure = EXPOSURE;
           }}
           onPointerMissed={() => select(null)}
@@ -96,7 +100,7 @@ export function App() {
 
       <Header />
 
-      <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Live signals">
+      <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
         <SignalRail />
       </aside>
       <aside className="rail rail-r panel-enter" style={{ ['--enter-delay' as string]: '160ms' }} aria-label="Twin agents">
@@ -122,6 +126,10 @@ export function App() {
         <div className="vp-bc panel-enter" style={{ ['--enter-delay' as string]: '420ms' }}>
           <ScenarioTransport />
         </div>
+        <ServiceGuide />
+        <Forecast48Panel />
+        <EmergencyBar />
+        <ProvenanceLegend />
         <FutureOverlay />
       </div>
 
@@ -136,9 +144,7 @@ export function App() {
         </div>
       )}
 
-      <a className="map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-        {MAP_CREDIT}
-      </a>
+      <p className="map-credit">{MAP_CREDIT}</p>
 
       <ScenarioMenu />
       <HoverTooltip />

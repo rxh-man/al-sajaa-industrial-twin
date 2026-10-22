@@ -73,7 +73,22 @@ const FLEET: { kind: VehicleKind; n: number; paint: string[] }[] = [
   { kind: 'taxi', n: 24, paint: ['#c8ccd1'] }, // Abu Dhabi taxis: silver with a yellow roof sign
   { kind: 'van', n: 10, paint: ['#f1f2f4', '#c9ccd1'] },
   { kind: 'bus', n: 6, paint: ['#d3d8dd'] },
-  { kind: 'truck', n: 6, paint: ['#f1f2f4', '#2f5f9a'] },
+  { kind: 'truck', n: 18, paint: ['#f1f2f4', '#2f5f9a'] },
+  // the expanded catalogue: passenger, freight and service vehicles on the road network
+  { kind: 'pickup', n: 12, paint: ['#f1f2f4', '#c9ccd1', '#121316', '#8a2e27', '#2f5f9a'] },
+  { kind: 'minibus', n: 4, paint: ['#f1f2f4', '#2f7a5a'] },
+  { kind: 'coach', n: 2, paint: ['#f1f2f4', '#2f5f9a'] },
+  { kind: 'boxTruck', n: 8, paint: ['#f1f2f4', '#2f5f9a', '#c9ccd1'] },
+  { kind: 'flatbed', n: 4, paint: ['#f1f2f4', '#8c6a3f'] },
+  { kind: 'tanker', n: 6, paint: ['#f1f2f4'] },
+  { kind: 'waterTanker', n: 3, paint: ['#f1f2f4'] },
+  { kind: 'reefer', n: 4, paint: ['#f1f2f4', '#c9ccd1'] },
+  { kind: 'semi', n: 8, paint: ['#f1f2f4', '#2f5f9a', '#b8452a'] },
+  { kind: 'container20', n: 6, paint: ['#f1f2f4', '#2f5f9a'] },
+  { kind: 'garbage', n: 2, paint: ['#f1f2f4', '#2f7a5a'] },
+  { kind: 'fireEngine', n: 1, paint: ['#b8452a'] },
+  { kind: 'ambulance', n: 2, paint: ['#f1f2f4'] },
+  { kind: 'serviceVan', n: 3, paint: ['#f1f2f4', '#c9ccd1'] },
 ];
 
 interface Link {
@@ -86,6 +101,8 @@ interface Link {
   weight: number;
   trench: boolean;
   elev: boolean;
+  /** Emirates Road carriageway: grade-separated, so it never stops at a signal */
+  hwy: boolean;
 }
 
 interface Car {
@@ -132,8 +149,9 @@ function buildLinks() {
   const links: Link[] = [];
   for (const r of AD.roads) {
     if (!(r.c in SPEED)) continue;
-    const lanes = r.o ? Math.max(1, Math.min(2, Math.round((r.w * 10 - 1) / 3.4) - 1)) : 1;
-    const oneWay = !!r.o || /Roundabout/.test(r.n);
+    const hwy = !!r.l; // Emirates Road carriageways: several lanes
+    const lanes = hwy ? r.l! : r.o ? Math.max(1, Math.min(2, Math.round((r.w * 10 - 1) / 3.4) - 1)) : 1;
+    const oneWay = !!r.o || r.x === 1 || /Roundabout/.test(r.n);
     for (const dir of oneWay ? [1] : [1, -1]) {
       const pts = dir === 1 ? r.p : [...r.p].reverse();
       const ids = dir === 1 ? r.k : [...r.k].reverse();
@@ -142,13 +160,13 @@ function buildLinks() {
         if (i < pts.length - 1 && (uses.get(ids[i]) ?? 0) < 2) continue;
         const piece = pts.slice(s, i + 1);
         for (let k = 0; k < lanes; k++) {
-          const off = r.o ? r.w / 2 - LANE_W * (k + 0.5) : r.w / 4;
+          const off = hwy ? -r.w / 2 + LANE_W * (k + 0.5) : r.o ? r.w / 2 - LANE_W * (k + 0.5) : r.w / 4;
           const lp = offsetLine(piece, off);
           const cum = [0];
           for (let j = 1; j < lp.length; j++) cum.push(cum[j - 1] + Math.hypot(lp[j][0] - lp[j - 1][0], lp[j][1] - lp[j - 1][1]));
           const len = cum[cum.length - 1];
           if (len < 0.05) continue;
-          links.push({ a: ids[s], b: ids[i], pts: lp, cum, len, speed: SPEED[r.c], weight: WEIGHT[r.c], trench: lp.some((p) => inTrench(p)), elev: isElevated(r) });
+          links.push({ a: ids[s], b: ids[i], pts: lp, cum, len, speed: SPEED[r.c] * (hwy ? (k === 0 ? 1.6 : 0.7) : 1), weight: hwy ? WEIGHT[r.c] * 1.5 : WEIGHT[r.c], trench: lp.some((p) => inTrench(p)), elev: isElevated(r), hwy });
         }
         s = i;
       }
@@ -275,7 +293,7 @@ export function AbuDhabiTraffic() {
       // signals: stop short of the line when this approach is red
       const sigAxis = Math.abs(l.pts[l.pts.length - 1][0] - l.pts[0][0]) > Math.abs(l.pts[l.pts.length - 1][1] - l.pts[0][1]) ? 0 : 1;
       const toEnd = l.len - c.d;
-      if (sigNodes.has(l.b) && toEnd < 22) {
+      if (!l.hwy && sigNodes.has(l.b) && toEnd < 22) {
         const offset = sigNodes.get(l.b)!;
         if (signalState(offset, sigAxis, simClock.t, toEnd) === 'stop' && toEnd > 1.2) {
           target = Math.min(target, Math.max(0, (toEnd - 1.2) * 0.9));
@@ -290,6 +308,9 @@ export function AbuDhabiTraffic() {
         const dist = Math.hypot(dx, dz);
         if (dist > 3.2 || dist < 0.01) continue;
         if (dx * fx + dz * fz <= 0) continue;
+        // only cars in the same lane can block; a car alongside in the next lane is not in front of us
+        const lateral = Math.abs(dx * fz - dz * fx);
+        if (lateral > LANE_W * 0.6) continue;
         const clear = dist - (o.len + c.len) / 2;
         if (clear < 1.6) target = Math.min(target, Math.max(0, o.v * (clear / 1.6)));
         if (clear < 0.3) target = 0;

@@ -49,9 +49,14 @@ export const RIM_LAYERS: { strokeWidth: number; blur: number; alpha: number; rin
 let scratch: HTMLCanvasElement | null = null;
 const cache = new Map<string, string>();
 const CACHE_MAX = 24;
+const pending = new Map<string, Promise<string>>();
 
-export function buildMask(o: MaskOptions): string {
-  if (typeof document === 'undefined') return '';
+/**
+ * Draws the mask and returns a blob: URL. Encoding happens with canvas.toBlob, which Chrome runs off
+ * the main thread, instead of toDataURL, which blocks it while the PNG is encoded.
+ */
+export function buildMask(o: MaskOptions): Promise<string> {
+  if (typeof document === 'undefined') return Promise.resolve('');
 
   const key = [
     Math.round(o.width),
@@ -65,7 +70,9 @@ export function buildMask(o: MaskOptions): string {
     o.stops?.map((s) => `${s.color}@${s.stop}`).join(',') ?? '',
   ].join('|');
   const hit = cache.get(key);
-  if (hit !== undefined) return hit;
+  if (hit !== undefined) return Promise.resolve(hit);
+  const inflight = pending.get(key);
+  if (inflight) return inflight;
 
   // each layer sits outside the element by its own padding, or the blurred stroke is clipped square
   const pad = padOf(o.strokeWidth, o.blur);
@@ -77,7 +84,7 @@ export function buildMask(o: MaskOptions): string {
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d');
-  if (!ctx) return '';
+  if (!ctx) return Promise.resolve('');
   ctx.clearRect(0, 0, w, h);
 
   if (o.blur) {
@@ -123,13 +130,24 @@ export function buildMask(o: MaskOptions): string {
     }
   }
 
-  const url = c.toDataURL('image/png');
-  if (cache.size >= CACHE_MAX) {
-    const oldest = cache.keys().next().value;
-    if (oldest !== undefined) cache.delete(oldest);
-  }
-  cache.set(key, url);
-  return url;
+  const job = new Promise<string>((resolve) => {
+    c.toBlob((blob) => {
+      pending.delete(key);
+      if (!blob) return resolve('');
+      const url = URL.createObjectURL(blob);
+      if (cache.size >= CACHE_MAX) {
+        const oldest = cache.keys().next().value;
+        if (oldest !== undefined) {
+          URL.revokeObjectURL(cache.get(oldest)!);
+          cache.delete(oldest);
+        }
+      }
+      cache.set(key, url);
+      resolve(url);
+    }, 'image/png');
+  });
+  pending.set(key, job);
+  return job;
 }
 
 /** The element's real corner radius (computed, clamped to its box). */

@@ -6,12 +6,14 @@ import { SimulationDriver } from './SimulationDriver';
 import { CameraRig } from './CameraRig';
 import { Ground, Diorama } from './Ground';
 import { AbuDhabiBuildings } from './AbuDhabiBuildings';
+import { YardEquipment } from './YardEquipment';
 import { Mosques } from './Mosques';
 import { Palms } from './Palms';
 import { StreetLights } from './StreetLights';
 import { MapLabels } from './MapLabels';
 import { Sea } from './Sea';
 import { AbuDhabiTraffic } from './AbuDhabiTraffic';
+import { RailTrack, RailTrain } from './RailTrain';
 import { ElevatedRoads } from './ElevatedRoads';
 import { Cutaway, TrenchVolume } from './Cutaway';
 import { SurfaceMarkers } from './SensorNodes';
@@ -42,6 +44,8 @@ function SurfaceGroup({ children }: { children: ReactNode }) {
  * hitches when X-ray, the cutaway or the repair visuals first appear.
  * Rendering is gated (a priority-1 frame subscriber) until compilation finishes.
  */
+const WARMUP_TIMEOUT_MS = 45000;
+
 function Warmup() {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
@@ -52,6 +56,7 @@ function Warmup() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      performance.mark('warmup:start');
       await new Promise((r) => setTimeout(r, 30));
       const hidden: Object3D[] = [];
       scene.traverse((o) => {
@@ -66,7 +71,12 @@ function Warmup() {
       const prev = gl.getRenderTarget();
       try {
         gl.setRenderTarget(rt);
-        const pending = gl.compileAsync(scene, camera);
+        // compileAsync can stall on a slow or software GPU. Cap the wait so the loader always completes;
+        // the scene still compiles lazily on first use afterwards.
+        const pending = Promise.race([
+          gl.compileAsync(scene, camera),
+          new Promise<void>((resolve) => setTimeout(resolve, WARMUP_TIMEOUT_MS)),
+        ]);
         gl.setRenderTarget(prev);
         await pending;
         // one offscreen render compiles the remaining shadow/depth variants and uploads buffers
@@ -79,6 +89,7 @@ function Warmup() {
         rt.dispose();
         hidden.forEach((o) => (o.visible = false));
       }
+      performance.mark('warmup:end');
       if (!cancelled) setSceneReady();
     };
     void run();
@@ -95,6 +106,9 @@ function EffectsGate({ quality }: { quality: 'high' | 'low' }) {
 }
 
 export function CityScene({ quality }: { quality: 'high' | 'low' }) {
+  useEffect(() => {
+    performance.mark('scene:mounted');
+  }, []);
   return (
     <>
       <SimulationDriver />
@@ -104,11 +118,14 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <Ground />
         <Sea />
         <AbuDhabiBuildings />
+        <YardEquipment />
         <Mosques />
         <Palms />
         <StreetLights />
         <MapLabels />
         <AbuDhabiTraffic />
+        <RailTrack />
+        <RailTrain />
         <ElevatedRoads />
         <Cutaway />
         <SurfaceMarkers />

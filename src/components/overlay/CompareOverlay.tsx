@@ -6,7 +6,7 @@ const ROWS: { label: string; none: string; ai: string }[] = [
   { label: 'Water main', none: 'Bursts at ~44 h', ai: 'Section replaced in 4 h' },
   { label: 'Water service', none: '12,400 residents cut off', ai: 'Rerouted · no interruption' },
   { label: POI.hospital.name, none: 'On backup tanks', ai: 'Uninterrupted' },
-  { label: 'Khalifa Street', none: 'Closed 3–5 days', ai: 'One lane · 6 h' },
+  { label: 'Main road (name to verify)', none: 'Closed 3–5 days', ai: 'One lane · 6 h' },
   { label: 'Cost', none: `${formatMoney(COSTS.failure)}+`, ai: formatMoney(COSTS.preventive) },
 ];
 

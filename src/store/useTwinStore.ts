@@ -50,6 +50,10 @@ interface TwinState {
   visible: Record<LayerId, boolean>;
 
   shot: { id: ShotId; nonce: number };
+  /** a place (or all places) to frame; the camera rig tweens to it when nonce changes */
+  placeFocus: { x: number; z: number; r: number; nonce: number } | null;
+  /** the civic building whose resident service guide is open (a place name from the data), or null */
+  serviceFor: string | null;
   activePreset: PresetId | null;
   layerPanel: boolean;
   scenarioMenu: boolean;
@@ -88,6 +92,8 @@ interface TwinState {
 
   requestShot: (id: ShotId) => void;
   setPreset: (id: PresetId) => void;
+  focusPlace: (x: number, z: number, r: number) => void;
+  openService: (place: string | null) => void;
   resetView: () => void;
   toggleXray: () => void;
   toggleExploded: () => void;
@@ -151,6 +157,8 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   visible: { ...ALL_VISIBLE },
 
   shot: { id: 'intro', nonce: 0 },
+  placeFocus: null,
+  serviceFor: null,
   activePreset: 'city',
   layerPanel: false,
   scenarioMenu: false,
@@ -184,6 +192,7 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
 
   setBoot: (boot) => set({ boot }),
   setSceneReady: () => {
+    performance.mark('scene:ready');
     if (import.meta.env.DEV) console.info(`[twin] scene ready at ${Math.round(performance.now())} ms`);
     set({ sceneReady: true });
   },
@@ -315,6 +324,10 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
     const preset: PresetId | null = id === 'city' || id === 'sector' || id === 'underground' || id === 'failure' || id === 'impact' ? id : id === 'outro' || id === 'intro' ? 'city' : id === 'dive' ? 'failure' : null;
     // 'follow' (chase camera on the crew truck) has no preset button
     set((s) => ({ shot: { id, nonce: s.shot.nonce + 1 }, activePreset: preset }));
+  },
+  openService: (place) => set({ serviceFor: place }),
+  focusPlace: (x, z, r) => {
+    set((s) => ({ placeFocus: { x, z, r, nonce: (s.placeFocus?.nonce ?? 0) + 1 }, activePreset: null }));
   },
   setPreset: (id) => {
     if (get().exploded) set({ exploded: false });

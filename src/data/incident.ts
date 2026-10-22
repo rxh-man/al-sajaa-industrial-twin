@@ -1,6 +1,6 @@
 import { STREET_Z, BUILDINGS } from './city';
 import { LAYERS, INCIDENT_SEGMENT, WATER_NETWORK } from './networks';
-import { AD, place } from './abudhabi';
+import { AD_BASE as AD, MAIN_ROAD, place } from './abudhabi';
 
 /**
  * Scenario constants for "Sector B-12 Water Network Anomaly".
@@ -12,7 +12,7 @@ const WATER_Z = STREET_Z[2] + LAYERS.water.offset; // -2.4
 export const LEAK = { x: 1.5, y: LAYERS.water.depth, z: WATER_Z } as const;
 export const LEAK_SURFACE = { x: LEAK.x, z: LEAK.z } as const;
 
-/** Excavation trench under Khalifa Street, beside the World Trade Center block. */
+/** Excavation trench under the main road (simulated incident), in the centre of the district. */
 export const TRENCH = { minX: -11.5, maxX: 11.5, minZ: -4.5, maxZ: 4.5, floor: -12.2 } as const;
 
 const IMPACT_RADIUS = 54;
@@ -36,8 +36,8 @@ export const INCIDENT = {
   scenarioName: 'Sector B-12 Water Network Anomaly',
   sector: 'B-12',
   asset: INCIDENT_SEGMENT.id,
-  road: 'Khalifa Street',
-  roadShort: 'Khalifa St',
+  road: 'Al Sajaa main road (name to verify)',
+  roadShort: 'Main road',
   confidence: 93,
   failureWindow: [36, 52] as [number, number],
   horizonHours: 72,
@@ -239,11 +239,11 @@ function streetRoute(from: [number, number], goal: string): [number, number][] {
 }
 
 /**
- * The crew arrives along Khalifa Street's z≈0 carriageway in its direction of travel and
+ * The crew arrives along the main road's z≈0 carriageway in its direction of travel and
  * stops just before the dig site, so it never drives through the open trench.
  */
 function crewRoute(): [number, number][] {
-  const lane = AD.roads.filter((r) => /^Khalifa/.test(r.n) && r.p.some(([x, z]) => Math.abs(z) < 0.4 && Math.abs(x) < 20));
+  const lane = AD.roads.filter((r) => r.n === MAIN_ROAD && r.p.some(([x, z]) => Math.abs(z) < 0.4 && Math.abs(x) < 20));
   const pts = lane.flatMap((r) => r.p.map((p, i) => ({ p, id: r.k[i], r })));
   const seg = lane.flatMap((r) => r.p.slice(1).map((q, i) => [r.p[i], q] as const)).find(([a, b]) => Math.min(a[0], b[0]) < 0 && Math.max(a[0], b[0]) > 0);
   const westbound = seg ? seg[1][0] < seg[0][0] : true;

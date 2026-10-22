@@ -14,17 +14,27 @@ export function useRimMask(ref: RefObject<HTMLElement | null>, { settleMs = 120,
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let lastW = -1, lastH = -1, alive = true, token = 0;
     const build = () => {
       const box = el.getBoundingClientRect();
       if (!box.width || !box.height) return;
+      // skip rebuilds for sub-pixel jitter: the mask only depends on the rounded size
+      if (Math.abs(box.width - lastW) < 1 && Math.abs(box.height - lastH) < 1) return;
+      lastW = box.width;
+      lastH = box.height;
       const radius = radiusOf(el);
-      setLayers(
-        RIM_LAYERS.map((l) => ({
-          mask: buildMask({ width: box.width, height: box.height, radius, strokeWidth: l.strokeWidth, blur: l.blur, alpha: l.alpha, ring: l.ring, stops }),
-          pad: padOf(l.strokeWidth, l.blur),
-          ring: l.ring,
-        })).filter((l) => l.mask),
-      );
+      const mine = ++token;
+      Promise.all(
+        RIM_LAYERS.map((l) =>
+          buildMask({ width: box.width, height: box.height, radius, strokeWidth: l.strokeWidth, blur: l.blur, alpha: l.alpha, ring: l.ring, stops }).then((mask) => ({
+            mask,
+            pad: padOf(l.strokeWidth, l.blur),
+            ring: l.ring,
+          })),
+        ),
+      ).then((built) => {
+        if (alive && mine === token) setLayers(built.filter((l) => l.mask));
+      });
     };
     build();
     // fonts change the box: rebuild once they are in
@@ -36,6 +46,7 @@ export function useRimMask(ref: RefObject<HTMLElement | null>, { settleMs = 120,
     });
     ro.observe(el);
     return () => {
+      alive = false;
       if (settle !== null) window.clearTimeout(settle);
       ro.disconnect();
     };

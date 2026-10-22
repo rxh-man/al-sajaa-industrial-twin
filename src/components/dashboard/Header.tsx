@@ -26,7 +26,7 @@ function StatusPill() {
   const future = useTwinStore((s) => s.future);
   const awaiting = useTwinStore((s) => s.awaiting);
   let tone = 'ok';
-  let text = 'Everything is running normally';
+  let text = 'Simulated: everything is running normally';
   if (phase === 'ANOMALY' || phase === 'CORRELATION' || (phase === 'DETECTION' && !localized)) {
     tone = 'warn';
     text = 'Checking something odd in area B-12';
@@ -46,12 +46,12 @@ function StatusPill() {
   }
   if (future) {
     tone = 'alert';
-    text = 'What happens in 48 hours if nobody acts';
+    text = 'What happens in 48 hours if nobody acts (simulated)';
   }
   return (
     <div className={`hdr-status tone-${tone}`} role="status" aria-live="polite">
       <span className="live-dot" aria-hidden />
-      <span className="hdr-live">Live city model</span>
+      <span className="hdr-live">Simulated city model</span>
       <span className="hdr-sep" aria-hidden />
       <span className="hdr-status-text">{text}</span>
     </div>

@@ -38,6 +38,9 @@ export function PerfProbe() {
       totalMax: +Math.max(...total.current).toFixed(2),
       programs: gl.info.programs?.length,
       geometries: gl.info.memory.geometries,
+      textures: gl.info.memory.textures,
+      drawCalls: gl.info.render.calls,
+      triangles: gl.info.render.triangles,
     };
   }, 1000);
   return null;

@@ -12,6 +12,9 @@ def coastZ(x):
     return 34 + 2.2 * math.sin(x / 16) + 1.2 * math.sin(x / 5.3)
 
 HWY_X = {-68}                          # Emirates Road E611 corridor (straight, no curvature)
+HWY_EDGE_W, HWY_EDGE_E = -70.05, -65.95  # outer paved edges of the two E611 carriageways (5 lanes each)
+GRASS_MIN = 5.0                          # 50 m of grass (1 unit = 10 m) between the highway and anything built
+HWY_GRASS_E = round(HWY_EDGE_E + GRASS_MIN - (-68), 2)   # east blocks start 50 m off the highway edge
 X = [-68] + [-56 + 8 * i for i in range(15)] + [64, 72, 80, 88, 96, 104, 112]   # north-south arterials
 E88_Z = -57
 SOLAR = (70.0, 116.0, -44.0, -12.0)                 # solar farm rectangle (x0, x1, z0, z1)                           # Emirates Road E88 runs along the south edge, below the rail
@@ -79,19 +82,18 @@ north_pts = clip_to_land([[-68, z] for z in range(-44, 40, 2)])
 def hw(name, c, w, o, pts, key):
     roads.append({'n': name, 'c': c, 'w': w, 'o': o, 't': 0, 'p': pts,
                   'k': [f'{key}{k}' for k in range(len(pts))]})
-hw('Emirates Road E611', 'trunk', 2.4, 0, south_stub, 'e611s')
-hw('E611 flyover over Etihad Rail', 'trunk', 2.4, 1, bridge_pts, 'e611b')
-hw('Emirates Road E611', 'trunk', 2.4, 0, north_pts, 'e611n')
+north_near = [p for p in north_pts if p[1] <= -30]
+north_far = [p for p in north_pts if p[1] >= -30]
 e88 = [[x, round(E88_Z + 1.5 * math.sin((x + 68) / 25), 2)] for x in range(-68, 122, 2)]
-hw('Emirates Road E88', 'trunk', 2.4, 0, e88, 'e88')
-for k_, (ox, oz) in enumerate([(-8, 8), (8, 8), (8, -8), (-8, -8)]):
-    lcx, lcz, lr = -68 + ox, E88_Z + oz, 4.2
-    loop = [[round(lcx + lr * math.cos(t), 2), round(lcz + lr * math.sin(t), 2)]
-            for t in [2 * math.pi * q / 14 for q in range(15)]]
-    hw(f'Cloverleaf loop {k_ + 1}', 'secondary', 1.0, 1, loop, f'loop{k_}_')
-# slip ramps joining the loops to E611 and E88
-hw('Cloverleaf ramp E611 north', 'secondary', 1.0, 1, [[-68, -48], [-68, -50], [-68, -52]], 'rampn')
-hw('Cloverleaf ramp E88 east', 'secondary', 1.0, 1, [[-62, -57], [-60, -57], [-58, -57]], 'rampe')
+hw('Emirates Road E88', 'trunk', 2.4, 0, [p for p in e88 if p[0] <= -40], 'e88i')
+hw('Emirates Road E88', 'trunk', 2.4, 0, [p for p in e88 if p[0] >= -40], 'e88')
+# Emirates Road E611: two carriageways, 1.1 units either side of the centre line (a 3 m median), five lanes each
+e611_c = clip_to_land([[-68, z] for z in range(-60, 40, 2)])
+car_south = [[round(q[0] + 1.1, 2), q[1]] for q in e611_c]
+car_north = [[round(q[0] - 1.1, 2), q[1]] for q in e611_c][::-1]
+for nm, pts_, key in (('Emirates Road E611 southbound', car_south, 'e611a'), ('Emirates Road E611 northbound', car_north, 'e611n')):
+    roads.append({'n': nm, 'c': 'trunk', 'w': 1.9, 'o': 0, 't': 0, 'l': 5, 'x': 1, 'p': pts_,
+                  'k': [f'{key}{k}' for k in range(len(pts_))]})
 TASHEEL = (84.0, 18.0, 3.6)                                  # roundabout centre and radius
 ring = [[round(TASHEEL[0] + TASHEEL[2] * math.cos(t), 2), round(TASHEEL[1] + TASHEEL[2] * math.sin(t), 2)]
         for t in [2 * math.pi * k / 16 for k in range(17)]]
@@ -148,17 +150,19 @@ def fill_lot(x, z, w, d, cat):
         if not big:
             add_building('Residential', 'residential', R.uniform(1.5, 2.6), x, z, w, d); return
         r = R.random()
-        if r < .45:
-            add_building('Tower', 'tower', R.uniform(4, 7.5), x, z, w, d, R.choice(SHAPES))
+        if r < .02:
+            add_building('Tower', 'tower', R.uniform(3, 4), x, z, w, d, R.choice(SHAPES))
+        elif r < .45:
+            add_building('Workshop block', 'building', R.uniform(.7, 1.0), x, z, w, d, R.choice(SHAPES))
         elif r < .75:
-            add_building('Office Tower', 'office', R.uniform(2.5, 5), x, z, w, d, R.choice(SHAPES))
+            add_building('Office block', 'office', R.uniform(1.0, 1.5), x, z, w, d, R.choice(SHAPES))
         else:
             add_building('Residential', 'residential', R.uniform(1.5, 2.6), x, z, w, d, R.choice(SHAPES))
     elif cat == 'mix':
         if big and R.random() < .4:
             add_building('Mall', 'mall', .8, x, z, w, d, R.choice(['rect', 'U']))
         elif big and R.random() < .5:
-            add_building('Hotel', 'hotel', R.uniform(2.5, 4.5), x, z, w, d, R.choice(SHAPES))
+            add_building('Hotel', 'hotel', R.uniform(1.2, 2.0), x, z, w, d, R.choice(SHAPES))
         else:
             add_building('Residential', 'residential', R.uniform(1.5, 2.6), x, z, w, d, R.choice(SHAPES))
     else:
@@ -265,8 +269,8 @@ for i in range(len(X) - 1):
     for j in range(len(Z) - 1):
         cz0 = (Z[j] + Z[j + 1]) / 2
         cx = (vx(i, cz0) + vx(i + 1, cz0)) / 2
-        gl = 2.9 if X[i] in HWY_X else GAP
-        gr = 2.9 if X[i + 1] in HWY_X else GAP
+        gl = HWY_GRASS_E if X[i] in HWY_X else GAP
+        gr = HWY_GRASS_E if X[i + 1] in HWY_X else GAP
         x0, x1 = vx(i, cz0) + gl, vx(i + 1, cz0) - gr
         z0, z1 = hz(j, cx) + GAP, hz(j + 1, cx) - GAP
         w, d = x1 - x0, z1 - z0
@@ -290,6 +294,36 @@ for i in range(len(X) - 1):
             fill_lot(lx, lz, lw, ld, cat)
         blocks += 1
 
+# grass strips either side of Emirates Road E611: at least 50 m of grass between the highway and any building
+for vx0, vx1 in ((-77.6, HWY_EDGE_W + 0.05), (HWY_EDGE_E - 0.05, HWY_EDGE_E + GRASS_MIN)):
+    parks.append({'n': 'Highway verge', 'p': [[vx0, -44], [vx1, -44], [vx1, 30], [vx0, 30]]})
+
+# Etihad Rail station parking (north of the rail, two rows of cars) reached by the street at x = 0,
+# and a halt at the east end with its own parking reached by the street at x = 96
+def car_rows(x0, x1, zs):
+    out = []
+    for zc in zs:
+        cx = x0 + .4
+        while cx <= x1 - .4:
+            out.append([cx - .25, zc - .11, cx + .25, zc + .11])
+            cx += .6
+    return out
+add_raw('Station parking cars', 'building', .35, -7.7, -53.2, car_rows(-14, -1.5, [-53.6, -52.7]) + car_rows(1.5, 14, [-53.6, -52.7]))
+add_raw('Halt parking cars', 'building', .35, 96, -53.2, car_rows(88, 104, [-53.6, -52.7]))
+for i_, x_ in ((8, 0), (20, 96)):
+    first = [round(vx(i_, -52), 2), -52.0]
+    access = [first, [first[0], -55.5]]
+    roads.append({'n': f'Rail access street {i_}', 'c': 'residential', 'w': 1.0, 'o': 0, 't': 0, 'p': access,
+                  'k': [f'v{i_}_0', f'acc{i_}_1']})
+add_building('Etihad Rail halt platform', 'building', .3, 96, -49.5, 8, .8)
+
+# signboards along the highway, the rail and the parking
+for sz_ in range(-40, 32, 9):
+    add_building('Highway sign', 'utility', .5, -65.4, sz_, .15, .15)
+    add_building('Highway sign', 'utility', .5, -70.9, sz_, .15, .15)
+for sx_ in (-6, 6, 90, 102):
+    add_building('Rail and parking sign', 'utility', .5, sx_, -55.8, .15, .15)
+
 # ---------- solar farm (three panel fields and a reservoir) ----------
 sx0, sx1, sz0, sz1 = SOLAR
 fields = [(sx0 + 2, sx0 + 22, sz1 - 14, sz1 - 2), (sx0 + 26, sx0 + 46, sz0 + 2, sz0 + 18), (sx0 + 26, sx1 - 2, sz0 + 22, sz1 - 16)]
@@ -309,7 +343,7 @@ for k, (x, z) in enumerate(corn):
         palms.append([x, round(z - 1.4, 2), 1.0])
 
 # ---------- Etihad Rail: double line along the south side of the district ----------
-rail_pts = [[x, -50.5] for x in range(-72, 121, 2)]
+rail_pts = [[x, -50.5] for x in range(-152, 121, 2)]
 roads.append({'n': 'Etihad Rail', 'c': 'rail', 'w': 1.0, 'o': 0, 't': 0, 'p': rail_pts,
               'k': [f'rl{k}' for k in range(len(rail_pts))]})
 add_building('Etihad Rail platform', 'building', .3, 0, -49.5, 8, .8)
@@ -324,9 +358,173 @@ for i in range(0, len(X), 3):
         if -58 < ix < 58 and -46 < iz < 30:
             add_building('Traffic signal', 'utility', .5, ix + .7, iz + .7, .25, .25)
 
+# ---------- Rahmaniya colony (west of Emirates Road E611) ----------
+RX = [-150, -142, -134, -126, -118, -110, -102, -94, -86, -78, -68]
+RZ = [-48, -40, -32, -24, -16, -8, 0, 8, 16, 24, 32]
+KSHISHA_CELLS = {(6, 5): 'Kshisha Park 1', (2, 5): 'Kshisha Park 2'}
+RAH_MALL = (-98.0, 24.0)
+
+# park zones (x0, x1, z0, z1): the streets inside a zone are cut, the zone edges stay as streets
+KSHISHA1_ZONE = (-126.0, -78.0, -8.0, 0.0)       # widened east-west from the Park 2 street to the colony edge; depth unchanged
+COMMUNITY_ZONE = (-150.0, -126.0, -48.0, -32.0)  # new community park with a school and a museum
+PARK_ZONES = [KSHISHA1_ZONE, COMMUNITY_ZONE]
+
+def in_zone(x, z, zone):
+    x0, x1, z0, z1 = zone
+    return x0 < x < x1 and z0 < z < z1
+
+def split_runs(pts):
+    # cut a street where it runs through a park zone; returns the contiguous runs left
+    runs, cur = [], []
+    for p in pts:
+        if any(in_zone(p[0], p[1], zn) for zn in PARK_ZONES):
+            if cur:
+                runs.append(cur)
+            cur = []
+        else:
+            cur.append(p)
+    if cur:
+        runs.append(cur)
+    return runs
+
+for i in range(len(RX) - 1):
+    if RX[i] == -68:
+        continue
+    pts = clip_to_land([[RX[i], z] for z in [-50 + 2 * k for k in range(0, 42)]])
+    for n_, run in enumerate(split_runs(pts)):
+        if len(run) >= 3:
+            roads.append({'n': f'Rahmaniya Street {i + 1}', 'c': 'secondary' if i % 3 == 0 else 'residential',
+                          'w': 1.0, 'o': 0, 't': 0, 'p': run, 'k': [f'rx{i}_{n_}_{k}' for k in range(len(run))]})
+for j in range(len(RZ)):
+    # the street at z = -16 stops at the mall lot, which sits between the two streets either side
+    spans = [(-150, -110), (-94, -78)] if RZ[j] == 24 else [(-150, -78)]
+    for a_, b_ in spans:
+        pts = []
+        for x in range(a_, b_ + 1, 2):
+            if RZ[j] > coastZ(x) - 1.5:
+                break
+            pts.append([x, RZ[j]])
+        for n_, run in enumerate(split_runs(pts)):
+            if len(run) >= 3:
+                roads.append({'n': f'Rahmaniya Road {j + 1}', 'c': 'secondary' if j % 3 == 0 else 'residential',
+                              'w': 1.0, 'o': 0, 't': 0, 'p': run, 'k': [f'rz{j}_{a_}_{n_}_{k}' for k in range(len(run))]})
+
+def villa_lot(lx, lz, lw, ld):
+    r = R.random()
+    if r < .35:
+        add_building('Emirati villa', 'house', R.uniform(.7, .9), lx - lw * .1, lz - ld * .1, lw * .62, ld * .42, 'U')
+        pool = True
+    elif r < .6:
+        add_building('Mansion', 'house', R.uniform(1.0, 1.3), lx - lw * .1, lz - ld * .1, lw * .62, ld * .42)
+        pool = True
+    elif r < .85:
+        add_building('Small house', 'residential', R.uniform(.5, .7), lx - lw * .1, lz - ld * .1, lw * .5, ld * .36,
+                     R.choice(['rect', 'L']))
+        pool = False
+    else:
+        return   # empty plot
+    if pool and R.random() < .7:
+        add_raw('Swimming pool', 'pool', .04, lx - lw * .1, lz + ld * .27,
+                [[lx - lw * .1 - lw * .21, lz + ld * .19, lx - lw * .1 + lw * .21, lz + ld * .35]])
+    if R.random() < .6:
+        add_building('Garage', 'building', .45, lx + lw * .34, lz - ld * .1, lw * .22, ld * .5)
+    cars = []
+    for cxo in (-lw * .2, lw * .1):
+        if R.random() < .75:
+            cx, cz = lx + cxo, lz - ld * .42
+            cars.append([cx - .11, cz - .25, cx + .11, cz + .25])
+    if cars:
+        add_raw('Land Cruisers', 'building', .35, lx, lz, cars)
+
+def villa_block(mx, mz, w, d):
+    layout = R.choice(['one', 'two', 'four'])
+    if layout == 'one':
+        villa_lot(mx, mz, w, d)
+    elif layout == 'two':
+        villa_lot(mx - w / 4, mz, w / 2, d)
+        villa_lot(mx + w / 4, mz, w / 2, d)
+    else:
+        for sx_ in (-1, 1):
+            for sz_ in (-1, 1):
+                villa_lot(mx + sx_ * w / 4, mz + sz_ * d / 4, w / 2, d / 2)
+
+def mall_span(x0, x1, z0, z1):
+    # long north-south mall, parking lot on its west side
+    mx0, mx1 = -100.5, -95.5
+    add_building('Rahmaniya Mall', 'mall', 1.4, (mx0 + mx1) / 2, (z0 + z1) / 2, mx1 - mx0, z1 - z0, 'rect')
+
+def parking_lot(x0, x1, z0, z1):
+    cars = []
+    cols = [x0 + o for o in (.9, 2.35, 3.8, 5.25)]
+    rows = int((z1 - z0 - .8) // .6) + 1
+    for cx in cols:
+        for k in range(rows):
+            if R.random() < .8:
+                cz = z0 + .5 + k * .6
+                cars.append([cx - .11, cz - .25, cx + .11, cz + .25])
+    add_raw('Mall parking cars', 'building', .35, (x0 + x1) / 2, (z0 + z1) / 2, cars)
+
+def mosque_block(mx, mz, w, d):
+    add_building('Rahmaniya Jummah Masjid', 'mosque', 1.8, mx, mz, w * .85, d * .85)
+
+rah_blocks = 0
+for c in range(len(RX) - 1):
+    for r in range(len(RZ) - 1):
+        x0 = RX[c] + GAP
+        if RX[c + 1] == -68:
+            continue   # no plots east of Rahmaniya Street 9: the grass strip keeps 50 m+ to the highway
+        x1 = RX[c + 1] - GAP
+        z0 = RZ[r] + GAP
+        z1 = RZ[r + 1] - GAP
+        w, d = x1 - x0, z1 - z0
+        mx, mz = (x0 + x1) / 2, (z0 + z1) / 2
+        if mz + d / 2 > coastZ(mx) - 2.5:
+            continue
+        if any(in_zone(mx, mz, zn) for zn in PARK_ZONES):
+            continue   # the park zones below replace these plots
+        if (c, r) == (6, 8):
+            mall_span(RX[6] + GAP, RX[7] - GAP, RZ[8] + GAP, RZ[10] - GAP)
+        elif (c, r) in ((6, 9), (5, 9)):
+            pass
+        elif (c, r) == (5, 8):
+            parking_lot(RX[5] + GAP, RX[6] - GAP, RZ[8] + GAP, RZ[10] - GAP)
+        elif (c, r) == (8, 1):
+            mosque_block(mx, mz, w, d)
+        elif (c, r) in KSHISHA_CELLS:
+            park(mx, mz, w * .92, d * .92)
+            parks[-1]['n'] = KSHISHA_CELLS[(c, r)]
+        else:
+            villa_block(mx, mz, w, d)
+        rah_blocks += 1
+blocks += rah_blocks
+
+# ---------- park zones: lawns with curved walks ----------
+def walk(pts, nm):
+    roads.append({'n': nm, 'c': 'pedestrian', 'w': 0.5, 'o': 0, 't': 0, 'p': pts,
+                  'k': [f'{nm}_{k}' for k in range(len(pts))]})
+
+def ring_walk(cx, cz, rad, nm):
+    walk([[round(cx + rad * math.cos(t), 2), round(cz + rad * math.sin(t), 2)]
+          for t in [2 * math.pi * k / 24 for k in range(25)]], nm)
+
+# Kshisha Park 1: widened east-west, same depth as before; a winding walk along its length
+kx, kz = -102.0, -4.0
+park(kx, kz, 46.2, 5.7)
+parks[-1]['n'] = 'Kshisha Park 1'
+walk([[-120.0, -6.5], [-112.0, -1.5], [-104.0, -6.5], [-96.0, -1.5], [-88.0, -6.5], [-80.0, -1.5]], 'Kshisha winding walk')
+
+# new community park with a school and a museum, its own lawn and walks
+cx_, cz_ = -138.0, -40.0
+park(cx_, cz_, 22.2, 14.2)
+parks[-1]['n'] = 'Community Park'
+ring_walk(cx_, cz_, 3.4, 'Community ring walk')
+walk([[cx_ - 10.5, cz_], [cx_ - 3.4, cz_], [cx_ + 3.4, cz_], [cx_ + 10.5, cz_]], 'Community cross walk')
+add_building('Community School', 'school', 0.9, cx_ + 6.8, cz_ - 4.4, 6.0, 4.6, 'rect')
+add_building('Community Museum', 'building', 1.3, cx_ - 6.9, cz_ + 4.4, 5.6, 5.6, 'cross')
+
 # ---------- coast and land ----------
-coast = [[x, round(coastZ(x), 2)] for x in range(-68, 122, 2)]
-land = [[-68, -62], [120, -62]] + [[x, z] for x, z in reversed(coast)]
+coast = [[x, round(coastZ(x), 2)] for x in range(-152, 122, 2)]
+land = [[-152, -80], [120, -80]] + [[x, z] for x, z in reversed(coast)]
 
 # ---------- places (incident-related roles are required by the simulation) ----------
 def p_in_city(x, z):
@@ -341,8 +539,13 @@ places = [
     {'role': 'landmark', 'n': 'Sharjah Industrial Gate', 'x': -6.0, 'z': -40.0, 'h': 5.0},
     {'role': 'mosque', 'n': 'Al Sajaa Mosque', 'x': -40.0, 'z': -24.0, 'h': 4.0},
     {'role': 'mall', 'n': 'Tasheel Centre', 'x': 84.0, 'z': 6.0, 'h': 1.2},
+    {'role': 'mall', 'n': 'Rahmaniya Mall', 'x': RAH_MALL[0], 'z': RAH_MALL[1], 'h': 1.4},
+    {'role': 'mosque', 'n': 'Rahmaniya Jummah Masjid', 'x': -82.0, 'z': -36.0, 'h': 3.0},
 ]
 places.append({'role': 'landmark', 'n': 'Etihad Rail Station', 'x': 0.0, 'z': -49.5, 'h': 3.0})
+places.append({'role': 'landmark', 'n': 'Etihad Rail Halt', 'x': 96.0, 'z': -49.5, 'h': 2.0})
+places.append({'role': 'landmark', 'n': 'Community School', 'x': -131.2, 'z': -44.4, 'h': 2.5})
+places.append({'role': 'landmark', 'n': 'Community Museum', 'x': -144.9, 'z': -35.6, 'h': 3.0})
 if 'logistics' in yard_marks:
     lx, lz = yard_marks['logistics']
     for pl in places:
@@ -366,6 +569,12 @@ labels = [
     {'n': 'Emirates Rd E611', 'x': -68.0, 'z': 10.0, 'a': 1.57},
     {'n': 'Emirates Rd E88', 'x': 30.0, 'z': -59.5, 'a': 0.0},
     {'n': 'Tasheel Roundabout', 'x': 84.0, 'z': 24.5, 'a': 0.0},
+    {'n': 'Station parking', 'x': -7.0, 'z': -60.0, 'a': 0.0},
+    {'n': 'Etihad Rail Halt', 'x': 96.0, 'z': -60.0, 'a': 0.0},
+    {'n': 'Rahmaniya', 'x': -112.0, 'z': -28.0, 'a': 0.0},
+    {'n': 'Kshisha Park 1', 'x': -98.0, 'z': -4.0, 'a': 0.0},
+    {'n': 'Kshisha Park 2', 'x': -130.0, 'z': -4.0, 'a': 0.0},
+    {'n': 'Community Park', 'x': -138.0, 'z': -51.0, 'a': 0.0},
 ]
 
 data = {
@@ -375,7 +584,7 @@ data = {
         'origin': {'lat': 25.3370, 'lon': 55.4360},
         'rotationDeg': 0,
         'unitMeters': 10,
-        'rect': {'minX': -68, 'maxX': 120, 'minZ': -62, 'maxZ': 46},
+        'rect': {'minX': -152, 'maxX': 120, 'minZ': -80, 'maxZ': 46},
         'blocks': blocks,
     },
     'land': land,

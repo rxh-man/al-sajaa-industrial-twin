@@ -1,97 +1,100 @@
 import { AD } from '@/data/abudhabi';
+import { COVERAGE } from '@/data/coverage';
+import { countCatalogue } from '@/three/buildingVariants';
+import { VEHICLE_LENGTH } from '@/three/vehicles/vehicleModels';
+import { TwinMark } from '@/components/ui/TwinMark';
+import { TwinPreview } from './TwinPreview';
 import './landing.css';
 
-const DISTRICT = [
-  { n: '01', t: 'Logistics yards', d: 'Warehouses, container stacks and truck parks along the freight edge of the district.' },
-  { n: '02', t: 'Car auction yards', d: 'Rows of sedans, SUVs and pickups, with the auction office at the gate.' },
-  { n: '03', t: 'Labor camps', d: 'Prefab accommodation inside fenced compounds, with a mess hall and water tank.' },
-  { n: '04', t: 'Plants and solar', d: 'Factory halls, tank farms and a solar field with its reservoir.' },
+const DISTRICTS = [
+  {
+    tag: 'West',
+    t: 'Logistics and freight',
+    d: 'Warehouses, container stacks, truck depots and loading bays along the freight edge, with forklifts and reach stackers at work.',
+    k: `${AD.buildings.filter((b) => b.procedural && b.n.includes('warehouse')).length} warehouses`,
+  },
+  {
+    tag: 'North',
+    t: 'Industry and utilities',
+    d: 'Factory halls, workshops, substations and service corridors, with excavators and loaders parked at the plant edge.',
+    k: 'Service roads and utility corridors',
+  },
+  {
+    tag: 'East',
+    t: 'Residential and community',
+    d: 'Villas, townhouses and apartment blocks around parks, a mosque, a school and a district mall, joined to Emirates Road E88.',
+    k: 'Villas, schools, mosques, parks',
+  },
+];
+
+const CAPABILITIES = [
+  { t: 'Traffic', d: 'Cars, buses and heavy trucks move on the road network with lanes, junctions, signals and a fast lane on Emirates Road.' },
+  { t: 'Underground', d: 'Electricity, telecom, water, cooling and sewage run under the roads. Switch each network on, follow its flow or pull the layers apart.' },
+  { t: 'Incidents', d: 'A water leak can be replayed on the twin, with the impact zone, the crew route and the valves to close.' },
+  { t: 'Analytics', d: 'Telemetry, timelines and scenario comparisons, with simulated sensor data clearly labelled as such.' },
+  { t: 'AI agents', d: 'Ask the twin a question in plain language. Agents can suggest actions, and an autonomy switch keeps you in control of what runs.' },
 ];
 
 const NETWORKS = [
-  { n: 'Electricity', c: '#c9892b', d: 'Feeders and duct banks' },
-  { n: 'Telecom', c: '#3f8f6b', d: 'Fibre backbone and micro-duct' },
-  { n: 'Water', c: '#2f6fa8', d: 'Potable mains and the leak sensors' },
-  { n: 'Cooling', c: '#7a6fb8', d: 'Supply and return loops' },
-  { n: 'Sewage', c: '#9a5b3c', d: 'Gravity mains and interceptors' },
+  { n: 'Electricity', c: '#f2b441', d: 'Feeders and duct banks' },
+  { n: 'Telecom', c: '#4fd1c5', d: 'Fibre backbone and micro-duct' },
+  { n: 'Water', c: '#5aa9e6', d: 'Potable mains and leak sensors' },
+  { n: 'Cooling', c: '#9b8cf0', d: 'Supply and return loops' },
+  { n: 'Sewage', c: '#c98a5e', d: 'Gravity mains and interceptors' },
 ];
 
 const STEPS = [
   { t: 'Read', d: 'Sensors under the yards and camps report pressure, flow and load every few seconds.' },
   { t: 'Match', d: 'Small changes that look harmless on their own are linked into one finding, with the pipe and the spot.' },
-  { t: 'Route', d: 'The team sees which yards, camps and roads are affected, and the crew route to the fault.' },
+  { t: 'Route', d: 'See which yards, camps and roads are affected, and the crew route to the fault.' },
 ];
 
-/** Schematic of the district: the grid, Emirates Road, the freight line and the utilities underneath. */
-function DistrictPlan() {
-  const blocks = [];
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 6; j++) {
-      blocks.push(<rect key={`${i}-${j}`} x={56 + i * 44} y={40 + j * 36} width={36} height={28} rx={2} className="al-plan-block" />);
-    }
-  }
-  return (
-    <svg viewBox="0 0 480 360" role="img" aria-label="Schematic plan of the Al Sajaa district: street grid, Emirates Road, the Etihad Rail line and underground networks" className="al-plan">
-      <rect x="0" y="0" width="480" height="360" className="al-plan-bg" />
-      {blocks}
-      <path d="M22 40 C 34 120, 30 220, 46 330" className="al-plan-road" />
-      <path d="M46 330 C 120 300, 240 310, 470 290" className="al-plan-road" />
-      <path d="M0 312 H480" className="al-plan-rail" />
-      <path d="M70 60 V300 M140 60 V300 M210 60 V300 M280 60 V300 M350 60 V300" className="al-plan-pipe" stroke="#c9892b" />
-      <path d="M60 90 H380 M60 170 H380 M60 250 H380" className="al-plan-pipe" stroke="#2f6fa8" />
-      <path d="M100 40 V290 M240 40 V290 M420 40 V290" className="al-plan-pipe" stroke="#3f8f6b" />
-      <circle cx="132" cy="210" r="6" className="al-plan-dot" />
-      <circle cx="298" cy="128" r="6" className="al-plan-dot" />
-      <circle cx="406" cy="236" r="6" className="al-plan-dot" />
-      <text x="142" y="214" className="al-plan-label">Yards</text>
-      <text x="308" y="132" className="al-plan-label">Camps</text>
-      <text x="416" y="240" className="al-plan-label">Solar</text>
-      <text x="330" y="300" className="al-plan-label">Etihad Rail</text>
-      <text x="34" y="26" className="al-plan-label">E611</text>
-    </svg>
-  );
-}
+const fmt = (n: number) => n.toLocaleString('en-GB');
 
 export function Landing() {
   const stats = [
-    { v: AD.buildings.length.toLocaleString('en-GB'), l: 'structures in the model' },
-    { v: String(AD.roads.filter((r) => r.c !== 'rail').length), l: 'road segments' },
-    { v: String(AD.parks.length), l: 'parks and green lots' },
-    { v: '5', l: 'underground networks' },
+    { v: fmt(AD.buildings.length), l: 'structures modelled' },
+    { v: String(countCatalogue()), l: 'building designs' },
+    { v: String(Object.keys(VEHICLE_LENGTH).length), l: 'vehicle models' },
+    { v: `${COVERAGE.ratio.toFixed(2)}×`, l: `land area, against ${COVERAGE.baseKm2.toFixed(2)} km² original` },
   ];
 
   return (
     <div className="al">
       <header className="al-mast">
-        <a className="al-name" href="#">
-          Al Sajaa <span>/ digital twin</span>
+        <a className="al-brand" href="#" aria-label="Al Sajaa Industrial Twin home">
+          <TwinMark size={26} className="al-mark" />
+          <span>Al Sajaa <em>Industrial Twin</em></span>
         </a>
         <nav aria-label="Sections">
-          <a href="#district">District</a>
+          <a href="#districts">Districts</a>
           <a href="#underground">Underground</a>
-          <a href="#how">Method</a>
+          <a href="#capabilities">Capabilities</a>
         </nav>
+        <a className="al-btn al-btn-sm" href="#twin">Open the twin</a>
       </header>
 
       <section className="al-hero">
-        <div className="al-hero-text">
-          <p className="al-eyebrow">Sharjah industrial district</p>
-          <h1>The district above and the pipes below, in one model.</h1>
+        <div className="al-hero-copy">
+          <p className="al-eyebrow">Sharjah · Al Sajaa</p>
+          <h1>The district above, and the pipes below.</h1>
           <p className="al-deck">
-            Yards, camps, a solar field, the Etihad Rail line and the water, sewage, power, telecom and cooling networks under the roads. Built to be looked at, walked through and tested before anything is dug up.
+            A living model of an industrial district: yards, labour camps, Etihad Rail and the five networks under its roads. Watch the traffic, follow a leak, and test a decision before anything is dug up.
           </p>
-          <div className="al-cta-row">
-            <a className="al-btn-solid" href="#twin">Open the twin</a>
-            <a className="al-btn-line" href="#underground">What is underneath</a>
+          <div className="al-cta">
+            <a className="al-btn al-btn-solid" href="#twin">Open the twin</a>
+            <a className="al-btn al-btn-ghost" href="#capabilities">See what it does</a>
           </div>
         </div>
-        <figure className="al-hero-plan">
-          <DistrictPlan />
-          <figcaption>Schematic plan, not to scale. North is up.</figcaption>
+        <figure className="al-stage">
+          <TwinPreview label="Plan of the Al Sajaa district, with simulated traffic" />
+          <figcaption>
+            <span className="al-live" aria-hidden /> Plan view · moving traffic · procedural model, simulated data
+          </figcaption>
         </figure>
       </section>
 
-      <dl className="al-figures">
+      <dl className="al-stats">
         {stats.map((s) => (
           <div key={s.l}>
             <dt>{s.v}</dt>
@@ -100,28 +103,31 @@ export function Landing() {
         ))}
       </dl>
 
-      <section id="district" className="al-band">
-        <h2>What is on the ground</h2>
-        <ol className="al-rows">
-          {DISTRICT.map((r) => (
-            <li key={r.n}>
-              <span className="al-row-n">{r.n}</span>
-              <div>
-                <h3>{r.t}</h3>
-                <p>{r.d}</p>
-              </div>
-            </li>
+      <section id="districts" className="al-section">
+        <p className="al-kicker">Districts</p>
+        <h2>Three districts around the original site</h2>
+        <p className="al-lede">
+          The original Al Sajaa scene stays as it was. Three procedural districts extend it on the west, north and east, measured at {COVERAGE.worldKm2.toFixed(1)} km² against {COVERAGE.baseKm2.toFixed(1)} km² for the original land.
+        </p>
+        <div className="al-districts">
+          {DISTRICTS.map((d) => (
+            <article key={d.tag} className="al-district">
+              <span className="al-tag">{d.tag}</span>
+              <h3>{d.t}</h3>
+              <p>{d.d}</p>
+              <span className="al-meta">{d.k}</span>
+            </article>
           ))}
-        </ol>
+        </div>
       </section>
 
-      <section id="underground" className="al-band al-band-split">
+      <section id="underground" className="al-section al-split">
         <div>
+          <p className="al-kicker">Underground</p>
           <h2>Underneath the roads</h2>
-          <p>
-            Five networks run under the streets, yards and camps. In the twin you can switch each one on or off, follow the flow, or pull the layers apart to read them one at a time.
+          <p className="al-lede">
+            Five networks run under the streets, yards and camps. Each one can be switched on or off, followed along its route, or separated into its own layer.
           </p>
-          <p>The Etihad Rail runs along the south edge with a station, signal masts and a level crossing at the freight road.</p>
         </div>
         <ul className="al-networks">
           {NETWORKS.map((u) => (
@@ -134,21 +140,40 @@ export function Landing() {
         </ul>
       </section>
 
-      <section id="how" className="al-band">
+      <section id="capabilities" className="al-section">
+        <p className="al-kicker">Capabilities</p>
+        <h2>One model for operations, not a dashboard on top of a map</h2>
+        <ul className="al-caps">
+          {CAPABILITIES.map((c) => (
+            <li key={c.t}>
+              <h3>{c.t}</h3>
+              <p>{c.d}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="how" className="al-section">
+        <p className="al-kicker">Method</p>
         <h2>How the twin is used</h2>
-        <div className="al-steps">
+        <ol className="al-steps">
           {STEPS.map((s, i) => (
-            <article key={s.t}>
-              <span className="al-step-n">Step {i + 1}</span>
+            <li key={s.t}>
+              <span className="al-step-n">0{i + 1}</span>
               <h3>{s.t}</h3>
               <p>{s.d}</p>
-            </article>
+            </li>
           ))}
-        </div>
+        </ol>
+      </section>
+
+      <section className="al-closing">
+        <h2>Open the twin and look around.</h2>
+        <a className="al-btn al-btn-solid" href="#twin">Open the twin</a>
       </section>
 
       <footer className="al-foot">
-        <span>Simulated sensor data. The layout is procedural and based on an industrial-area plan, not a survey.</span>
+        <span>Procedural layout based on an industrial-area plan, not a survey. Sensor, pipe, incident and forecast data are simulated. Verify service information with the official source.</span>
         <a href="#twin">Open the twin</a>
       </footer>
     </div>

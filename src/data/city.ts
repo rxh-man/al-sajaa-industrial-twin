@@ -1,14 +1,14 @@
 import { mulberry32, range, pick, type Rng } from './rng';
 
 /**
- * City layout for the "Riverside District" digital twin.
+ * City layout of the Al Sajaa digital twin (simulated sites; the street grid is the procedural baseline).
  *
  * World units: 1 unit ≈ 10 m horizontally. Underground depths are vertically
  * exaggerated so the utility layers stay legible from a city-scale camera.
  *
  *  +x → east, +z → south (the river runs along the southern edge).
  *  Sector grid: rows A–D (north → south), columns 10–14 (west → east).
- *  B-12 is the centre block, directly north of Riverside Avenue.
+ *  B-12 is the centre block, directly north of the main east-west road.
  */
 
 export const UNIT_METERS = 10;
@@ -24,7 +24,7 @@ export const PLINTH_H = 0.12;
 /** N-S street centre lines (x) and E-W street centre lines (z). */
 export const STREET_X = [-70, -42, -14, 14, 42, 70] as const;
 export const STREET_Z = [-58, -30, 0, 30, 58] as const;
-/** Corridor widths (kerb to kerb incl. sidewalks). Riverside Avenue (z = 0) is the wide one. */
+/** Corridor widths (kerb to kerb incl. sidewalks). The main east-west road (z = 0) is the wide one. */
 export const STREET_X_W = [8, 8, 8, 8, 8, 8] as const;
 export const STREET_Z_W = [8, 8, 12, 8, 8] as const;
 
@@ -38,12 +38,26 @@ export const CITY_MIN_Z = -62;
 export const CITY_MAX_Z = 62;
 
 /** The diorama "slab" the city sits on — its cut faces expose the underground. */
+/**
+ * The plate under the whole world: the baseline plus every procedural district. The west and north
+ * edges follow the outermost expansion district (far west at x = -312, far north at z = -230); the
+ * validator checks that this box still covers scripts/expansion meta.combinedRect.
+ */
 export const DIORAMA = {
-  minX: -72,
-  maxX: 124,
-  minZ: -68,
+  minX: -312,
+  maxX: 196,
+  minZ: -230,
   maxZ: 92,
   bottom: -14,
+} as const;
+
+/** The original baseline bounds, frozen. Utility sources, sinks and boundary nodes are anchored to these,
+ *  so they do not move when the world grows. */
+export const BASE_BOUNDS = {
+  minX: -152,
+  maxX: 124,
+  minZ: -80,
+  maxZ: 92,
 } as const;
 
 /** The Corniche sea: water level, sea bed, and where the coast starts (abudhabi.json). */
@@ -51,7 +65,7 @@ export const RIVER = { minZ: 39.4, maxZ: 92, bed: -2.4, level: -1.15 } as const;
 
 export const RIVERSIDE_AVENUE_Z = 0;
 
-/** Gulf edge and neighbourhood mosque of the procedural Al Danah city (used by StreetNames.tsx / Mosque.tsx from main). */
+/** Neighbourhood mosque of the procedural Al Sajaa layout (used by StreetNames.tsx / Mosque.tsx from main). */
 export const SEA = { minZ: 68, maxZ: DIORAMA.maxZ, bed: -2.4, level: -1.15 } as const;
 export const MOSQUE = {
   x: -4.4,
@@ -465,12 +479,12 @@ export const COOLING_PLANT_POS = { x: -31, z: -19 };
 export const EXCHANGE_POS = { x: -58, z: -46 };
 
 export const SITES: SpecialSite[] = [
-  { key: 'hospital', name: 'Central Medical Center', sector: 'B-13', ...HOSPITAL_POS },
-  { key: 'school', name: 'Riverside Academy', sector: 'A-11', ...SCHOOL_POS },
-  { key: 'depot', name: 'Utility Operations Depot', sector: 'D-14', ...DEPOT_POS },
-  { key: 'pumping', name: 'Riverside Pumping Station', sector: 'D-11', ...PUMP_POS },
-  { key: 'substation', name: 'Substation North-East', sector: 'A-14', ...SUBSTATION_POS },
-  { key: 'cooling', name: 'District Cooling Plant', sector: 'B-11', ...COOLING_PLANT_POS },
+  { key: 'hospital', name: 'Al Sajaa Hospital (simulated site)', sector: 'B-13', ...HOSPITAL_POS },
+  { key: 'school', name: 'Al Sajaa School (simulated site)', sector: 'A-11', ...SCHOOL_POS },
+  { key: 'depot', name: 'Utility depot (simulated)', sector: 'D-14', ...DEPOT_POS },
+  { key: 'pumping', name: 'Pumping station (simulated)', sector: 'D-11', ...PUMP_POS },
+  { key: 'substation', name: 'Substation (simulated)', sector: 'A-14', ...SUBSTATION_POS },
+  { key: 'cooling', name: 'Cooling plant (simulated)', sector: 'B-11', ...COOLING_PLANT_POS },
   { key: 'telecom', name: 'Telecom Exchange', sector: 'A-10', ...EXCHANGE_POS },
 ];
 
@@ -499,11 +513,11 @@ function generateSpecials(rng: Rng): Building[] {
       rng,
     ),
   );
-  // Riverside Academy — L-shaped low campus (A-11)
+  // School (simulated site) — L-shaped low campus (A-11)
   out.push(
     makeBuilding(
       {
-        name: 'Riverside Academy',
+        name: 'Al Sajaa School (simulated site)',
         kind: 'school',
         sector: 'A-11',
         x: SCHOOL_POS.x,
@@ -547,7 +561,7 @@ function generateSpecials(rng: Rng): Building[] {
   out.push(
     makeBuilding(
       {
-        name: 'Riverside Pumping Station',
+        name: 'Pumping station (simulated)',
         kind: 'pumping',
         sector: 'D-11',
         x: PUMP_POS.x,

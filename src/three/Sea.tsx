@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { BoxGeometry, BufferGeometry, Color, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, MeshStandardMaterial, PlaneGeometry, Shape, Vector3, Vector4, type Intersection, type Raycaster } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { DIORAMA, RIVER } from '../data/city';
+import { ALSAJAA_INLAND } from '../config/overrides';
 import { AD } from '../data/abudhabi';
 import { LAMP_H, PROMENADE } from '../data/lamps';
 import { G } from './shaders/globals';
@@ -322,6 +323,8 @@ export function Sea() {
   const plane = useMemo(() => new PlaneGeometry(W, D, 1, 1), []);
   const seawall = useMemo(() => wall(AD.coast, RIVER.bed, 0.02), []);
 
+  // Al Sajaa is inland: no sea, sea bed or seawall (see src/config/overrides.ts)
+  if (ALSAJAA_INLAND) return null;
   return (
     <group>
       <mesh geometry={plane} rotation-x={-Math.PI / 2} position={[CX, RIVER.level, CZ]} material={water} renderOrder={2} receiveShadow raycast={noRaycast} />

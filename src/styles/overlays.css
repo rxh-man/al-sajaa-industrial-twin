@@ -1177,6 +1177,14 @@ li.is-done .loader-check {
   transform: translateX(-50%);
   z-index: 50;
   text-align: center;
+  /* a dark, blurred backing keeps the text readable over bright roofs and water */
+  padding: 16px 26px 18px;
+  border-radius: 16px;
+  background: rgba(6, 10, 16, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  max-width: min(92vw, 720px);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.9s ease;
@@ -1217,9 +1225,10 @@ li.is-done .loader-check {
 .intro-tag {
   margin-top: 10px;
   font-size: 26px;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.01em;
-  color: var(--text-1);
+  color: #f2f5f8;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
 }
 
 .intro-place {
@@ -1328,4 +1337,70 @@ li.is-done .loader-check {
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* Resident service guide: opens from a civic building on the map */
+.service-guide { position: absolute; top: 72px; right: 16px; bottom: 16px; width: min(380px, calc(100% - 32px)); overflow: auto; z-index: 40; padding: 18px 20px; background: rgba(8, 12, 20, 0.94); color: #eef2f6; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.service-guide h2 { font-size: 16px; margin: 2px 0 0; }
+.service-guide h3 { font-size: 13px; margin: 14px 0 6px; color: #9fb4c8; }
+.service-guide .sg-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.service-guide .sg-kicker { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #8aa0b6; }
+.service-guide .sg-close { background: none; border: 0; color: #eef2f6; cursor: pointer; padding: 4px; }
+.service-guide .sg-emergency { background: rgba(190, 40, 40, 0.25); border: 1px solid rgba(255, 90, 90, 0.5); padding: 8px 10px; border-radius: 8px; }
+.service-guide .sg-buttons { display: flex; gap: 8px; margin-top: 6px; }
+.service-guide .sg-buttons button, .service-guide .sg-close { font: inherit; }
+.service-guide .sg-buttons button { padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #eef2f6; cursor: pointer; }
+.service-guide .sg-ok { color: #9ee3b1; }
+.service-guide .sg-warn { color: #ffb7a8; }
+.service-guide .sg-meta { color: #8aa0b6; font-size: 12px; }
+.service-guide .sg-verify { color: #c9d4de; font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
+.service-guide .sg-checklist { list-style: none; padding: 0; margin: 0; }
+.service-guide .sg-checklist label { display: flex; gap: 8px; align-items: flex-start; }
+.service-guide .sg-field { display: block; margin-top: 8px; }
+.service-guide .sg-field span { display: block; color: #9fb4c8; margin-bottom: 4px; }
+.service-guide textarea { width: 100%; box-sizing: border-box; background: rgba(255, 255, 255, 0.05); color: #eef2f6; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 6px 8px; font: inherit; }
+.service-guide ol { padding-left: 18px; margin: 0; }
+.map-place.is-service { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 480px) { .service-guide { top: auto; left: 8px; right: 8px; bottom: 150px; width: auto; max-height: 52vh; background: rgb(8, 12, 20); z-index: 70; } }
+
+/* 48-hour outlook (simulated) */
+.forecast48 { position: absolute; top: 72px; left: 16px; width: min(340px, calc(100% - 32px)); max-height: calc(100% - 220px); overflow: auto; z-index: 35; padding: 14px 16px; background: rgba(8, 12, 20, 0.94); color: #eef2f6; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.forecast48 ul { list-style: none; padding: 0; margin: 0; }
+.forecast48 .f48-kicker { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #f2c46b; }
+.forecast48 .f48-item { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 0; }
+.forecast48 .f48-when { color: #8aa0b6; font-size: 12px; }
+.forecast48 .f48-title { font-weight: 600; }
+.forecast48 .f48-affects { color: #9fb4c8; font-size: 12px; }
+.forecast48 .f48-verify { color: #c9d4de; font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
+.emergency-bar { position: absolute; left: 16px; bottom: 8px; z-index: 60; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 10px; background: rgba(120, 20, 20, 0.85); color: #fff; border-radius: 8px; font-size: 12px; }
+.emergency-bar b { font-size: 13px; }
+.emergency-bar .eb-sim { color: #ffd9d2; }
+
+/* ---- provenance legend (main view) ---- */
+.provenance {
+  position: absolute;
+  right: 14px;
+  bottom: 46px;
+  z-index: 20;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(7, 11, 18, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e6e9ef;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.provenance .prov-title { margin: 0 0 4px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; opacity: 0.8; }
+.provenance ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.provenance li { display: block; }
+.prov-tag { display: inline-block; min-width: 64px; padding: 1px 6px; margin-right: 4px; border-radius: 4px; font-size: 11px; font-weight: 600; text-align: center; color: #0b0f17; }
+.prov-layout { background: #9fd3ff; }
+.prov-sim { background: #ffc857; }
+.prov-verify { background: #ff9b8a; }
+@media (max-width: 640px) {
+  /* phone: the legend sits above the emergency bar; the full credit line is covered by the legend text */
+  .provenance { left: 12px; right: 12px; top: auto; bottom: 132px; max-width: none; font-size: 11px; }
+  .map-credit { display: none; }
+  .service-guide ~ .provenance { display: none; }
 }

@@ -10,6 +10,8 @@ import { useRimMask } from '../ui/ai-lights/useAiLights';
 import { EVEN_STOPS } from '../ui/ai-lights/mask';
 import { RimGlow } from '../ui/ai-lights/RimGlow';
 import '../../styles/ai-lights.css';
+import { DEFAULT_DEMO } from '../../config/overrides';
+import { runGuideDemo, stopGuideDemo } from '../../demo/guideDemo';
 
 /** The idle call to action: a minimal pill with a constant light-blue AI-lights halo round its rim. */
 function RunButton({ onClick }: { onClick: () => void }) {
@@ -162,7 +164,18 @@ export function ScenarioTransport() {
     if (exploded) return null;
     return (
       <div className="transport is-idle">
-        <RunButton onClick={run} />
+        <RunButton onClick={() => (DEFAULT_DEMO === 'guide' ? runGuideDemo() : run())} />
+        {DEFAULT_DEMO === 'guide' && (
+          <button
+            className="link-btn skip-link"
+            onClick={() => {
+              stopGuideDemo();
+              run();
+            }}
+          >
+            Demo: pipe failure
+          </button>
+        )}
         <button className="link-btn skip-link" onClick={skip}>
           Skip to the problem
           <SkipForward size={13} />
@@ -264,7 +277,7 @@ export function FutureOverlay() {
     <div className={`future-frame ${future ? 'is-on' : ''}`}>
       <div className="future-banner" role="status">
         <TriangleAlert size={16} />
-        <div className="future-title">In 48 hours, if nobody acts</div>
+        <div className="future-title">In 48 hours, if nobody acts (simulated)</div>
         <button className="btn-ghost sm" onClick={() => setFuture(false)}>
           Back to now
         </button>

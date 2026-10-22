@@ -18,7 +18,13 @@ const useSvgId = () => useId().replace(/[^\w-]/g, '');
 function boxRect(b: readonly [number, number, number, number], inset = 0) {
   const [x0, y0] = project(b[0], b[3]);
   const [x1, y1] = project(b[2], b[1]);
-  return { x: x0 + inset, y: y0 + inset, width: x1 - x0 - inset * 2, height: y1 - y0 - inset * 2 };
+  // an inset larger than half the box would invert it (a negative SVG width): clamp it to an empty box
+  return {
+    x: x0 + inset,
+    y: y0 + inset,
+    width: Math.max(0, x1 - x0 - inset * 2),
+    height: Math.max(0, y1 - y0 - inset * 2),
+  };
 }
 
 /** Everything but a box: masks a coarser layer where a more detailed one takes over. */
@@ -36,8 +42,8 @@ export const CountryLayer = memo(function CountryLayer({ detailed = false }: { d
   const id = useSvgId();
   return (
     <g className="geo-country">
-      {/* the hole stops 2.5 km inside the detailed data so the two (same-colour) fills overlap and no seam shows */}
-      {detailed && <HoleMask id={`${id}-hole`} rect={boxRect(CITY_BBOX, 2.5)} />}
+      {/* the hole stops 0.1 km inside the detailed box, so the same-colour city fill covers it and no seam shows */}
+      {detailed && <HoleMask id={`${id}-hole`} rect={boxRect(CITY_BBOX, 0.1)} />}
       <path className="geo-neighbour" d={COUNTRY_PATHS.saudi} style={ns} />
       <path className="geo-neighbour" d={COUNTRY_PATHS.oman} fillRule="evenodd" style={ns} />
       <path className="geo-neighbour" d={COUNTRY_PATHS.qatar} style={ns} />

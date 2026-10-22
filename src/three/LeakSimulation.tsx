@@ -295,7 +295,7 @@ function LeakAnnotation() {
         <div className="leak-card">
           <div className="leak-title">
             <AlertTriangle size={14} strokeWidth={2.4} />
-            {future ? 'PIPE BURST' : 'POSSIBLE WATER LEAK'}
+            {future ? 'PIPE BURST (SIMULATED)' : 'POSSIBLE WATER LEAK (SIMULATED)'}
           </div>
           <div className="leak-rows">
             <div>

@@ -45,9 +45,10 @@ const KIND_LABEL: Record<AdKind, string> = {
   tower: 'Tower',
   residential: 'Apartments',
   building: 'Building',
+  pool: 'Swimming pool',
 };
 
-/** A real downtown building from OpenStreetMap. */
+/** A building from the Al Sajaa map data. */
 function describePlace(id: number, snap: SimSnapshot): AssetInfo | null {
   const b = AD.buildings[id - AD_BUILDING_ID0];
   if (!b) return null;
@@ -62,7 +63,7 @@ function describePlace(id: number, snap: SimSnapshot): AssetInfo | null {
     rows: [
       { label: 'Height', value: `${Math.round(b.h * 10)} m`, key: true },
       { label: 'Water service', value: inZone ? 'At risk if the main fails' : 'Normal', tone: inZone ? 'warn' : 'ok', key: true },
-      { label: 'Map', value: 'OpenStreetMap' },
+      { label: 'Map', value: 'Procedural layout (not survey data)' },
     ],
   };
 }
@@ -119,7 +120,7 @@ export function describe(info: HoverInfo, snap: SimSnapshot): AssetInfo | null {
         return {
           kicker: 'ASSET',
           title: seg.id,
-          subtitle: `${layer.label} main · Khalifa Street`,
+          subtitle: `${layer.label} main · main road (name to verify)`,
           tone: repaired ? 'ok' : active ? 'alert' : 'ok',
           status: repaired ? 'Repaired' : isolated ? 'Isolated' : active ? (snap.localized ? 'Leak detected' : 'Abnormal') : 'Normal',
           color: layer.color,

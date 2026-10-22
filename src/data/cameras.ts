@@ -22,7 +22,7 @@ export const POSES: Record<Exclude<ShotId, 'dive' | 'follow'>, Pose> = {
   sector: { pos: [34, 33, 47], target: [2, 0, -10], duration: 2.8 },
   approach: { pos: [26, 21, 30], target: [2, -1.5, -2.8], duration: 2.6 },
   underground: { pos: [11, 19, 21], target: [0.5, -6.0, -2.2], duration: 2.4 },
-  // above the ducts that run beside the water main under Khalifa Street, looking down onto the leak
+  // above the ducts that run beside the water main under the main road, looking down onto the (simulated) leak
   failure: { pos: [5.25, -1.38, 1.23], target: [1.3, -5.05, -2.4], duration: 2.4 },
   impact: { pos: [58, 112, 106], target: [0, -4, -12], duration: 3.0 },
   repairView: { pos: [38, 46, 60], target: [3, -2, -6], duration: 3.0 },

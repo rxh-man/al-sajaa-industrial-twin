@@ -28,9 +28,12 @@ export const PART = {
   indR: 13,
 } as const;
 
-export type VehicleKind = 'sedan' | 'hatch' | 'suv' | 'van' | 'taxi' | 'bus' | 'truck' | 'police' | 'crew';
+export type VehicleKind = 'sedan' | 'hatch' | 'suv' | 'van' | 'taxi' | 'bus' | 'truck' | 'police' | 'crew'
+  | 'pickup' | 'minibus' | 'coach' | 'boxTruck' | 'flatbed' | 'tanker' | 'waterTanker' | 'reefer' | 'tractor'
+  | 'semi' | 'container20' | 'carTransporter' | 'towTruck' | 'fireEngine' | 'ambulance' | 'garbage' | 'serviceVan'
+  | 'forklift' | 'yardTractor' | 'reachStacker' | 'excavator' | 'wheelLoader' | 'bulldozer';
 
-function tag(g: BufferGeometry, part: number): BufferGeometry {
+export function tag(g: BufferGeometry, part: number): BufferGeometry {
   const ng = g.index ? g.toNonIndexed() : g;
   if (ng.getAttribute('uv')) ng.deleteAttribute('uv');
   const n = ng.getAttribute('position').count;
@@ -39,12 +42,12 @@ function tag(g: BufferGeometry, part: number): BufferGeometry {
 }
 
 /** Axis-aligned box: w = width (x), h = height (y), l = length (z). */
-function box(w: number, h: number, l: number, x: number, y: number, z: number, part: number) {
+export function box(w: number, h: number, l: number, x: number, y: number, z: number, part: number) {
   return tag(new BoxGeometry(w, h, l).translate(x, y, z), part);
 }
 
 /** Side profile [along, up] extruded across the vehicle width, with rounded (bevelled) edges. */
-function profile(points: [number, number][], width: number, part: number, bevel = 0.05) {
+export function profile(points: [number, number][], width: number, part: number, bevel = 0.05) {
   const shape = new Shape();
   points.forEach(([a, u], i) => (i ? shape.lineTo(a, u) : shape.moveTo(a, u)));
   shape.closePath();
@@ -62,7 +65,7 @@ function profile(points: [number, number][], width: number, part: number, bevel 
   return tag(g, part);
 }
 
-function wheels(axles: number[], track: number, r: number, w: number) {
+export function wheels(axles: number[], track: number, r: number, w: number) {
   const out: BufferGeometry[] = [];
   for (const z of axles)
     for (const side of [-1, 1]) {
@@ -74,7 +77,7 @@ function wheels(axles: number[], track: number, r: number, w: number) {
 }
 
 /** Head/tail lights, indicators, grille, bumpers and mirrors for a car-like body. */
-function carDetails(o: { W: number; front: number; rear: number; headY: number; tailY: number; bumperY: number; mirrorZ: number; mirrorY: number }) {
+export function carDetails(o: { W: number; front: number; rear: number; headY: number; tailY: number; bumperY: number; mirrorZ: number; mirrorY: number }) {
   const { W, front, rear, headY, tailY, bumperY, mirrorZ, mirrorY } = o;
   const hx = W / 2 - 0.3;
   return [
@@ -243,10 +246,298 @@ function crew(): BufferGeometry[] {
   ];
 }
 
-const BUILDERS: Record<VehicleKind, () => BufferGeometry[]> = { sedan, hatch, suv, van, taxi, bus, truck, police, crew };
+
+/** Cylinder along the vehicle's length (z), centred at (x, y, z). */
+function cyl(r: number, len: number, x: number, y: number, z: number, part: number) {
+  return tag(new CylinderGeometry(r, r, len, 14, 1).rotateX(Math.PI / 2).translate(x, y, z), part);
+}
+
+/** Cab shared by the heavy rigid and articulated models: sloped bonnet, raked windscreen, mirrors. */
+function heavyCab(W: number, part: number = PART.paint): BufferGeometry[] {
+  return [
+    profile([[2.4, 0.7], [2.5, 2.2], [1.6, 2.5], [0.2, 2.5], [-0.6, 1.1], [-0.6, 0.7]], W, part),
+    profile([[2.42, 1.6], [2.46, 2.1], [1.7, 2.32], [1.36, 1.6]], W - 0.24, PART.glass, 0.03),
+    box(0.42, 0.14, 0.08, W / 2 - 0.3, 1.1, 2.5, PART.head),
+    box(0.42, 0.14, 0.08, -(W / 2 - 0.3), 1.1, 2.5, PART.head),
+    box(0.12, 0.1, 0.06, W / 2 + 0.08, 1.9, 1.7, PART.paint),
+    box(0.12, 0.1, 0.06, -(W / 2 + 0.08), 1.9, 1.7, PART.paint),
+    box(W - 0.1, 0.13, 0.14, 0, 0.5, 2.5, PART.trim),
+  ];
+}
+
+function pickup(): BufferGeometry[] {
+  const W = 1.96;
+  return [
+    profile([[-2.5, 0.42], [2.3, 0.42], [2.42, 0.66], [2.38, 0.98], [1.2, 1.05], [-0.2, 1.05], [-0.2, 1.1], [-2.5, 1.1]], W, PART.paint),
+    profile([[1.2, 1.03], [0.3, 1.62], [-0.2, 1.62], [-0.2, 1.05]], W - 0.24, PART.glass, 0.04),
+    box(W - 0.14, 0.12, 2.3, 0, 0.9, -1.6, PART.trim),
+    box(0.08, 0.5, 2.3, W / 2 - 0.06, 1.2, -1.6, PART.paint),
+    box(0.08, 0.5, 2.3, -(W / 2 - 0.06), 1.2, -1.6, PART.paint),
+    box(W - 0.14, 0.5, 0.08, 0, 1.2, -2.7, PART.paint),
+    ...carDetails({ W, front: 2.4, rear: -2.5, headY: 0.9, tailY: 1.0, bumperY: 0.46, mirrorZ: 0.9, mirrorY: 1.35 }),
+    ...wheels([1.5, -1.6], W / 2 - 0.14, 0.4, 0.28),
+  ];
+}
+
+function minibus(): BufferGeometry[] {
+  const W = 2.0;
+  return [
+    profile([[-2.6, 0.4], [2.5, 0.4], [2.6, 0.7], [2.58, 2.2], [2.2, 2.36], [-2.3, 2.36], [-2.6, 2.1], [-2.62, 0.8]], W, PART.paint),
+    box(W + 0.02, 0.6, 3.6, 0, 1.6, -0.2, PART.glass),
+    box(W - 0.2, 0.06, 4.4, 0, 2.4, -0.2, PART.trim),
+    box(W + 0.02, 0.1, 0.9, 0, 0.9, 2.5, PART.trim),
+    ...carDetails({ W, front: 2.6, rear: -2.62, headY: 0.9, tailY: 1.0, bumperY: 0.42, mirrorZ: 1.6, mirrorY: 1.5 }),
+    ...wheels([1.8, -1.8], W / 2 - 0.14, 0.36, 0.26),
+  ];
+}
+
+function coach(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    profile([[-6.0, 0.8], [5.9, 0.8], [6.05, 1.1], [6.0, 3.1], [5.5, 3.25], [-5.8, 3.25], [-6.1, 2.8], [-6.15, 1.2]], W, PART.paint),
+    box(W + 0.02, 0.9, 10.6, 0, 2.2, 0.1, PART.glass),
+    box(W - 0.2, 0.08, 11.4, 0, 3.28, 0, PART.trim),
+    box(W - 0.2, 0.22, 0.1, 0, 2.95, 6.0, PART.glass),
+    ...carDetails({ W, front: 6.05, rear: -6.1, headY: 1.3, tailY: 1.5, bumperY: 0.8, mirrorZ: 4.6, mirrorY: 2.6 }),
+    ...wheels([4.9, -4.6, -5.5], W / 2 - 0.2, 0.5, 0.35),
+  ];
+}
+
+function boxTruck(): BufferGeometry[] {
+  const W = 2.3;
+  return [
+    ...heavyCab(W),
+    box(W, 2.6, 5.2, 0, 2.0, -0.3, PART.paint),
+    box(W - 0.6, 0.35, 7.0, 0, 0.6, -0.4, PART.trim),
+    box(W - 0.02, 0.2, 5.2, 0, 3.35, -0.3, PART.trim),
+    ...wheels([2.0, -2.0, -3.0], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function flatbed(): BufferGeometry[] {
+  const W = 2.4;
+  return [
+    ...heavyCab(W),
+    box(W - 0.2, 0.2, 6.6, 0, 1.1, -1.0, PART.trim),
+    box(1.4, 1.0, 2.2, 0.3, 1.7, -1.6, PART.accent),
+    box(1.6, 0.6, 1.8, -0.4, 1.5, 0.6, PART.white),
+    box(W - 0.2, 0.1, 6.4, 0, 1.25, -1.0, PART.trim),
+    ...wheels([2.0, -2.0, -3.6], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function tanker(): BufferGeometry[] {
+  return [
+    ...heavyCab(2.4),
+    cyl(1.05, 6.8, 0, 1.8, -1.2, PART.white),
+    cyl(1.07, 0.8, 0, 1.8, -3.6, PART.red),
+    box(1.6, 0.3, 0.9, 0, 1.0, -1.6, PART.trim),
+    box(2.3, 0.2, 7.2, 0, 0.6, -1.2, PART.trim),
+    ...wheels([2.0, -2.0, -3.6], 1.1, 0.45, 0.35),
+  ];
+}
+
+function waterTanker(): BufferGeometry[] {
+  return [
+    ...heavyCab(2.4),
+    cyl(1.0, 6.0, 0, 1.7, -1.0, PART.blue),
+    box(1.5, 0.3, 0.9, 0, 0.95, -1.6, PART.trim),
+    box(2.3, 0.2, 6.6, 0, 0.6, -1.0, PART.trim),
+    ...wheels([2.0, -2.0, -3.4], 1.1, 0.45, 0.35),
+  ];
+}
+
+function reefer(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    ...heavyCab(W),
+    box(W, 2.7, 5.5, 0, 2.1, -1.6, PART.white),
+    box(1.5, 0.5, 0.6, 0, 3.55, 0.2, PART.trim),
+    box(W - 0.2, 0.2, 5.4, 0, 0.7, -1.4, PART.trim),
+    ...wheels([2.0, -2.0, -3.4], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function tractor(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    profile([[-1.4, 0.7], [1.4, 0.7], [1.7, 1.0], [1.6, 2.7], [0.6, 3.0], [-0.7, 3.0], [-1.4, 2.2]], W, PART.paint),
+    box(2.2, 0.9, 0.05, 0, 2.25, 1.66, PART.glass),
+    box(2.0, 0.2, 1.4, 0, 1.2, -1.2, PART.trim),
+    box(W - 0.4, 0.3, 0.3, 0, 0.9, 1.7, PART.trim),
+    box(0.42, 0.14, 0.08, 0.9, 1.1, 1.7, PART.head),
+    box(0.42, 0.14, 0.08, -0.9, 1.1, 1.7, PART.head),
+    ...wheels([1.0, -1.0], 1.15, 0.52, 0.4),
+  ];
+}
+
+function semi(): BufferGeometry[] {
+  return [
+    ...tractor(),
+    box(2.5, 0.25, 12.0, 0, 1.25, -8.2, PART.trim),
+    box(2.5, 2.7, 12.2, 0, 2.75, -8.2, PART.white),
+    box(2.5, 0.12, 12.2, 0, 4.1, -8.2, PART.trim),
+    ...wheels([-12.6, -13.8, -14.9], 1.2, 0.5, 0.4),
+  ];
+}
+
+function container20(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    ...heavyCab(W),
+    box(W - 0.1, 0.25, 6.4, 0, 1.0, -1.4, PART.trim),
+    box(2.44, 2.59, 6.06, 0, 2.5, -1.4, PART.blue),
+    box(2.46, 0.12, 6.1, 0, 3.8, -1.4, PART.trim),
+    ...wheels([2.0, -2.2, -3.4], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function carTransporter(): BufferGeometry[] {
+  return [
+    ...tractor(),
+    box(2.6, 0.12, 12.0, 0, 1.2, -8.0, PART.trim),
+    box(2.5, 0.1, 11.0, 0, 2.6, -8.0, PART.trim),
+    box(1.8, 0.9, 4.2, 0, 1.8, -9.0, PART.paint),
+    box(1.8, 0.9, 4.2, 0, 1.8, -4.0, PART.red),
+    box(1.8, 0.9, 3.6, 0, 3.7, -6.5, PART.white),
+    ...wheels([-12.6, -13.8, -14.9], 1.2, 0.5, 0.4),
+  ];
+}
+
+function towTruck(): BufferGeometry[] {
+  const W = 2.4;
+  return [
+    ...heavyCab(W),
+    box(W - 0.2, 0.2, 4.4, 0, 1.2, -1.2, PART.trim),
+    box(0.18, 0.18, 4.0, 0, 2.6, -2.4, PART.amber),
+    box(0.9, 0.2, 0.9, 0, 0.9, -1.2, PART.amber),
+    box(0.8, 0.2, 0.2, 0, 3.9, 0.2, PART.amber),
+    ...wheels([2.0, -2.0, -3.2], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function fireEngine(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    ...heavyCab(W, PART.red),
+    box(W, 2.2, 5.6, 0, 2.1, -1.4, PART.red),
+    box(0.4, 0.3, 7.5, 0, 3.5, -1.2, PART.chrome),
+    box(W - 0.2, 0.3, 4.6, 0, 1.0, -1.4, PART.trim),
+    box(0.9, 0.24, 0.3, 0, 3.4, -4.0, PART.amber),
+    ...wheels([2.0, -2.0, -3.6], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function ambulance(): BufferGeometry[] {
+  return [
+    ...van(),
+    box(2.02, 0.22, 4.4, 0, 1.35, -0.2, PART.red),
+    box(0.4, 0.14, 0.12, 0, 2.2, 0.0, PART.blue),
+    box(0.3, 0.12, 0.12, 0.5, 2.2, 0.0, PART.red),
+  ];
+}
+
+function garbage(): BufferGeometry[] {
+  const W = 2.5;
+  return [
+    ...heavyCab(W),
+    box(W, 2.4, 4.8, 0, 2.2, -2.2, PART.paint),
+    box(W - 0.2, 0.3, 2.0, 0, 3.5, -1.0, PART.trim),
+    box(W - 0.2, 0.2, 5.0, 0, 0.8, -2.2, PART.trim),
+    ...wheels([2.0, -2.0, -3.6], W / 2 - 0.12, 0.45, 0.35),
+  ];
+}
+
+function serviceVan(): BufferGeometry[] {
+  return [
+    ...van(),
+    box(2.0, 0.08, 3.0, 0, 2.25, -0.6, PART.trim),
+    box(0.6, 0.12, 0.2, 0.4, 2.05, -2.7, PART.amber),
+    box(0.6, 0.12, 0.2, -0.4, 2.05, -2.7, PART.amber),
+  ];
+}
+
+function forklift(): BufferGeometry[] {
+  return [
+    box(1.2, 0.5, 1.8, 0, 0.5, 0, PART.paint),
+    box(1.2, 1.1, 0.1, 0, 1.6, -0.6, PART.trim),
+    box(1.3, 0.1, 1.2, 0, 2.3, -0.2, PART.trim),
+    box(0.12, 2.6, 0.12, 0.4, 1.7, 1.2, PART.trim),
+    box(0.12, 2.6, 0.12, -0.4, 1.7, 1.2, PART.trim),
+    box(0.12, 0.08, 1.2, 0.4, 0.15, 2.0, PART.trim),
+    box(0.12, 0.08, 1.2, -0.4, 0.15, 2.0, PART.trim),
+    ...wheels([-0.6, 0.6], 0.6, 0.22, 0.3),
+  ];
+}
+
+function yardTractor(): BufferGeometry[] {
+  return [
+    box(1.8, 1.0, 2.2, 0, 1.0, -0.2, PART.paint),
+    box(1.6, 0.5, 0.05, 0, 1.4, 0.94, PART.glass),
+    box(1.2, 0.2, 1.2, 0, 0.7, -2.0, PART.trim),
+    box(1.9, 0.12, 0.2, 0, 0.5, 1.0, PART.trim),
+    ...wheels([0.8, -1.0], 0.85, 0.4, 0.4),
+  ];
+}
+
+function reachStacker(): BufferGeometry[] {
+  return [
+    box(2.8, 2.0, 6.5, 0, 1.8, -2.0, PART.paint),
+    box(2.6, 1.5, 2.0, 0, 3.6, -5.5, PART.glass),
+    box(0.5, 4.8, 0.5, 0, 3.5, 4.0, PART.trim),
+    box(2.0, 0.2, 2.6, 0, 6.0, 4.0, PART.accent),
+    box(0.4, 0.4, 3.0, 0, 5.0, 2.2, PART.accent),
+    ...wheels([2.0, -2.0], 1.4, 0.6, 0.5),
+  ];
+}
+
+function excavator(): BufferGeometry[] {
+  return [
+    box(0.8, 0.8, 4.2, 1.2, 0.4, 0, PART.trim),
+    box(0.8, 0.8, 4.2, -1.2, 0.4, 0, PART.trim),
+    box(2.0, 1.4, 2.4, 0, 1.6, -0.5, PART.accent),
+    box(1.6, 0.8, 0.8, 0, 2.5, 0.5, PART.glass),
+    box(0.45, 0.45, 4.6, 0, 2.4, 3.0, PART.accent),
+    box(0.35, 0.35, 3.6, 0, 1.0, 6.0, PART.accent),
+    box(0.9, 0.6, 0.7, 0, 0.4, 7.8, PART.trim),
+  ];
+}
+
+function wheelLoader(): BufferGeometry[] {
+  return [
+    box(2.4, 1.8, 3.0, 0, 1.5, -1.4, PART.accent),
+    box(2.0, 1.4, 1.8, 0, 2.8, -1.6, PART.glass),
+    box(0.4, 0.4, 2.0, 0, 1.8, 1.2, PART.trim),
+    box(2.6, 0.9, 0.9, 0, 1.0, 3.0, PART.trim),
+    ...wheels([1.8, -1.8], 1.3, 0.7, 0.6),
+  ];
+}
+
+function bulldozer(): BufferGeometry[] {
+  return [
+    box(2.4, 1.4, 3.6, 0, 1.4, 0, PART.accent),
+    box(2.0, 1.2, 1.6, 0, 2.6, -0.8, PART.glass),
+    box(3.2, 1.2, 0.3, 0, 0.9, 3.8, PART.trim),
+    box(0.6, 0.9, 5.2, 1.5, 0.45, 0, PART.trim),
+    box(0.6, 0.9, 5.2, -1.5, 0.45, 0, PART.trim),
+  ];
+}
+
+const BUILDERS: Record<VehicleKind, () => BufferGeometry[]> = {
+  sedan, hatch, suv, van, taxi, bus, truck, police, crew,
+  pickup, minibus, coach, boxTruck, flatbed, tanker, waterTanker, reefer, tractor, semi, container20,
+  carTransporter, towTruck, fireEngine, ambulance, garbage, serviceVan,
+  forklift, yardTractor, reachStacker, excavator, wheelLoader, bulldozer,
+};
 
 /** Length of each model in world units (bumper to bumper). */
 export const VEHICLE_LENGTH: Record<VehicleKind, number> = {
+  pickup: 5.22 * VEHICLE_SCALE, minibus: 5.62 * VEHICLE_SCALE, coach: 12.3 * VEHICLE_SCALE, boxTruck: 7.0 * VEHICLE_SCALE,
+  flatbed: 6.87 * VEHICLE_SCALE, tanker: 7.37 * VEHICLE_SCALE, waterTanker: 6.87 * VEHICLE_SCALE, reefer: 6.92 * VEHICLE_SCALE,
+  tractor: 3.75 * VEHICLE_SCALE, semi: 17.25 * VEHICLE_SCALE, container20: 7.17 * VEHICLE_SCALE, carTransporter: 17.25 * VEHICLE_SCALE,
+  towTruck: 6.97 * VEHICLE_SCALE, fireEngine: 7.52 * VEHICLE_SCALE, ambulance: 5.32 * VEHICLE_SCALE, garbage: 7.27 * VEHICLE_SCALE,
+  serviceVan: 5.47 * VEHICLE_SCALE, forklift: 3.5 * VEHICLE_SCALE, yardTractor: 3.8 * VEHICLE_SCALE, reachStacker: 11.8 * VEHICLE_SCALE,
+  excavator: 10.25 * VEHICLE_SCALE, wheelLoader: 6.35 * VEHICLE_SCALE, bulldozer: 6.55 * VEHICLE_SCALE,
   sedan: 4.75 * VEHICLE_SCALE,
   hatch: 4.15 * VEHICLE_SCALE,
   suv: 4.92 * VEHICLE_SCALE,
@@ -260,6 +551,10 @@ export const VEHICLE_LENGTH: Record<VehicleKind, number> = {
 
 /** Centre offset (model space, world units) so that the car's middle sits on its path position. */
 export const VEHICLE_CENTER: Record<VehicleKind, number> = {
+  pickup: 0, minibus: 0, coach: 0, boxTruck: -0.2 * VEHICLE_SCALE, flatbed: -0.4 * VEHICLE_SCALE, tanker: -0.6 * VEHICLE_SCALE,
+  waterTanker: -0.5 * VEHICLE_SCALE, reefer: -0.5 * VEHICLE_SCALE, tractor: 0, semi: -2.2 * VEHICLE_SCALE, container20: -0.4 * VEHICLE_SCALE,
+  carTransporter: -2.2 * VEHICLE_SCALE, towTruck: -0.4 * VEHICLE_SCALE, fireEngine: -0.5 * VEHICLE_SCALE, ambulance: 0,
+  garbage: -0.4 * VEHICLE_SCALE, serviceVan: 0, forklift: 0, yardTractor: 0, reachStacker: 0, excavator: 0, wheelLoader: 0, bulldozer: 0,
   sedan: 0,
   hatch: 0,
   suv: 0,

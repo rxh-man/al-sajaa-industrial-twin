@@ -16,7 +16,7 @@ uniform vec4 uGroundRect;
 struct RoadSample { vec3 color; vec3 emissive; float road; float rough; float land; };
 
 /* Real downtown Abu Dhabi: paving, parks, road shapes and markings come from the
-   painted ground map (OpenStreetMap); the shader adds grain and wear on top. */
+   painted ground map; the shader adds grain and wear on top. */
 RoadSample roadSample(vec2 p) {
   RoadSample r;
   vec2 uv = (p - uGroundRect.xy) * uGroundRect.zw;

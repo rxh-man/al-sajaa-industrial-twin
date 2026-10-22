@@ -1,5 +1,5 @@
-import { DIORAMA, sectorAt, UNIT_METERS } from './city';
-import { AD, onLand, place } from './abudhabi';
+import { BASE_BOUNDS as DIORAMA, sectorAt, UNIT_METERS } from './city';
+import { AD_BASE as AD, onLandBase as onLand, place } from './abudhabi';
 import { mulberry32, hashString } from './rng';
 
 export type LayerId = 'electric' | 'telecom' | 'water' | 'cooling' | 'sewage';
@@ -41,7 +41,7 @@ export const LAYERS: Record<LayerId, LayerDef> = {
     glow: '#ffd75e',
     depth: -2.6,
     radius: 0.26,
-    offset: 3.0,
+    offset: 0,
     prefix: 'ELC',
     explodedY: 3,
     flow: { spacing: 16, speed: 13, width: 0.16, strength: 2.4 },
@@ -55,7 +55,7 @@ export const LAYERS: Record<LayerId, LayerDef> = {
     glow: '#5ff5d6',
     depth: -3.6,
     radius: 0.19,
-    offset: 1.8,
+    offset: 0,
     prefix: 'TEL',
     explodedY: -6,
     flow: { spacing: 10, speed: 22, width: 0.07, strength: 3.2 },
@@ -69,7 +69,7 @@ export const LAYERS: Record<LayerId, LayerDef> = {
     glow: '#62d4ff',
     depth: -5.2,
     radius: 0.42,
-    offset: -2.4,
+    offset: 0,
     prefix: 'WTR',
     explodedY: -15,
     flow: { spacing: 2.6, speed: 3.6, width: 0.3, strength: 0.85 },
@@ -83,7 +83,7 @@ export const LAYERS: Record<LayerId, LayerDef> = {
     glow: '#d2f8ff',
     depth: -7.2,
     radius: 0.3,
-    offset: -0.4,
+    offset: 0,
     prefix: 'DCL',
     explodedY: -24,
     flow: { spacing: 4.5, speed: 2.4, width: 0.28, strength: 0.9 },
@@ -97,7 +97,7 @@ export const LAYERS: Record<LayerId, LayerDef> = {
     glow: '#f3b26a',
     depth: -9.8,
     radius: 0.58,
-    offset: 0.5,
+    offset: 0,
     prefix: 'SWR',
     explodedY: -33,
     flow: { spacing: 3.4, speed: 1.1, width: 0.4, strength: 0.55 },
@@ -407,7 +407,7 @@ function build(layerId: LayerId, variant: 'main' | 'supply' | 'return', offset: 
 /* Real streets → pipe routes                                          */
 /* ------------------------------------------------------------------ */
 
-/** The demo leak sits on the water main beside Khalifa Street, at the scene origin. */
+/** The demo leak (simulated) sits on the water main beside the main road, at the scene origin. */
 const LEAK_AT: [number, number] = [1.5, LAYERS.water.offset];
 
 /** Street centre-line pieces from OpenStreetMap (underpasses and footpaths excluded). */
@@ -415,7 +415,7 @@ const STREET_EDGES = AD.roads.filter((r) => r.c !== 'pedestrian').flatMap((r) =>
 
 /**
  * A dual carriageway is two one-way roads side by side; a utility runs under one of them, not both.
- * Keep the one-way pieces heading this way (for Khalifa Street, the carriageway over the demo leak).
+ * Keep the one-way pieces heading this way (for the main road, the carriageway over the demo leak).
  */
 const KEEP_DIR: [number, number] = [0.94, 0.33];
 const keptCarriageway = (e: (typeof STREET_EDGES)[number]) => !e.oneway || (e.b[0] - e.a[0]) * KEEP_DIR[0] + (e.b[1] - e.a[1]) * KEEP_DIR[1] >= 0;

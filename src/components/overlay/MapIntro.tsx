@@ -31,7 +31,7 @@ interface Frame {
 }
 
 const COUNTRY: Frame = { c: project(54.0, 24.38), z: 1.95, r: 0 };
-const CITY: Frame = { c: project(54.43, 24.475), z: 36, r: 0 };
+const CITY: Frame = { c: project(55.436, 25.337), z: 36, r: 0 };
 const TWIN_CENTRE = sceneToMap(0, 0);
 
 /** Timeline after `play` (ms). */
@@ -100,7 +100,7 @@ function buildLabels(): Label[] {
   UAE_CITIES.forEach((p) =>
     L.push({ key: p.name, at: at(p), text: p.name, sub: p.ar, className: p.capital ? 'mi-city is-capital' : 'mi-city', range: p.capital ? [0, 0.01, 6, 11] : country, anchor: 'left', minScale: p.capital ? 0 : 1 }),
   );
-  ISLAND_LABELS.forEach((p) => L.push({ key: p.name, at: at(p), text: p.name, className: p.name === 'Abu Dhabi Island' ? 'mi-island is-main' : 'mi-island', range: city }));
+  ISLAND_LABELS.forEach((p) => L.push({ key: p.name, at: at(p), text: p.name, className: 'mi-island', range: city }));
   L.push({ key: 'city-sea', at: at(CITY_SEA_LABEL), text: CITY_SEA_LABEL.name, sub: CITY_SEA_LABEL.ar, className: 'mi-sea', range: city });
   L.push({ key: 'site', at: TWIN_CENTRE, text: PLACE.district, sub: PLACE.districtAr, className: 'mi-site', range: [10, 18, 160, 260], anchor: 'pin' });
   // district: real streets, labels snapped onto their OpenStreetMap geometry
@@ -123,7 +123,7 @@ interface Props {
 }
 
 /**
- * Opening map: United Arab Emirates → Abu Dhabi Island → Al Danah street grid, ending exactly on
+ * Opening map: United Arab Emirates → Sharjah → Al Sajaa district, ending exactly on
  * the 3D twin's top-down opening shot so the cross-fade reads as the map becoming the city.
  */
 export function MapIntro({ play, onDone }: Props) {
