@@ -21,7 +21,9 @@ export type HoverInfo =
   | { kind: 'pipe'; layer: LayerId; variant: string; index: number }
   | { kind: 'sensor'; index: number }
   | { kind: 'sector'; id: string }
-  | { kind: 'valve'; id: string };
+  | { kind: 'valve'; id: string }
+  | { kind: 'tree'; plant: number; x: number; z: number }
+  | { kind: 'factory'; id: number };
 
 export interface Selection {
   info: HoverInfo;

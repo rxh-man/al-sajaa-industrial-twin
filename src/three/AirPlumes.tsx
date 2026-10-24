@@ -81,7 +81,19 @@ function Smoke() {
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   });
-  return <instancedMesh ref={ref} args={[geo, mat, count]} raycast={() => {}} />;
+  const setHover = useTwinStore((s) => s.setHover);
+  return (
+    <instancedMesh
+      ref={ref}
+      args={[geo, mat, count]}
+      onPointerMove={(e) => {
+        if (e.instanceId === undefined) return;
+        e.stopPropagation();
+        setHover({ kind: 'factory', id: FACTORIES[Math.floor(e.instanceId / PUFFS)].id });
+      }}
+      onPointerOut={() => setHover(null)}
+    />
+  );
 }
 
 function Oxygen() {

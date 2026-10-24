@@ -1,15 +1,15 @@
 import { ALSAJAA_INLAND } from '../config/overrides';
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { BoxGeometry, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Intersection, type Raycaster } from 'three';
+import { BoxGeometry, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { SECTORS, SECTOR_BY_ID, PLINTH_H } from '../data/city';
 import { mulberry32, type Rng } from '../data/rng';
+import { useTwinStore } from '../store/useTwinStore';
 import { TRENCH } from '../data/incident';
 import { G } from './shaders/globals';
 import { patchMaterial } from './shaders/patch';
 import { GLSL_COMMON } from './shaders/glsl';
 
-const noRaycast = (_r: Raycaster, _i: Intersection[]) => {};
 
 /* ------------------------------------------------------------------ */
 /* Geometry: crowns of merged, noise-displaced lobes on a tapered trunk */
@@ -330,6 +330,7 @@ export function placePlants(): Plant[] {
 const KIND_GEOS: (() => BufferGeometry)[] = [() => deciduousGeo(11), () => palmGeo(23), () => columnarGeo(37), () => bushGeo(41)];
 
 export function Vegetation() {
+  const setHover = useTwinStore((s) => s.setHover);
   const plants = useMemo(placePlants, []);
   const groups = useMemo(() => [0, 1, 2, 3].map((k) => plants.filter((p) => p.kind === k)), [plants]);
   const geos = useMemo(() => KIND_GEOS.map((f) => f()), []);
@@ -365,9 +366,16 @@ export function Vegetation() {
           }}
           args={[geos[k], mat, Math.max(1, list.length)]}
           count={list.length}
-          raycast={noRaycast}
           castShadow
           receiveShadow
+          onPointerMove={(e) => {
+            if (e.instanceId === undefined || e.delta > 4) return;
+            const p = list[e.instanceId];
+            if (!p) return;
+            e.stopPropagation();
+            setHover({ kind: 'tree', plant: k, x: p.x, z: p.z });
+          }}
+          onPointerOut={() => setHover(null)}
         />
       ))}
     </group>

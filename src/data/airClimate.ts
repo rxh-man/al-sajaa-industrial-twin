@@ -20,6 +20,8 @@ const CO2_T_PER_YEAR = [0, 900, 2200, 4200];
 export const O2_KG_PER_TREE_YEAR = 118;
 export const CO2_KG_ABSORBED_PER_TREE_YEAR = 22;
 
+export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export interface Factory {
   id: number;
   x: number;
@@ -31,6 +33,8 @@ export interface Factory {
   co2T: number;
   /** pollutant types this factory contributes to */
   contributes: number;
+  /** simulated monthly emission index, Jan–Dec, 0–100 */
+  monthly: number[];
 }
 
 function hash(n: number, k: number) {
@@ -44,7 +48,7 @@ export const FACTORIES: Factory[] = AD.buildings
   .filter((b) => b.n === 'Factory hall' && b.b.length > 0)
   .map((b) => {
     const [x0, z0, x1, z1] = b.b[0];
-    const levels = POLLUTANTS.map((_, k) => {
+    const levels: number[] = POLLUTANTS.map((_, k) => {
       const r = hash(b.id, k);
       return r < 0.35 ? 0 : r < 0.7 ? 1 : r < 0.92 ? 2 : 3;
     });
@@ -59,6 +63,12 @@ export const FACTORIES: Factory[] = AD.buildings
       levels,
       co2T,
       contributes: levels.filter((l) => l > 0).length,
+      monthly: MONTHS.map((_, m) => {
+        // hotter months run higher; each factory has its own simulated swing
+        const season = 0.85 + 0.25 * Math.sin(((m - 3) / 12) * Math.PI * 2);
+        const swing = 0.8 + 0.4 * hash(b.id, 30 + m);
+        return Math.round(Math.min(100, (levels.reduce((a, l) => a + l, 0) / 12) * 100 * season * swing));
+      }),
     };
   });
 

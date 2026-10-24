@@ -1499,3 +1499,85 @@ li.is-done .loader-check {
   font-size: 11px;
   font-weight: 600;
 }
+
+/* screen-reader-only text */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* place locator: a full-width select under the camera presets */
+.place-locator {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.place-locator select {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 16, 26, 0.85);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.presets .place-locator select {
+  max-width: 100%;
+}
+
+/* monthly variation chart on factory and tree cards */
+.asset-series {
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.asset-series figcaption {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.asset-series figcaption small {
+  color: var(--text-3, var(--text-2));
+}
+
+.asset-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 46px;
+  padding: 4px 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.asset-bars > span {
+  flex: 1;
+  min-height: 4px;
+  border-radius: 2px 2px 0 0;
+  background: var(--asset-c, #8fe3ff);
+  opacity: 0.85;
+}
+
+.asset-bar-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.asset.is-compact .asset-bars {
+  height: 34px;
+}

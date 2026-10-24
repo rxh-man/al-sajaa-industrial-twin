@@ -23,6 +23,22 @@ export function AssetCardBody({ data, compact = false }: { data: AssetInfo; comp
           </div>
         ))}
       </dl>
+      {data.series && (
+        <figure className="asset-series" aria-label={data.series.label}>
+          <figcaption>
+            {data.series.label} <small>({data.series.unit})</small>
+          </figcaption>
+          <div className="asset-bars">
+            {data.series.values.map((v, i) => (
+              <span key={data.series!.labels[i]} title={`${data.series!.labels[i]}: ${v}`} style={{ height: `${Math.max(4, v)}%` }} />
+            ))}
+          </div>
+          <div className="asset-bar-axis">
+            <span>{data.series.labels[0]}</span>
+            <span>{data.series.labels[data.series.labels.length - 1]}</span>
+          </div>
+        </figure>
+      )}
     </div>
   );
 }

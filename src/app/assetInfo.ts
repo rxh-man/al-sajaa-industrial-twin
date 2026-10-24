@@ -1,3 +1,4 @@
+import { FACTORIES, MONTHS, POLLUTANTS, O2_KG_PER_TREE_YEAR, CO2_KG_ABSORBED_PER_TREE_YEAR } from '../data/airClimate';
 import { BUILDING_BY_ID, SECTOR_BY_ID, BUILDINGS, buildingLabel, sectorAt } from '../data/city';
 import { AD, AD_BUILDING_ID0, type AdKind } from '../data/abudhabi';
 import { findSegment, LAYERS, INCIDENT_SEGMENT_ID } from '../data/networks';
@@ -27,6 +28,8 @@ export interface AssetInfo {
   status: string;
   rows: InfoRow[];
   color?: string;
+  /** optional simulated series drawn as a small chart */
+  series?: { label: string; unit: string; labels: string[]; values: number[] };
 }
 
 const fmt = (v: number, d = 1) => (v >= 0 ? `+${v.toFixed(d)}` : v.toFixed(d));
@@ -68,8 +71,45 @@ function describePlace(id: number, snap: SimSnapshot): AssetInfo | null {
   };
 }
 
+const PLANT_NAME = ['Shade tree', 'Date palm', 'Clipped hedge', 'Bush'];
+
 export function describe(info: HoverInfo, snap: SimSnapshot): AssetInfo | null {
   switch (info.kind) {
+    case 'tree': {
+      const shade = info.plant === 0;
+      return {
+        kicker: 'Greenery',
+        title: PLANT_NAME[info.plant] ?? 'Plant',
+        subtitle: shade ? 'Simulated oxygen estimate per tree' : 'Not part of the oxygen total',
+        tone: 'info',
+        status: shade ? 'Simulated' : 'Not counted',
+        rows: shade
+          ? [
+              { label: 'Oxygen released', value: `about ${O2_KG_PER_TREE_YEAR} kg O2 per year`, key: true, mono: false },
+              { label: 'CO2 absorbed', value: `about ${CO2_KG_ABSORBED_PER_TREE_YEAR} kg per year`, key: true },
+              { label: 'Basis', value: 'Assumption, to verify' },
+            ]
+          : [{ label: 'Oxygen', value: 'No rate set for this plant', key: true }],
+      };
+    }
+    case 'factory': {
+      const f = FACTORIES.find((x) => x.id === info.id);
+      if (!f) return null;
+      return {
+        kicker: 'Factory hall',
+        title: 'Factory hall',
+        subtitle: `Simulated emissions · ${f.contributes} of ${POLLUTANTS.length} pollution types`,
+        tone: f.levels[3] >= 3 ? 'warn' : 'info',
+        status: 'Simulated',
+        rows: POLLUTANTS.map((p, k) => ({
+          label: p,
+          value: f.levels[k] === 0 ? 'Not emitted' : `level ${f.levels[k]} of 3`,
+          key: k === 0,
+          tone: f.levels[k] >= 3 ? 'warn' : undefined,
+        })),
+        series: { label: 'Monthly pollution variation', unit: 'simulated index, 0–100', labels: MONTHS, values: f.monthly },
+      };
+    }
     case 'building': {
       if (info.id >= AD_BUILDING_ID0) return describePlace(info.id, snap);
       const b = BUILDING_BY_ID.get(info.id);
