@@ -236,7 +236,7 @@ function createFoliageMaterial() {
 /* ------------------------------------------------------------------ */
 
 type Kind = 0 | 1 | 2 | 3; // shade tree (neem / ghaf), date palm, clipped conocarpus, bush
-interface Plant {
+export interface Plant {
   kind: Kind;
   x: number;
   z: number;
@@ -258,7 +258,7 @@ function leafColor(rng: Rng, kind: Kind) {
   return c.setHSL(0.21 + rng() * 0.07, 0.3 + rng() * 0.14, 0.16 + rng() * 0.07);
 }
 
-function placePlants(): Plant[] {
+export function placePlants(): Plant[] {
   const rng = mulberry32(77);
   const out: Plant[] = [];
   const add = (kind: Kind, x: number, z: number, s: number) => {

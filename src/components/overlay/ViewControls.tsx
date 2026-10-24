@@ -1,4 +1,4 @@
-import { Boxes, Building2, Crosshair, Layers3, Map, RotateCcw, ScanEye, Siren, TriangleAlert } from 'lucide-react';
+import { Boxes, Wind, Building2, Crosshair, Layers3, Map, RotateCcw, ScanEye, Siren, TriangleAlert } from 'lucide-react';
 import { useTwinStore, type PresetId } from '../../store/useTwinStore';
 import { PRESET_LABELS } from '../../data/cameras';
 import { PLACES, allPlacesFrame } from '../../data/placeIndex';
@@ -78,6 +78,8 @@ export function ViewToggles() {
   const toggleXray = useTwinStore((s) => s.toggleXray);
   const exploded = useTwinStore((s) => s.exploded);
   const toggleExploded = useTwinStore((s) => s.toggleExploded);
+  const airPanel = useTwinStore((s) => s.airPanel);
+  const setAirPanel = useTwinStore((s) => s.setAirPanel);
   const future = useTwinStore((s) => s.future);
   const setFuture = useTwinStore((s) => s.setFuture);
   const localized = useTwinStore((s) => s.snap.localized);
@@ -94,6 +96,10 @@ export function ViewToggles() {
         <button className={`toggle-btn ${exploded ? 'is-on' : ''}`} onClick={toggleExploded} aria-pressed={exploded} title="Separate the infrastructure layers (E)">
           <Boxes size={15} />
           <span>Exploded</span>
+        </button>
+        <button className={`toggle-btn ${airPanel ? 'is-on' : ''}`} onClick={() => setAirPanel(!airPanel)} aria-pressed={airPanel} title="Air, pollution and climate (simulated)">
+          <Wind size={15} />
+          <span>Air</span>
         </button>
       </div>
       <div className={`ov-bar time-seg ${canFuture ? '' : 'is-disabled'}`} role="group" aria-label="Time">

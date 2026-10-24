@@ -56,6 +56,10 @@ interface TwinState {
   serviceFor: string | null;
   activePreset: PresetId | null;
   layerPanel: boolean;
+  /** simulated smoke and oxygen in the scene */
+  airOn: boolean;
+  /** the air, pollution and climate panel */
+  airPanel: boolean;
   scenarioMenu: boolean;
   infoOpen: boolean;
 
@@ -102,6 +106,8 @@ interface TwinState {
   setFocus: (l: LayerId | null) => void;
   toggleVisible: (l: LayerId) => void;
   setLayerPanel: (open: boolean) => void;
+  setAirOn: (on: boolean) => void;
+  setAirPanel: (open: boolean) => void;
   setScenarioMenu: (open: boolean) => void;
   setInfoOpen: (open: boolean) => void;
   setRepairOpen: (open: boolean) => void;
@@ -161,6 +167,8 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   serviceFor: null,
   activePreset: 'city',
   layerPanel: false,
+  airOn: true,
+  airPanel: false,
   scenarioMenu: false,
   infoOpen: false,
 
@@ -377,6 +385,8 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   },
   toggleVisible: (l) => set((s) => ({ visible: { ...s.visible, [l]: !s.visible[l] } })),
   setLayerPanel: (layerPanel) => set({ layerPanel }),
+  setAirOn: (airOn) => set({ airOn }),
+  setAirPanel: (airPanel) => set({ airPanel }),
   setScenarioMenu: (scenarioMenu) => set({ scenarioMenu }),
   setInfoOpen: (infoOpen) => set({ infoOpen }),
   setRepairOpen: (repairOpen) => set({ repairOpen }),
