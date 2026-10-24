@@ -8,3 +8,6 @@ dist-ssr
 .claude/worktrees
 .wrangler
 .dev.vars
+
+# Local working files (screenshots, backups, zips)
+scratchpad/
