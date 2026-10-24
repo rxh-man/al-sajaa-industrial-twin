@@ -28,6 +28,8 @@ export interface AssetInfo {
   status: string;
   rows: InfoRow[];
   color?: string;
+  /** short explanation shown on the full card */
+  explain?: string;
   /** optional simulated series drawn as a small chart */
   series?: { label: string; unit: string; labels: string[]; values: number[] };
 }
@@ -108,6 +110,17 @@ export function describe(info: HoverInfo, snap: SimSnapshot): AssetInfo | null {
           tone: f.levels[k] >= 3 ? 'warn' : undefined,
         })),
         series: { label: 'Monthly pollution variation', unit: 'simulated index, 0–100', labels: MONTHS, values: f.monthly },
+        // why this factory contributes, and what reduces it (options, not measured impacts)
+        ...(() => {
+          const top = f.levels.indexOf(Math.max(...f.levels));
+          const options = [
+            'dust filters on the outlets',
+            'low-NOx burners and fuel switching',
+            'scrubbers and lower-sulphur fuel',
+            'lower-carbon power and efficiency upgrades',
+          ];
+          return { explain: `Main driver: ${POLLUTANTS[top]} at level ${f.levels[top]}. Reduce by: ${options[top]}.` };
+        })(),
       };
     }
     case 'building': {

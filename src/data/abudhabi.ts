@@ -21,6 +21,8 @@ export const NAME_FIX: Record<string, string> = {
   'Corniche St': 'Unnamed road (name to verify)',
 };
 const fixName = (n: string) => NAME_FIX[n] ?? n;
+/** Map names never carry the '(to be placed manually)' marker; the service guide shows the status instead. */
+const plainName = (n: string) => n.replace(/\s*\(to be placed manually\)/i, '');
 /** The incident's road, as it appears after NAME_FIX. */
 export const MAIN_ROAD = 'Al Sajaa Main Road (name to verify)';
 /** Road hidden inland (no coast): matched by the renamed label, not by an Abu Dhabi name. */
@@ -115,8 +117,8 @@ export const AD: AdData = {
   buildings: [...AD_BASE.buildings, ...EXP.buildings],
   parks: [...AD_BASE.parks, ...EXP.parks],
   palms: [...AD_BASE.palms, ...EXP.palms],
-  places: [...AD_BASE.places, ...EXP.places],
-  labels: [...AD_BASE.labels, ...EXP.labels],
+  places: [...AD_BASE.places, ...EXP.places].map((p) => ({ ...p, n: plainName(p.n) })),
+  labels: [...AD_BASE.labels, ...EXP.labels].map((l) => ({ ...l, n: plainName(l.n) })),
 };
 export const AD_RECT = AD.meta.rect;
 /** Every land polygon of the world: the baseline outline first, then the expansion districts. */

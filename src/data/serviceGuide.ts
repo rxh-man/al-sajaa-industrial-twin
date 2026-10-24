@@ -80,7 +80,7 @@ export const SERVICES: GuideService[] = [
     verify: 'Clinic hours, booking channels and fees change. Confirm them on the hospital’s official page or by phone before you go.',
   },
   {
-    place: 'Court (to be placed manually)',
+    place: 'Court',
     title: 'Court: finding the right court and forms',
     what: 'The court handles civil, family and other legal matters. Finding the right court depends on the type of case, so confirm it at the court’s help desk.',
     eligibility: [
@@ -104,7 +104,7 @@ export const SERVICES: GuideService[] = [
     verify: 'Court departments, forms and fees change. Confirm them with the court’s official help desk or website before you file.',
   },
   {
-    place: 'Police Station (to be placed manually)',
+    place: 'Police Station',
     title: 'Police station: non-emergency complaints',
     what: 'A non-emergency complaint is a report about something that has already happened and is not an active emergency. The police station records the report and tells you the next step.',
     emergency: 'If a crime is happening now or someone is in danger, call 999 (police) first.',

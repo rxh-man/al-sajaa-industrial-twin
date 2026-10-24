@@ -1581,3 +1581,112 @@ li.is-done .loader-check {
 .asset.is-compact .asset-bars {
   height: 34px;
 }
+
+/* climate agents panel */
+.climate-panel {
+  width: 300px;
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+  padding: 0 12px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-1);
+}
+
+.climate-sec {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 0;
+}
+
+.climate-sec > summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  list-style: none;
+}
+
+.climate-body p {
+  margin: 4px 0;
+}
+
+.climate-note {
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.climate-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 6px;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.climate-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.climate-ctrl label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.climate-ctrl input[type='range'] {
+  width: 100%;
+}
+
+.climate-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+}
+
+.climate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.climate-table th,
+.climate-table td {
+  text-align: left;
+  padding: 3px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.climate-table th {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.asset-explain {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.climate-cost input,
+.climate-cost select {
+  width: 100%;
+}
+
+.climate-cost input {
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 16, 26, 0.85);
+  color: var(--text-1);
+  font: inherit;
+}

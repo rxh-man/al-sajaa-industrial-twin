@@ -55,11 +55,9 @@ export function ServiceGuide() {
 
       <p className="sg-status" role="note">
         <strong>Location status:</strong>{' '}
-        {service.place.includes('to be placed manually')
-          ? 'To be placed manually (unverified marker)'
-          : UNVERIFIED_PLACES.has(service.place)
-            ? 'Location unverified'
-            : 'Placed in the Al Sajaa baseline layout (procedural, not survey data)'}
+        {UNVERIFIED_PLACES.has(service.place)
+          ? 'Location unverified'
+          : 'Placed in the Al Sajaa baseline layout (procedural, not survey data)'}
         . <strong>Information only:</strong> verify with the relevant authority. This guide does not submit anything.
       </p>
 

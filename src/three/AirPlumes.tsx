@@ -55,9 +55,12 @@ function Smoke() {
   const o = useMemo(() => new Object3D(), []);
   const tint = useMemo(() => {
     const arr: Color[] = [];
+    // colour by the pollutant with the highest simulated level: dust tan, NOx brown, SO2 yellow, CO2 grey
+    const DOMINANT = ['#c8a46a', '#9c6b3f', '#d9c94a', '#b9bec6'];
     for (const f of FACTORIES) {
-      const dark = 0.55 + Math.min(f.co2T / 5000, 0.35);
-      arr.push(new Color().setRGB(dark, dark, dark * 1.02));
+      let best = 0;
+      f.levels.forEach((l, k) => { if (l > f.levels[best]) best = k; });
+      arr.push(new Color(DOMINANT[best]));
     }
     return arr;
   }, []);

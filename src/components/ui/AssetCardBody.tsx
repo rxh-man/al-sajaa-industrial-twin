@@ -23,6 +23,7 @@ export function AssetCardBody({ data, compact = false }: { data: AssetInfo; comp
           </div>
         ))}
       </dl>
+      {!compact && data.explain && <p className="asset-explain">{data.explain}</p>}
       {data.series && (
         <figure className="asset-series" aria-label={data.series.label}>
           <figcaption>

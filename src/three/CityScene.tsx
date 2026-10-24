@@ -22,6 +22,7 @@ import { ImpactZone } from './ImpactZone';
 import { RepairRoute } from './RepairRoute';
 import { SectorOverlay } from './SectorOverlay';
 import { AirPlumes } from './AirPlumes';
+import { HeatLayer } from './HeatLayer';
 import { UndergroundNetwork, SurfaceLabel } from './UndergroundNetwork';
 import { InspectorCard } from './InspectorCard';
 import { Effects } from './Effects';
@@ -135,6 +136,7 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <RepairRoute />
         <SectorOverlay />
         <AirPlumes />
+        <HeatLayer />
         <SurfaceLabel />
       </SurfaceGroup>
       <Diorama />

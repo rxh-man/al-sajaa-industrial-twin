@@ -109,6 +109,12 @@ interface TwinState {
   toggleVisible: (l: LayerId) => void;
   setLayerPanel: (open: boolean) => void;
   setAirOn: (on: boolean) => void;
+  climatePanel: boolean;
+  setClimatePanel: (open: boolean) => void;
+  heatOn: boolean;
+  setHeatOn: (on: boolean) => void;
+  solarOn: boolean;
+  setSolarOn: (on: boolean) => void;
   setAirPanel: (open: boolean) => void;
   setScenarioMenu: (open: boolean) => void;
   setInfoOpen: (open: boolean) => void;
@@ -170,6 +176,9 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   activePreset: 'city',
   layerPanel: false,
   airOn: true,
+  climatePanel: false,
+  heatOn: false,
+  solarOn: false,
   airPanel: false,
   scenarioMenu: false,
   infoOpen: false,
@@ -388,6 +397,9 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   toggleVisible: (l) => set((s) => ({ visible: { ...s.visible, [l]: !s.visible[l] } })),
   setLayerPanel: (layerPanel) => set({ layerPanel }),
   setAirOn: (airOn) => set({ airOn }),
+  setClimatePanel: (climatePanel) => set({ climatePanel }),
+  setHeatOn: (heatOn) => set({ heatOn }),
+  setSolarOn: (solarOn) => set({ solarOn }),
   setAirPanel: (airPanel) => set({ airPanel }),
   setScenarioMenu: (scenarioMenu) => set({ scenarioMenu }),
   setInfoOpen: (infoOpen) => set({ infoOpen }),

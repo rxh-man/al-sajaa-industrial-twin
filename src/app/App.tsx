@@ -12,6 +12,7 @@ import { SignalRail } from '../components/dashboard/SignalRail';
 import { AgentsPanel } from '../components/agents/AgentsPanel';
 import { LayerPanel } from '../components/overlay/LayerPanel';
 import { AirPanel } from '../components/overlay/AirPanel';
+import { ClimatePanel } from '../components/overlay/ClimatePanel';
 import { CameraPresets, ViewToggles } from '../components/overlay/ViewControls';
 import { ServiceGuide } from '../components/overlay/ServiceGuide';
 import { Forecast48Panel, EmergencyBar } from '../components/overlay/Forecast48Panel';
@@ -113,6 +114,7 @@ export function App() {
         <div className="vp-tl panel-enter" style={{ ['--enter-delay' as string]: '300ms' }}>
           <LayerPanel />
           <AirPanel />
+          <ClimatePanel />
         </div>
         <div className="vp-tc">
           <ScenarioCaption />
