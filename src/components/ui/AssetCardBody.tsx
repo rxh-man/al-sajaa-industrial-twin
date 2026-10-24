@@ -3,7 +3,7 @@ import { StatusChip } from './StatusChip';
 
 export function AssetCardBody({ data, compact = false }: { data: AssetInfo; compact?: boolean }) {
   const keyed = data.rows.filter((r) => r.key);
-  const rows = compact ? (keyed.length ? keyed : data.rows.slice(0, 2)) : data.rows;
+  const rows = compact ? (keyed.length ? keyed : data.rows.slice(0, 2)) : [...data.rows, ...(data.rowsExtra ?? [])];
   return (
     <div className={`asset ${compact ? 'is-compact' : ''}`} style={data.color ? ({ ['--asset-c' as string]: data.color } as React.CSSProperties) : undefined}>
       <div className="asset-head">

@@ -1,45 +1,36 @@
 import { AD } from './abudhabi';
-import { CO2_KG_ABSORBED_PER_TREE_YEAR, FACTORY_CO2_T, O2_KG_PER_TREE_YEAR, SHADE_TREE_COUNT, TREE_CO2_ABSORBED_T_PER_YEAR, TREE_O2_T_PER_YEAR } from './airClimate';
+import { CO2_KG_ABSORBED_PER_TREE_YEAR, FACTORY_CO2_T, O2_KG_PER_TREE_YEAR, SHADE_TREE_COUNT, FACTORIES, MONTHS } from './airClimate';
 import { EXPOSURE_BY_PLACE } from './exposure';
+import { heatAt } from './heatGrid';
 
 /**
- * Climate agents and the intervention simulator. Every number is either computed from the scene
- * layout, or an ASSUMPTION listed below with a label. Nothing here is a measurement or an
- * official figure. Scene units: 1 = 10 m.
+ * Climate model, shared by the panel, the 3D overlays and the agents. Every number is either
+ * computed from the scene layout or an ASSUMPTION below (labelled). Nothing is measured.
+ * Scene units: 1 = 10 m.
  */
 
-export type Confidence = 'Layout (computed)' | 'Assumption' | 'Model estimate';
+export type Basis = 'Layout (computed)' | 'Assumption' | 'Model estimate' | 'Illustrative' | 'No source';
 
 export const ASSUMPTIONS = {
-  /** share of a roof that can take panels after plant, access and setbacks */
   roofUsableShare: { v: 0.6, label: 'Usable roof share', unit: '', note: 'assumption' },
-  /** installed kWp per m² of panel area */
   kwpPerM2: { v: 0.2, label: 'Panel output', unit: 'kWp per m²', note: 'assumption' },
-  /** annual yield per kWp for Sharjah, to verify against a solar resource dataset */
-  yieldKwhPerKwp: { v: 1600, label: 'Specific yield', unit: 'kWh per kWp per year', note: 'assumption, verify' },
-  /** share of solar output used on site (rest exported) */
+  yieldKwhPerKwp: { v: 1600, label: 'Specific yield', unit: 'kWh per kWp per year', note: 'assumption, verify against a solar resource dataset' },
   selfUse: { v: 0.8, label: 'On-site use of solar', unit: '', note: 'assumption' },
-  /** grid emission factor used for the avoided-emissions comparison */
-  gridKgPerKwh: { v: 0.45, label: 'Grid emission factor', unit: 'kg CO2 per kWh', note: 'assumed electricity mix, verify with the official source' },
-  /** battery sized to this share of an average day's generation */
-  batteryDayShare: { v: 0.25, label: 'Battery size', unit: 'share of daily generation', note: 'assumption' },
-  /** average panel crown radius of a shade tree, metres */
+  gridKgPerKwh: { v: 0.45, label: 'Grid emission factor (default)', unit: 'kg CO2 per kWh', note: 'assumed electricity mix, verify with the official source' },
+  demandKwhPerM2: { v: 150, label: 'Electricity demand', unit: 'kWh per m² of roof per year', note: 'assumption, replace with metered data' },
+  batteryDayShare: { v: 0.25, label: 'Battery size', unit: 'share of average daily generation', note: 'assumption' },
+  batteryRoundTrip: { v: 0.9, label: 'Battery round-trip efficiency', unit: '', note: 'assumption' },
   crownRadiusM: { v: 4, label: 'Tree crown radius', unit: 'm', note: 'assumption' },
-  /** heavy-vehicle CO2 per km, simplified */
   kgCo2PerKm: { v: 0.9, label: 'Truck CO2', unit: 'kg per km', note: 'assumption, simplified' },
-  /** truck movements per day on district roads (user can change in the simulator) */
   dailyMovements: { v: 300, label: 'Truck movements', unit: 'per day', note: 'assumption' },
-  /** average trip length in km */
   tripKm: { v: 10, label: 'Average trip', unit: 'km', note: 'assumption' },
-  /** effect of routing and idle reduction on fuel and CO2, illustrative */
-  optimisedRoutingCut: { v: 0.12, label: 'Routing optimisation', unit: 'cut in km', note: 'illustrative' },
+  routingCut: { v: 0.12, label: 'Routing optimisation', unit: 'cut in km', note: 'illustrative' },
   idlingCut: { v: 0.05, label: 'Less idling', unit: 'cut in fuel', note: 'illustrative' },
-  /** heat effects are relative, not temperatures */
   greenHeatCut: { v: 0.1, label: 'Green corridor heat effect', unit: 'relative cut', note: 'illustrative' },
   reflectiveHeatCut: { v: 0.08, label: 'Reflective roofing heat effect', unit: 'relative cut', note: 'illustrative' },
+  hotWeatherUplift: { v: 0.25, label: 'Hot-weather uplift at full intensity', unit: 'relative', note: 'illustrative, not a forecast' },
 } as const;
 
-/** roof area in m² of a set of buildings (footprint boxes, 1 unit = 10 m) */
 function roofM2(names: string[]) {
   let a = 0;
   for (const b of AD.buildings) {
@@ -49,28 +40,28 @@ function roofM2(names: string[]) {
   return a;
 }
 
-/** footprint polygon area in m² (shoelace) */
-function polyM2(p: { x: number; z: number }[] | [number, number][]) {
+function polyM2(p: [number, number][]) {
   let s = 0;
-  const pts = p as [number, number][];
-  for (let i = 0; i < pts.length; i++) {
-    const [x0, z0] = pts[i];
-    const [x1, z1] = pts[(i + 1) % pts.length];
+  for (let i = 0; i < p.length; i++) {
+    const [x0, z0] = p[i];
+    const [x1, z1] = p[(i + 1) % p.length];
     s += x0 * z1 - x1 * z0;
   }
   return (Math.abs(s) / 2) * 100;
 }
 
-/** the scene's rectangle in m² */
-export const DISTRICT_M2 = ((AD.meta.rect.maxX - AD.meta.rect.minX) * 10) * ((AD.meta.rect.maxZ - AD.meta.rect.minZ) * 10);
-
-/** candidate roofs for solar: logistics warehouses and factory halls */
+export const DISTRICT_M2 = (AD.meta.rect.maxX - AD.meta.rect.minX) * 10 * ((AD.meta.rect.maxZ - AD.meta.rect.minZ) * 10);
 export const ROOF_M2 = roofM2(['Logistics warehouse', 'Factory hall']);
 export const WAREHOUSE_ROOF_M2 = roofM2(['Logistics warehouse']);
-export const PARK_M2 = AD.parks.reduce((a, p) => a + polyM2(p.p), 0);
+export const PARK_M2 = AD.parks.reduce((a, p) => a + polyM2(p.p as [number, number][]), 0);
 export const PARK_COUNT = AD.parks.length;
+export const DEMAND_MWH = (ROOF_M2 * ASSUMPTIONS.demandKwhPerM2.v) / 1000;
 
-/** total length of trunk, primary and motorway roads in km (1 unit = 10 m) */
+export const WAREHOUSE_ROOFS = AD.buildings
+  .filter((b) => b.n === 'Logistics warehouse')
+  .map((b, i) => ({ name: `Warehouse ${i + 1}`, m2: b.b.reduce((a, [x0, z0, x1, z1]) => a + (x1 - x0) * 10 * (z1 - z0) * 10, 0) }))
+  .sort((a, b) => b.m2 - a.m2);
+
 export const MAJOR_ROAD_KM = (() => {
   let units = 0;
   for (const r of AD.roads) {
@@ -80,67 +71,141 @@ export const MAJOR_ROAD_KM = (() => {
   return (units * 10) / 1000;
 })();
 
-/** the district's heat index across named places, averaged (simulated) */
 export const HEAT_INDEX = EXPOSURE_BY_PLACE.length ? EXPOSURE_BY_PLACE.reduce((a, e) => a + e.heatC, 0) / EXPOSURE_BY_PLACE.length : 0;
 
 export interface Scenario {
-  /** share of usable roof area with solar, 0–1 */
   solarCoverage: number;
-  /** additional trees planted along green corridors */
   extraTrees: number;
   reflectiveRoofs: boolean;
   optimisedRouting: boolean;
-  /** share of truck km done by electric vehicles, 0–1 */
   evShare: number;
+  /** hypothetical hot-weather intensity, 0–1 */
+  hotWeather: number;
+  /** grid emission factor used for avoided emissions, kg CO2 per kWh */
+  gridKg: number;
+  /** battery on or off */
+  battery: boolean;
 }
 
-export const BASELINE: Scenario = { solarCoverage: 0, extraTrees: 0, reflectiveRoofs: false, optimisedRouting: false, evShare: 0 };
+export const BASELINE: Scenario = {
+  solarCoverage: 0,
+  extraTrees: 0,
+  reflectiveRoofs: false,
+  optimisedRouting: false,
+  evShare: 0,
+  hotWeather: 0,
+  gridKg: ASSUMPTIONS.gridKgPerKwh.v,
+  battery: false,
+};
+
+/** 24-hour typical day: solar bell curve, flat demand, battery shifts surplus to the evening */
+export function dayProfile(s: Scenario) {
+  const annualGen = ROOF_M2 * s.solarCoverage * ASSUMPTIONS.roofUsableShare.v * ASSUMPTIONS.kwpPerM2.v * ASSUMPTIONS.yieldKwhPerKwp.v; // kWh per year
+  const dailyGen = annualGen / 365;
+  const shape = Array.from({ length: 24 }, (_, h) => (h >= 6 && h <= 18 ? Math.sin((Math.PI * (h - 6)) / 12) ** 1.2 : 0));
+  const sum = shape.reduce((a, b) => a + b, 0) || 1;
+  const gen = shape.map((v) => (dailyGen * v) / sum);
+  const demandDay = (DEMAND_MWH * 1000) / 365;
+  const demand = Array.from({ length: 24 }, () => demandDay / 24);
+  const capacity = s.battery ? dailyGen * ASSUMPTIONS.batteryDayShare.v : 0;
+  const eff = Math.sqrt(ASSUMPTIONS.batteryRoundTrip.v);
+  let soc = 0;
+  const batt: number[] = [];
+  const used: number[] = [];
+  const grid: number[] = [];
+  for (let h = 0; h < 24; h++) {
+    let direct = Math.min(gen[h], demand[h]);
+    let surplus = gen[h] - direct;
+    let charged = 0;
+    if (surplus > 0 && capacity > 0) {
+      charged = Math.min(surplus, (capacity - soc) / eff);
+      soc += charged * eff;
+    }
+    let deficit = demand[h] - direct;
+    let discharged = 0;
+    if (deficit > 0 && capacity > 0) {
+      discharged = Math.min(deficit, soc);
+      soc -= discharged;
+    }
+    batt.push(discharged);
+    used.push(direct + discharged);
+    grid.push(demand[h] - direct - discharged);
+  }
+  return { gen, demand, batt, grid, used, dailyGen, capacity };
+}
 
 export interface Outcome {
   solarMWh: number;
+  demandMWh: number;
+  solarShare: number;
   gridAvoidedMWh: number;
+  gridImportMWh: number;
   batteryKwh: number;
+  batteryMWh: number;
   solarCo2AvoidedT: number;
+  factoryCo2T: number;
+  factoryCo2TDay: number;
   treeO2T: number;
   treeCo2AbsorbedT: number;
   canopyPct: number;
   truckCo2T: number;
   heatIndex: number;
-  /** annual net CO2 across the modelled sources, t per year (negative is a net sink) */
   netCo2T: number;
 }
 
 export function run(s: Scenario): Outcome {
-  // solar
-  const usableM2 = ROOF_M2 * ASSUMPTIONS.roofUsableShare.v * s.solarCoverage;
-  const genKwh = usableM2 * ASSUMPTIONS.kwpPerM2.v * ASSUMPTIONS.yieldKwhPerKwp.v;
-  const solarMWh = genKwh / 1000;
-  const gridAvoidedMWh = (genKwh * ASSUMPTIONS.selfUse.v) / 1000;
-  const solarCo2AvoidedT = (gridAvoidedMWh * 1000 * ASSUMPTIONS.gridKgPerKwh.v) / 1000;
-  const batteryKwh = (genKwh / 365) * ASSUMPTIONS.batteryDayShare.v;
+  const d = dayProfile(s);
+  const solarMWh = (d.dailyGen * 365) / 1000;
+  const avoidedDay = d.used.reduce((a, b) => a + b, 0);
+  const gridAvoidedMWh = (avoidedDay * 365) / 1000;
+  const demandMWh = DEMAND_MWH;
+  const gridImportMWh = demandMWh - gridAvoidedMWh;
+  const solarCo2AvoidedT = (gridAvoidedMWh * 1000 * s.gridKg) / 1000;
 
-  // trees
   const trees = SHADE_TREE_COUNT + s.extraTrees;
   const treeO2T = (trees * O2_KG_PER_TREE_YEAR) / 1000;
   const treeCo2AbsorbedT = (trees * CO2_KG_ABSORBED_PER_TREE_YEAR) / 1000;
-  const crownM2 = Math.PI * ASSUMPTIONS.crownRadiusM.v ** 2;
-  const canopyPct = (trees * crownM2 / DISTRICT_M2) * 100;
+  const canopyPct = ((trees * Math.PI * ASSUMPTIONS.crownRadiusM.v ** 2) / DISTRICT_M2) * 100;
 
-  // trucks
   let km = ASSUMPTIONS.dailyMovements.v * ASSUMPTIONS.tripKm.v * 365;
-  if (s.optimisedRouting) km *= 1 - ASSUMPTIONS.optimisedRoutingCut.v;
-  if (s.optimisedRouting) km *= 1 - ASSUMPTIONS.idlingCut.v;
+  if (s.optimisedRouting) km *= (1 - ASSUMPTIONS.routingCut.v) * (1 - ASSUMPTIONS.idlingCut.v);
   km *= 1 - s.evShare;
   const truckCo2T = (km * ASSUMPTIONS.kgCo2PerKm.v) / 1000;
 
-  // heat (relative index, baseline 100)
-  let heat = HEAT_INDEX;
+  let heat = HEAT_INDEX * (1 + ASSUMPTIONS.hotWeatherUplift.v * s.hotWeather);
   if (s.extraTrees > 0) heat *= 1 - ASSUMPTIONS.greenHeatCut.v * Math.min(1, s.extraTrees / 200);
   if (s.reflectiveRoofs) heat *= 1 - ASSUMPTIONS.reflectiveHeatCut.v;
 
   const netCo2T = FACTORY_CO2_T + truckCo2T - treeCo2AbsorbedT - solarCo2AvoidedT;
-  return { solarMWh, gridAvoidedMWh, batteryKwh, solarCo2AvoidedT, treeO2T, treeCo2AbsorbedT, canopyPct, truckCo2T, heatIndex: heat, netCo2T };
+  return {
+    solarMWh,
+    demandMWh,
+    solarShare: demandMWh > 0 ? gridAvoidedMWh / demandMWh : 0,
+    gridAvoidedMWh,
+    gridImportMWh,
+    batteryKwh: d.capacity,
+    batteryMWh: (d.batt.reduce((a, b) => a + b, 0) * 365) / 1000,
+    solarCo2AvoidedT,
+    factoryCo2T: FACTORY_CO2_T,
+    factoryCo2TDay: FACTORY_CO2_T / 365,
+    treeO2T,
+    treeCo2AbsorbedT,
+    canopyPct,
+    truckCo2T,
+    heatIndex: heat,
+    netCo2T,
+  };
 }
 
 export const BASE_OUTCOME = run(BASELINE);
-export { TREE_O2_T_PER_YEAR, TREE_CO2_ABSORBED_T_PER_YEAR };
+
+/** the factories with the largest modelled CO2, highest first */
+export const TOP_FACTORIES = [...FACTORIES].sort((a, b) => b.co2T - a.co2T || a.id - b.id).slice(0, 6);
+
+/** the hottest factory locations under the current heat field */
+export const HEAT_EXPOSED_FACTORIES = [...FACTORIES]
+  .map((f) => ({ f, h: heatAt(f.x, f.z) }))
+  .sort((a, b) => b.h - a.h || a.f.id - b.f.id)
+  .slice(0, 5);
+
+export { MONTHS };

@@ -85,10 +85,17 @@ function Smoke() {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   });
   const setHover = useTwinStore((s) => s.setHover);
+  const select = useTwinStore((s) => s.select);
   return (
     <instancedMesh
       ref={ref}
       args={[geo, mat, count]}
+      onClick={(e) => {
+        if (e.instanceId === undefined || e.delta > 4) return;
+        e.stopPropagation();
+        const f = FACTORIES[Math.floor(e.instanceId / PUFFS)];
+        select({ info: { kind: 'factory', id: f.id }, point: [e.point.x, e.point.y, e.point.z] });
+      }}
       onPointerMove={(e) => {
         if (e.instanceId === undefined) return;
         e.stopPropagation();

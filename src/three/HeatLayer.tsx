@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { BoxGeometry, CanvasTexture, Color, InstancedMesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry } from 'three';
+import { BoxGeometry, BufferGeometry, CanvasTexture, Color, Float32BufferAttribute, InstancedMesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry } from 'three';
 import { AD } from '../data/abudhabi';
 import { GRID_H, GRID_W, HEAT_CELLS, heatAt, heatColor } from '../data/heatGrid';
 import { useTwinStore } from '../store/useTwinStore';
@@ -94,6 +94,40 @@ export function HeatLayer() {
     <group>
       {heatOn && <GroundHeat />}
       <RoofPlates solar={solarOn && !heatOn} />
+    </group>
+  );
+}
+
+/**
+ * Freight corridors: the major road network coloured by road class (simulated traffic weight).
+ * Lines sit just above the ground and are toggled from the Climate panel.
+ */
+const CLASS_COLOUR: Record<string, string> = { motorway: '#d9472b', trunk: '#e7a33a', primary: '#e7c24a' };
+
+export function CorridorLayer() {
+  const on = useTwinStore((s) => s.corridorsOn);
+  const groups = useMemo(() => {
+    const by: Record<string, number[]> = {};
+    for (const r of AD.roads) {
+      const col = CLASS_COLOUR[r.c];
+      if (!col) continue;
+      const arr = (by[col] ??= []);
+      for (let i = 1; i < r.p.length; i++) arr.push(r.p[i - 1][0], 0.35, r.p[i - 1][1], r.p[i][0], 0.35, r.p[i][1]);
+    }
+    return Object.entries(by).map(([col, pts]) => {
+      const g = new BufferGeometry();
+      g.setAttribute('position', new Float32BufferAttribute(pts, 3));
+      return { col, g };
+    });
+  }, []);
+  if (!on) return null;
+  return (
+    <group>
+      {groups.map(({ col, g }) => (
+        <lineSegments key={col} geometry={g} raycast={() => {}}>
+          <lineBasicMaterial color={col} transparent opacity={0.85} depthWrite={false} />
+        </lineSegments>
+      ))}
     </group>
   );
 }

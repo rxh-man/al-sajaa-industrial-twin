@@ -115,6 +115,8 @@ interface TwinState {
   setHeatOn: (on: boolean) => void;
   solarOn: boolean;
   setSolarOn: (on: boolean) => void;
+  corridorsOn: boolean;
+  setCorridorsOn: (on: boolean) => void;
   setAirPanel: (open: boolean) => void;
   setScenarioMenu: (open: boolean) => void;
   setInfoOpen: (open: boolean) => void;
@@ -179,6 +181,7 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   climatePanel: false,
   heatOn: false,
   solarOn: false,
+  corridorsOn: false,
   airPanel: false,
   scenarioMenu: false,
   infoOpen: false,
@@ -400,6 +403,7 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   setClimatePanel: (climatePanel) => set({ climatePanel }),
   setHeatOn: (heatOn) => set({ heatOn }),
   setSolarOn: (solarOn) => set({ solarOn }),
+  setCorridorsOn: (corridorsOn) => set({ corridorsOn }),
   setAirPanel: (airPanel) => set({ airPanel }),
   setScenarioMenu: (scenarioMenu) => set({ scenarioMenu }),
   setInfoOpen: (infoOpen) => set({ infoOpen }),

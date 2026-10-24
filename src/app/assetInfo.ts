@@ -1,4 +1,4 @@
-import { FACTORIES, MONTHS, POLLUTANTS, O2_KG_PER_TREE_YEAR, CO2_KG_ABSORBED_PER_TREE_YEAR } from '../data/airClimate';
+import { FACTORIES, FACTORY_CO2_T, MONTHS, POLLUTANTS, O2_KG_PER_TREE_YEAR, CO2_KG_ABSORBED_PER_TREE_YEAR } from '../data/airClimate';
 import { BUILDING_BY_ID, SECTOR_BY_ID, BUILDINGS, buildingLabel, sectorAt } from '../data/city';
 import { AD, AD_BUILDING_ID0, type AdKind } from '../data/abudhabi';
 import { findSegment, LAYERS, INCIDENT_SEGMENT_ID } from '../data/networks';
@@ -28,6 +28,8 @@ export interface AssetInfo {
   status: string;
   rows: InfoRow[];
   color?: string;
+  /** extra rows, shown on the full card only */
+  rowsExtra?: InfoRow[];
   /** short explanation shown on the full card */
   explain?: string;
   /** optional simulated series drawn as a small chart */
@@ -110,6 +112,12 @@ export function describe(info: HoverInfo, snap: SimSnapshot): AssetInfo | null {
           tone: f.levels[k] >= 3 ? 'warn' : undefined,
         })),
         series: { label: 'Monthly pollution variation', unit: 'simulated index, 0–100', labels: MONTHS, values: f.monthly },
+        rowsExtra: [
+          { label: 'CO2 per day', value: `${Math.round(f.co2T / 365).toLocaleString('en-US')} t (simulated)`, key: true },
+          { label: 'CO2 per year', value: `${f.co2T.toLocaleString('en-US')} t (simulated)` },
+          { label: 'Share of modelled CO2', value: `${((f.co2T / FACTORY_CO2_T) * 100).toFixed(2)}% of the factories' total` },
+          { label: 'Particulate basis', value: 'level only; no mass estimate without emission data' },
+        ],
         // why this factory contributes, and what reduces it (options, not measured impacts)
         ...(() => {
           const top = f.levels.indexOf(Math.max(...f.levels));

@@ -1690,3 +1690,51 @@ li.is-done .loader-check {
   color: var(--text-1);
   font: inherit;
 }
+
+.ov-head-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.climate-chart {
+  width: 100%;
+  height: 70px;
+  margin: 4px 0;
+}
+
+.climate-table small {
+  color: var(--text-2);
+}
+
+.climate-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.climate-prompt {
+  text-align: left;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.climate-prompt.is-on {
+  border-color: rgba(63, 179, 122, 0.6);
+}
+
+.climate-answer ul {
+  margin: 4px 0 4px 16px;
+  padding: 0;
+}
+
+.climate-agent {
+  font-weight: 600;
+  margin: 4px 0 0;
+}
