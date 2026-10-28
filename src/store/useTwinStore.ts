@@ -5,6 +5,9 @@ import { runtime } from '../simulation/runtime';
 import { T } from '../simulation/timeline';
 import type { LayerId } from '../data/networks';
 import { DEFAULT_POLICY, nextQuestion, questionsFor, type Answers, type AnsweredBy, type Autonomy, type Policy, type Question } from '../agents/brain';
+import { BASELINE as SCENARIO_BASELINE, type Scenario } from '../data/climateAgents';
+import * as scn from '../data/scenarioStore';
+import type { SavedScenario } from '../data/scenarioStore';
 
 export type PresetId = 'city' | 'sector' | 'underground' | 'failure' | 'impact';
 export type Status = 'idle' | 'running' | 'paused' | 'finished';
@@ -23,7 +26,8 @@ export type HoverInfo =
   | { kind: 'sector'; id: string }
   | { kind: 'valve'; id: string }
   | { kind: 'tree'; plant: number; x: number; z: number }
-  | { kind: 'factory'; id: number };
+  | { kind: 'factory'; id: number }
+  | { kind: 'roof'; id: string };
 
 export interface Selection {
   info: HoverInfo;
@@ -62,6 +66,8 @@ interface TwinState {
   airOn: boolean;
   /** the air, pollution and climate panel */
   airPanel: boolean;
+  waterOn: boolean;
+  microgridOn: boolean;
   scenarioMenu: boolean;
   infoOpen: boolean;
 
@@ -109,6 +115,8 @@ interface TwinState {
   toggleVisible: (l: LayerId) => void;
   setLayerPanel: (open: boolean) => void;
   setAirOn: (on: boolean) => void;
+  setWaterOn: (on: boolean) => void;
+  setMicrogridOn: (on: boolean) => void;
   climatePanel: boolean;
   setClimatePanel: (open: boolean) => void;
   heatOn: boolean;
@@ -117,6 +125,35 @@ interface TwinState {
   setSolarOn: (on: boolean) => void;
   corridorsOn: boolean;
   setCorridorsOn: (on: boolean) => void;
+  sharjahMap: boolean;
+  setSharjahMap: (on: boolean) => void;
+  agentExecutorOn: boolean;
+  setAgentExecutorOn: (on: boolean) => void;
+  /** animation level for decorative motion (smoke, oxygen, vehicles, beacons) */
+  motion: MotionLevel;
+  setMotion: (m: MotionLevel) => void;
+  /** left sidebar hidden */
+  railsCollapsed: boolean;
+  setRailsCollapsed: (on: boolean) => void;
+  /** warehouse roof ids (WH-…) left out of the proposed solar scenario */
+  excludedRoofs: string[];
+  toggleRoofExcluded: (id: string) => void;
+  /** the active editable climate scenario (excluded roofs are held separately) */
+  scenario: Scenario;
+  setScenario: (s: Scenario) => void;
+  patchScenario: (p: Partial<Scenario>) => void;
+  resetScenario: () => void;
+  /** saved scenarios, newest first, each with a projected ledger entry */
+  savedScenarios: SavedScenario[];
+  /** save the current scenario + excluded roofs under a name; returns the new id */
+  saveScenario: (name: string) => string;
+  duplicateScenario: (id: string) => void;
+  renameScenario: (id: string, name: string) => void;
+  restoreScenario: (id: string) => void;
+  deleteScenario: (id: string) => void;
+  /** warehouse roof whose freight route is drawn, or null */
+  routeRoof: string | null;
+  setRouteRoof: (id: string | null) => void;
   setAirPanel: (open: boolean) => void;
   setScenarioMenu: (open: boolean) => void;
   setInfoOpen: (open: boolean) => void;
@@ -155,6 +192,12 @@ function reask(policy: Policy, awaiting: Question | null, answers: Answers): Par
   return { awaiting: q };
 }
 
+/** Animation level: 'full' runs everything, 'reduced' slows decorative motion, 'off' freezes it. */
+export type MotionLevel = 'full' | 'reduced' | 'off';
+export const MOTION_SCALE: Record<MotionLevel, number> = { full: 1, reduced: 0.3, off: 0 };
+/** Read the current motion scale without subscribing React (for use inside animation loops). */
+export const motionScale = () => MOTION_SCALE[useTwinStore.getState().motion];
+
 export const useTwinStore = create<TwinState>()((set, get) => ({
   boot: 'loading',
   sceneReady: false,
@@ -179,9 +222,19 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   layerPanel: false,
   airOn: true,
   climatePanel: false,
+  waterOn: false,
+  microgridOn: false,
   heatOn: false,
   solarOn: false,
   corridorsOn: false,
+  sharjahMap: false,
+  agentExecutorOn: false,
+  motion: 'full',
+  railsCollapsed: false,
+  excludedRoofs: [],
+  scenario: SCENARIO_BASELINE,
+  savedScenarios: scn.loadSavedScenarios(),
+  routeRoof: null,
   airPanel: false,
   scenarioMenu: false,
   infoOpen: false,
@@ -400,10 +453,53 @@ export const useTwinStore = create<TwinState>()((set, get) => ({
   toggleVisible: (l) => set((s) => ({ visible: { ...s.visible, [l]: !s.visible[l] } })),
   setLayerPanel: (layerPanel) => set({ layerPanel }),
   setAirOn: (airOn) => set({ airOn }),
+  setWaterOn: (waterOn) => set({ waterOn }),
+  setMicrogridOn: (microgridOn) => set({ microgridOn }),
   setClimatePanel: (climatePanel) => set({ climatePanel }),
   setHeatOn: (heatOn) => set({ heatOn }),
   setSolarOn: (solarOn) => set({ solarOn }),
   setCorridorsOn: (corridorsOn) => set({ corridorsOn }),
+  setSharjahMap: (sharjahMap) => set({ sharjahMap }),
+  setAgentExecutorOn: (agentExecutorOn) => set({ agentExecutorOn }),
+  setMotion: (motion) => set({ motion }),
+  setRailsCollapsed: (railsCollapsed) => set({ railsCollapsed }),
+  toggleRoofExcluded: (id) => {
+    const cur = get().excludedRoofs;
+    set({ excludedRoofs: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] });
+  },
+  setScenario: (scenario) => set({ scenario }),
+  patchScenario: (p) => set((s) => ({ scenario: { ...s.scenario, ...p } })),
+  resetScenario: () => set({ scenario: SCENARIO_BASELINE, excludedRoofs: [] }),
+  saveScenario: (name) => {
+    const s = get();
+    const full = scn.effectiveScenario(s.scenario, s.excludedRoofs);
+    const { list, id } = scn.saveScenario(s.savedScenarios, name, full, new Date().toISOString());
+    scn.persistSavedScenarios(list);
+    set({ savedScenarios: list });
+    return id;
+  },
+  duplicateScenario: (id) => {
+    const { list } = scn.duplicateScenario(get().savedScenarios, id, new Date().toISOString());
+    scn.persistSavedScenarios(list);
+    set({ savedScenarios: list });
+  },
+  renameScenario: (id, name) => {
+    const list = scn.renameScenario(get().savedScenarios, id, name);
+    scn.persistSavedScenarios(list);
+    set({ savedScenarios: list });
+  },
+  restoreScenario: (id) => {
+    const saved = scn.getSaved(get().savedScenarios, id);
+    if (!saved) return;
+    const { excludedRoofs = [], ...rest } = saved.scenario;
+    set({ scenario: { ...rest, excludedRoofs: [] } as Scenario, excludedRoofs: [...excludedRoofs] });
+  },
+  deleteScenario: (id) => {
+    const list = scn.deleteScenario(get().savedScenarios, id);
+    scn.persistSavedScenarios(list);
+    set({ savedScenarios: list });
+  },
+  setRouteRoof: (routeRoof) => set({ routeRoof }),
   setAirPanel: (airPanel) => set({ airPanel }),
   setScenarioMenu: (scenarioMenu) => set({ scenarioMenu }),
   setInfoOpen: (infoOpen) => set({ infoOpen }),

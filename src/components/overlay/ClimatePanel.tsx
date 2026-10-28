@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Leaf, RotateCcw, X } from 'lucide-react';
 import { useTwinStore } from '../../store/useTwinStore';
-import { ASSUMPTIONS, BASELINE, DISTRICT_M2, MAJOR_ROAD_KM, PARK_COUNT, PARK_M2, ROOF_M2, WAREHOUSE_ROOF_M2, WAREHOUSE_ROOFS, HEAT_EXPOSED_FACTORIES, dayProfile, run, type Scenario } from '../../data/climateAgents';
+import { ASSUMPTIONS, BASELINE, DISTRICT_M2, MAJOR_ROAD_KM, PARK_COUNT, PARK_M2, ROOF_M2, WAREHOUSE_ROOF_M2, WAREHOUSE_ROOF_RECORDS, WAREHOUSE_ROOFS, HEAT_EXPOSED_FACTORIES, dayProfile, run, type Scenario } from '../../data/climateAgents';
+import { actionPlanJson, generateActionPlan, scenarioId } from '../../data/actionPlan';
+import { excludedRoofAreaM2 } from '../../data/warehouseRoofs';
 import { SHADE_TREE_COUNT, FACTORY_COUNT } from '../../data/airClimate';
 import { AGENTS, PROMPTS, answer, type AgentId } from '../../data/climateAgentAnswers';
+import { FreightOptimiser } from './FreightOptimiser';
+import { MissionMode } from './MissionMode';
 
 const n = (v: number, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
 
@@ -43,21 +47,48 @@ export function ClimatePanel() {
   const setSolarOn = useTwinStore((s) => s.setSolarOn);
   const corridorsOn = useTwinStore((s) => s.corridorsOn);
   const setCorridorsOn = useTwinStore((s) => s.setCorridorsOn);
-  const [sc, setSc] = useState<Scenario>(BASELINE);
+  const sc = useTwinStore((s) => s.scenario);
+  const patchScenario = useTwinStore((s) => s.patchScenario);
+  const resetScenario = useTwinStore((s) => s.resetScenario);
+  const savedScenarios = useTwinStore((s) => s.savedScenarios);
+  const saveScenario = useTwinStore((s) => s.saveScenario);
+  const duplicateScenario = useTwinStore((s) => s.duplicateScenario);
+  const renameScenario = useTwinStore((s) => s.renameScenario);
+  const restoreScenario = useTwinStore((s) => s.restoreScenario);
+  const deleteScenario = useTwinStore((s) => s.deleteScenario);
+  const excludedRoofs = useTwinStore((s) => s.excludedRoofs);
+  const [scenarioName, setScenarioName] = useState('');
   const [cost, setCost] = useState('');
   const [agent, setAgent] = useState<string | null>(null);
   const base = useMemo(() => run(BASELINE), []);
-  const cur = useMemo(() => run(sc), [sc]);
+  const scRoofs = useMemo<Scenario>(() => ({ ...sc, excludedRoofs }), [sc, excludedRoofs]);
+  const cur = useMemo(() => run(scRoofs), [scRoofs]);
   if (!open) return null;
 
-  const set = <K extends keyof Scenario>(k: K, v: Scenario[K]) => setSc((s) => ({ ...s, [k]: v }));
+  const set = <K extends keyof Scenario>(k: K, v: Scenario[K]) => patchScenario({ [k]: v } as Partial<Scenario>);
+  const downloadPlan = () => {
+    const plan = generateActionPlan(scRoofs);
+    const blob = new Blob([actionPlanJson(plan)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `al-sajaa-action-plan-${scenarioId(scRoofs)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
   const reset = () => {
-    setSc(BASELINE);
+    resetScenario();
     setHeatOn(false);
     setSolarOn(false);
     setCorridorsOn(false);
     setAgent(null);
     setCost('');
+  };
+  const onSave = () => {
+    saveScenario(scenarioName);
+    setScenarioName('');
   };
   const pct = (v: number) => `${n(v * 100)}%`;
   const diff = (a: number, b: number, d = 0) => {
@@ -130,6 +161,60 @@ export function ClimatePanel() {
         </div>
       </Section>
 
+      <Section title={`Saved scenarios (${savedScenarios.length})`}>
+        <p className="climate-note">Saved scenarios record the inputs and the model's projected outcome. They are never measured or verified. Stored in this browser only.</p>
+        <div className="scenario-save">
+          <input
+            type="text"
+            value={scenarioName}
+            placeholder="Name this scenario"
+            aria-label="Scenario name"
+            onChange={(e) => setScenarioName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSave();
+            }}
+          />
+          <button type="button" className="scenario-save-btn" onClick={onSave}>
+            Save current
+          </button>
+        </div>
+        {savedScenarios.length === 0 ? (
+          <p className="climate-note">No saved scenarios yet.</p>
+        ) : (
+          <ul className="scenario-list">
+            {savedScenarios.map((s) => {
+              const d = s.ledger.projectedImpact.netCo2DeltaT;
+              return (
+                <li key={s.id} className="scenario-item">
+                  <div className="scenario-item-head">
+                    <strong className="scenario-item-name">{s.name}</strong>
+                    <Tag>Projected</Tag>
+                  </div>
+                  <div className="scenario-item-meta">
+                    Net CO2 vs baseline: <strong>{d > 0 ? '+' : ''}{n(d, 1)} t/yr</strong> · solar {n(s.ledger.projectedImpact.solarMWh, 0)} MWh/yr
+                  </div>
+                  <div className="scenario-item-actions">
+                    <button type="button" onClick={() => restoreScenario(s.id)} title="Load this scenario into the controls">Restore</button>
+                    <button type="button" onClick={() => duplicateScenario(s.id)} title="Make a copy">Duplicate</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = typeof prompt === 'function' ? prompt('Rename scenario', s.name) : null;
+                        if (name) renameScenario(s.id, name);
+                      }}
+                      title="Rename"
+                    >
+                      Rename
+                    </button>
+                    <button type="button" className="scenario-del" onClick={() => deleteScenario(s.id)} title="Delete this scenario">Delete</button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Section>
+
       <Section title="Layers in the 3D scene" open>
         <div className="climate-ctrl">
           <label className="climate-check">
@@ -189,6 +274,9 @@ export function ClimatePanel() {
         <p className="climate-note">
           Categories: measured or external data: none in this model. Calculated: layout areas and counts. Assumptions and illustrative effects: tagged in each row. Trade-offs: solar uses roof space and needs storage; trees need water and space; routing changes add operational work.
         </p>
+        <button type="button" className="climate-plan-btn" onClick={downloadPlan} title="Download a structured JSON action plan for this scenario">
+          Download action plan (JSON)
+        </button>
       </Section>
 
       <Section title="Solar, storage and demand">
@@ -205,8 +293,17 @@ export function ClimatePanel() {
             </li>
           ))}
         </ul>
+        <p>
+          Excluded warehouse roofs: <strong>{excludedRoofs.length}</strong>
+          {excludedRoofs.length > 0 && <> ({n(excludedRoofAreaM2(WAREHOUSE_ROOF_RECORDS, excludedRoofs))} m² removed from the solar area)</>}. <Tag>Calculated</Tag>
+        </p>
+        {sc.solarCoverage === 0 && (
+          <p className="climate-note" role="status">
+            Solar coverage is 0%, so solar generation is zero with or without roofs. Raise solar coverage above to see excluded roofs change these figures.
+          </p>
+        )}
         <p>Typical day (assumption: flat demand; storage shifts surplus to the evening). Solar: yellow. Demand: grey dashed. Used on site: green.</p>
-        <DayChart sc={sc} />
+        <DayChart sc={scRoofs} />
         <p className="climate-note">Battery round trip {pct(ASSUMPTIONS.batteryRoundTrip.v)} (assumption). A battery moves energy in time; it does not create energy.</p>
       </Section>
 
@@ -234,7 +331,10 @@ export function ClimatePanel() {
         <p>
           Major roads (motorway, trunk, primary): <strong>{n(MAJOR_ROAD_KM, 1)} km</strong>. Truck CO2 in this scenario: <strong>{n(cur.truckCo2T)} t per year</strong>. <Tag>Assumption</Tag>
         </p>
+        <FreightOptimiser />
       </Section>
+
+      <MissionMode />
 
       <Section title="Climate Intelligence Agents" open>
         <p className="climate-note">Local demo agents. Answers are computed from this model. No AI service is connected.</p>
@@ -246,7 +346,7 @@ export function ClimatePanel() {
           ))}
         </div>
         {agent && (() => {
-          const a = answer(agent, sc);
+          const a = answer(agent, scRoofs);
           return (
             <div className="climate-answer">
               <p className="climate-agent">{a.agent}</p>

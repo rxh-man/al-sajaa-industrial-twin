@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
 import { Activity, ShieldCheck } from 'lucide-react';
@@ -13,7 +13,11 @@ import { AgentsPanel } from '../components/agents/AgentsPanel';
 import { LayerPanel } from '../components/overlay/LayerPanel';
 import { AirPanel } from '../components/overlay/AirPanel';
 import { ClimatePanel } from '../components/overlay/ClimatePanel';
+import { ClimateIntelligencePanel } from '../components/overlay/ClimateIntelligencePanel';
+const SharjahMap = lazy(() => import('../components/map/SharjahMap').then((m) => ({ default: m.SharjahMap })));
 import { CameraPresets, ViewToggles } from '../components/overlay/ViewControls';
+import { RoofPanel } from '../components/overlay/RoofPanel';
+import { SidebarHeader, SidebarOpenButton } from '../components/overlay/SidebarControls';
 import { ServiceGuide } from '../components/overlay/ServiceGuide';
 import { Forecast48Panel, EmergencyBar } from '../components/overlay/Forecast48Panel';
 import { ProvenanceLegend } from '../components/overlay/ProvenanceLegend';
@@ -32,6 +36,8 @@ import '../styles/world.css';
 import '../styles/geo.css';
 import '../styles/twin.css';
 import '../styles/agents.css';
+import '../styles/languageSwitcher.css';
+import '../styles/agentPanel.css';
 
 function useViewportInsets(ref: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -58,6 +64,8 @@ function useViewportInsets(ref: React.RefObject<HTMLDivElement | null>) {
 export function App() {
   const boot = useTwinStore((s) => s.boot);
   const select = useTwinStore((s) => s.select);
+  const sharjahMapOn = useTwinStore((s) => s.sharjahMap);
+  const railsCollapsed = useTwinStore((s) => s.railsCollapsed);
   const phase = useTwinStore((s) => s.snap.phase);
   const [dpr, setDpr] = useState(() => Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5));
   const [quality, setQuality] = useState<'high' | 'low'>('high');
@@ -73,7 +81,7 @@ export function App() {
   }, [compact]);
 
   return (
-    <div className={`app boot-${boot} ${compact ? 'is-compact' : ''} ${drawer ? `drawer-${drawer}` : ''} phase-${phase.toLowerCase()}`}>
+    <div className={`app boot-${boot} ${compact ? 'is-compact' : ''} ${drawer ? `drawer-${drawer}` : ''} ${railsCollapsed ? 'rails-collapsed' : ''} phase-${phase.toLowerCase()}`}>
       <div className="stage" role="application" aria-label="Interactive 3D twin of the Al Sajaa industrial district: yards, labor camps, Etihad Rail and five underground utility networks">
         <Canvas
           shadows
@@ -103,6 +111,7 @@ export function App() {
       <Header />
 
       <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
+        <SidebarHeader />
         <SignalRail />
       </aside>
       <aside className="rail rail-r panel-enter" style={{ ['--enter-delay' as string]: '160ms' }} aria-label="Twin agents">
@@ -112,9 +121,11 @@ export function App() {
 
       <div className="viewport" ref={viewportRef}>
         <div className="vp-tl panel-enter" style={{ ['--enter-delay' as string]: '300ms' }}>
+          <RoofPanel />
           <LayerPanel />
           <AirPanel />
           <ClimatePanel />
+          <ClimateIntelligencePanel />
         </div>
         <div className="vp-tc">
           <ScenarioCaption />
@@ -134,6 +145,11 @@ export function App() {
         <Forecast48Panel />
         <EmergencyBar />
         <ProvenanceLegend />
+        {sharjahMapOn && (
+          <Suspense fallback={null}>
+            <SharjahMap />
+          </Suspense>
+        )}
         <FutureOverlay />
       </div>
 
@@ -150,6 +166,7 @@ export function App() {
 
       <p className="map-credit">{MAP_CREDIT}</p>
 
+      <SidebarOpenButton />
       <ScenarioMenu />
       <HoverTooltip />
       <BootSequence />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { usePerformanceRenderer } from '../hooks/usePerformanceRenderer';
 import { HalfFloatType, WebGLRenderTarget, type Group, type Object3D } from 'three';
 import { SceneEnvironment } from './SceneEnvironment';
 import { SimulationDriver } from './SimulationDriver';
@@ -23,6 +24,8 @@ import { RepairRoute } from './RepairRoute';
 import { SectorOverlay } from './SectorOverlay';
 import { AirPlumes } from './AirPlumes';
 import { CorridorLayer, HeatLayer } from './HeatLayer';
+import { HeatGrid } from './HeatGrid';
+import { WarehouseRoofs } from './WarehouseRoofs';
 import { UndergroundNetwork, SurfaceLabel } from './UndergroundNetwork';
 import { InspectorCard } from './InspectorCard';
 import { Effects } from './Effects';
@@ -108,6 +111,9 @@ function EffectsGate({ quality }: { quality: 'high' | 'low' }) {
 }
 
 export function CityScene({ quality }: { quality: 'high' | 'low' }) {
+  // Initialize performance renderer with dynamic quality adjustment
+  usePerformanceRenderer();
+
   useEffect(() => {
     performance.mark('scene:mounted');
   }, []);
@@ -137,7 +143,9 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <SectorOverlay />
         <AirPlumes />
         <HeatLayer />
+        <HeatGrid />
         <CorridorLayer />
+        <WarehouseRoofs />
         <SurfaceLabel />
       </SurfaceGroup>
       <Diorama />

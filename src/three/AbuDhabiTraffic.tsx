@@ -6,7 +6,7 @@ import { TRENCH } from '../data/incident';
 import { mulberry32 } from '../data/rng';
 import { live, runtime } from '../simulation/runtime';
 import { T, fastForwardAt } from '../simulation/timeline';
-import { useTwinStore } from '../store/useTwinStore';
+import { motionScale, useTwinStore } from '../store/useTwinStore';
 import { VEHICLE_LENGTH, vehicleGeometry, type VehicleKind } from './vehicles/vehicleModels';
 import { createVehicleMaterial } from './vehicles/vehicleMaterial';
 import { G } from './shaders/globals';
@@ -270,7 +270,8 @@ export function AbuDhabiTraffic() {
   useFrame((_, rawDt) => {
     const st = useTwinStore.getState();
     const active = st.status !== 'idle';
-    const dt = Math.min(rawDt, 0.1) * fastForwardAt(runtime.t, active);
+    // motion setting: reduced slows the cars, off holds them in place
+    const dt = Math.min(rawDt, 0.1) * fastForwardAt(runtime.t, active) * motionScale();
     const closed = active && runtime.t >= T.open && runtime.t < T.resolved;
 
     // who is directly ahead on the same link

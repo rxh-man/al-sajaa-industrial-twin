@@ -1593,6 +1593,49 @@ li.is-done .loader-check {
   color: var(--text-1);
 }
 
+.climate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.climate-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  flex: 1;
+}
+
+.climate-meta {
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.climate-agent-toggle {
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.climate-agent-toggle:hover {
+  opacity: 1;
+}
+
+.climate-agent-toggle:active {
+  transform: scale(0.95);
+}
+
 .climate-sec {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 6px 0;
@@ -1615,6 +1658,119 @@ li.is-done .loader-check {
 .climate-note {
   color: var(--text-2);
   font-size: 11px;
+}
+
+.climate-plan-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.climate-plan-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.climate-plan-btn:focus-visible {
+  outline: 2px solid var(--accent, #22d3ee);
+  outline-offset: 2px;
+}
+
+.scenario-save {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.scenario-save input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-1);
+  font-size: 12px;
+}
+
+.scenario-save-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(34, 211, 238, 0.14);
+  color: var(--text-1);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scenario-save-btn:hover {
+  background: rgba(34, 211, 238, 0.24);
+}
+
+.scenario-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-item {
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.scenario-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.scenario-item-name {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scenario-item-meta {
+  color: var(--text-2);
+  font-size: 11px;
+  margin: 3px 0 5px;
+}
+
+.scenario-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scenario-item-actions button {
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.scenario-item-actions button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.scenario-item-actions .scenario-del:hover {
+  background: rgba(239, 68, 68, 0.25);
 }
 
 .climate-tag {
@@ -1737,4 +1893,816 @@ li.is-done .loader-check {
 .climate-agent {
   font-weight: 600;
   margin: 4px 0 0;
+}
+
+/* Sharjah emirate map (basemap view over the twin) */
+.sharjah-map {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #0b1018;
+}
+
+.sharjah-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.sharjah-map-head {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 10px;
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-1);
+  font-size: 12px;
+}
+
+.sj-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3fb37a;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 4px rgba(63, 179, 122, 0.25);
+  cursor: pointer;
+}
+
+/* ================= sidebar collapse and motion control ================= */
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+
+.sidebar-motion {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-2);
+  min-width: 0;
+}
+
+.sidebar-motion select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text-1);
+  background: rgba(8, 14, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.sidebar-btn,
+.sidebar-open,
+.roof-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  color: var(--text-1);
+  background: rgba(8, 14, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar-btn:focus-visible,
+.sidebar-open:focus-visible,
+.roof-close:focus-visible,
+.roof-route-btn:focus-visible,
+.roof-toggle input:focus-visible,
+.sidebar-motion select:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* collapsed: the left sidebar hides and an expand button sits in the corner */
+.sidebar-open {
+  position: absolute;
+  top: calc(var(--header-h) + var(--gap));
+  left: var(--gap);
+  z-index: 31;
+  pointer-events: auto;
+}
+
+.app.rails-collapsed .rail-l {
+  display: none;
+}
+
+.app.rails-collapsed {
+  --rail-l: 0px;
+}
+
+/* ================= warehouse roof details ================= */
+.roof-panel {
+  width: 300px;
+  padding: 10px 12px 12px;
+  margin-bottom: 8px;
+  background: rgba(8, 14, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-1);
+  pointer-events: auto;
+}
+
+.roof-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.roof-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+.roof-kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.roof-rows {
+  margin: 8px 0;
+  display: grid;
+  gap: 4px;
+}
+
+.roof-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roof-rows dt {
+  color: var(--text-2);
+}
+
+.roof-rows dd {
+  margin: 0;
+  text-align: right;
+}
+
+.roof-toggle {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 6px 0;
+}
+
+.roof-route-btn {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text-1);
+  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.roof-route-btn[aria-pressed='true'] {
+  background: rgba(34, 211, 238, 0.28);
+}
+
+.roof-route-note,
+.roof-foot {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+/* ================= freight optimiser ================= */
+
+.freight-optimiser {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--line-2);
+  margin-top: 12px;
+}
+
+.freight-optimiser h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.freight-optimiser p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.freight-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coord-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coord-input label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.coord-input input {
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-0);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 4px;
+}
+
+.coord-input input:focus {
+  outline: none;
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.6);
+}
+
+.freight-compare-btn {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-0);
+  background: rgba(79, 209, 232, 0.2);
+  border: 1px solid rgba(79, 209, 232, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.freight-compare-btn:hover {
+  background: rgba(79, 209, 232, 0.3);
+}
+
+.error-message {
+  padding: 8px;
+  font-size: 12px;
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 4px;
+}
+
+.freight-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(51, 65, 85, 0.3);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+}
+
+.infeasible {
+  padding: 8px;
+  text-align: center;
+}
+
+.infeasible p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.route-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.route-card {
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--line-2);
+}
+
+.route-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.route-card.baseline h4 {
+  color: rgba(168, 162, 158, 1);
+}
+
+.route-card.optimised h4 {
+  color: rgba(34, 211, 238, 1);
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 11px;
+}
+
+.metric .label {
+  color: var(--text-2);
+}
+
+.metric .value {
+  color: var(--text-0);
+  font-weight: 500;
+}
+
+.savings-summary {
+  padding: 10px;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 6px;
+}
+
+.savings-summary h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(34, 211, 238, 1);
+}
+
+.note {
+  padding: 8px;
+  font-size: 11px;
+  color: var(--text-2);
+  background: rgba(51, 65, 85, 0.5);
+  border-left: 3px solid rgba(34, 211, 238, 0.4);
+  border-radius: 2px;
+}
+
+.assumptions-details {
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.assumptions-details summary {
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-1);
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 4px;
+  user-select: none;
+}
+
+.assumptions-details summary:hover {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.assumptions-list {
+  margin: 8px 0 0 0;
+  padding: 8px 8px 8px 20px;
+  font-size: 11px;
+  color: var(--text-2);
+  list-style: disc inside;
+}
+
+.assumptions-list li {
+  margin: 4px 0;
+}
+
+/* ================= climate mission mode ================= */
+
+.mission-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--line-2);
+  margin-top: 12px;
+}
+
+.mission-panel h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.mission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mission-step-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(34, 211, 238, 1);
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 4px;
+}
+
+.mission-start-btn {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-0);
+  background: rgba(79, 209, 232, 0.2);
+  border: 1px solid rgba(79, 209, 232, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mission-start-btn:hover {
+  background: rgba(79, 209, 232, 0.3);
+}
+
+.mission-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(51, 65, 85, 0.3);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.mission-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mission-step h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.assessment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.assessment-grid .metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.assessment-grid .metric .label {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.assessment-grid .metric .value {
+  color: rgba(34, 211, 238, 1);
+  font-weight: 600;
+}
+
+.issues-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.issues-list li {
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.issues-list strong {
+  color: var(--text-0);
+}
+
+.interventions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intervention-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+  transition: all 200ms;
+}
+
+.intervention-card:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
+.intervention-card.selected {
+  border-color: rgba(34, 211, 238, 0.6);
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.iv-header {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.iv-header input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+.iv-title-block h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.iv-title-block p {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+.iv-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 24px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-2);
+  font-size: 11px;
+}
+
+.iv-details .metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.iv-details .metric .label {
+  color: var(--text-2);
+}
+
+.iv-details .metric .value {
+  color: var(--text-0);
+  font-weight: 500;
+}
+
+.feasibility {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.feasibility.high {
+  background: rgba(74, 222, 128, 0.15);
+  color: rgba(74, 222, 128, 1);
+}
+
+.feasibility.medium {
+  background: rgba(250, 204, 21, 0.15);
+  color: rgba(250, 204, 21, 1);
+}
+
+.feasibility.low {
+  background: rgba(248, 113, 113, 0.15);
+  color: rgba(248, 113, 113, 1);
+}
+
+.assumptions {
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.assumptions summary {
+  padding: 6px 0;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-1);
+  user-select: none;
+}
+
+.assumptions summary:hover {
+  color: var(--text-0);
+}
+
+.details-content {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-2);
+}
+
+.details-content p {
+  margin: 4px 0;
+  font-size: 10px;
+}
+
+.selected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-item {
+  padding: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 6px;
+  background: rgba(34, 211, 238, 0.05);
+}
+
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.selected-header h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.remove-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.remove-btn:hover {
+  color: var(--text-0);
+  border-color: var(--line-1);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.scenario-col {
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--line-2);
+}
+
+.scenario-col h5 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.scenario-col.baseline h5 {
+  color: rgba(168, 162, 158, 1);
+}
+
+.scenario-col.proposed h5 {
+  color: rgba(34, 211, 238, 1);
+}
+
+.scenario-col .metric {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+  font-size: 11px;
+}
+
+.scenario-col .metric .label {
+  color: var(--text-2);
+}
+
+.scenario-col .metric .value {
+  color: var(--text-0);
+  font-weight: 500;
+}
+
+.savings {
+  padding: 10px;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.action-plan-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+}
+
+.action-plan-summary .metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.action-plan-summary .metric .label {
+  color: var(--text-2);
+}
+
+.action-plan-summary .metric .value {
+  color: var(--text-0);
+  font-weight: 500;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-0);
+  background: rgba(79, 209, 232, 0.2);
+  border: 1px solid rgba(79, 209, 232, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background: rgba(79, 209, 232, 0.3);
+}
+
+.mission-nav {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-2);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-0);
+  background: rgba(79, 209, 232, 0.2);
+  border: 1px solid rgba(79, 209, 232, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  background: rgba(79, 209, 232, 0.3);
 }

@@ -1,4 +1,4 @@
-import { Boxes, Leaf, Wind, Building2, Crosshair, Layers3, Map, RotateCcw, ScanEye, Siren, TriangleAlert } from 'lucide-react';
+import { Boxes, Leaf, Map as MapIcon, Wind, Building2, Crosshair, Layers3, Map, RotateCcw, ScanEye, Siren, TriangleAlert } from 'lucide-react';
 import { useTwinStore, type PresetId } from '../../store/useTwinStore';
 import { PRESET_LABELS } from '../../data/cameras';
 import { PLACES, allPlacesFrame } from '../../data/placeIndex';
@@ -79,6 +79,8 @@ export function ViewToggles() {
   const exploded = useTwinStore((s) => s.exploded);
   const toggleExploded = useTwinStore((s) => s.toggleExploded);
   const airPanel = useTwinStore((s) => s.airPanel);
+  const sharjahMap = useTwinStore((s) => s.sharjahMap);
+  const setSharjahMap = useTwinStore((s) => s.setSharjahMap);
   const climatePanel = useTwinStore((s) => s.climatePanel);
   const setClimatePanel = useTwinStore((s) => s.setClimatePanel);
   const setAirPanel = useTwinStore((s) => s.setAirPanel);
@@ -106,6 +108,10 @@ export function ViewToggles() {
         <button className={`toggle-btn ${climatePanel ? 'is-on' : ''}`} onClick={() => setClimatePanel(!climatePanel)} aria-pressed={climatePanel} title="Climate agents and simulator (simulated)">
           <Leaf size={15} />
           <span>Climate</span>
+        </button>
+        <button className={`toggle-btn ${sharjahMap ? 'is-on' : ''}`} onClick={() => setSharjahMap(!sharjahMap)} aria-pressed={sharjahMap} title="Sharjah emirate map (OpenFreeMap tiles)">
+          <MapIcon size={15} />
+          <span>Map</span>
         </button>
       </div>
       <div className={`ov-bar time-seg ${canFuture ? '' : 'is-disabled'}`} role="group" aria-label="Time">

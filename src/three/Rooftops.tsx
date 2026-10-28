@@ -4,6 +4,7 @@ import { BoxGeometry, Color, ConeGeometry, CylinderGeometry, InstancedMesh, Matr
 import { BUILDINGS, PLINTH_H, STYLE, type Tier } from '../data/city';
 import { mulberry32, type Rng } from '../data/rng';
 import { G } from './shaders/globals';
+import { motionScale } from '../store/useTwinStore';
 import { createGlowMaterial, createPropMaterial } from './materials/surfaceMaterials';
 
 const noRaycast = (_r: Raycaster, _i: Intersection[]) => {};
@@ -284,7 +285,9 @@ export function Rooftops() {
   const pad = R.pads[0];
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    const on = (Math.sin(t * 2.6) > 0.55 ? 1 : 0.06) * (1 - G.uXray.value * 0.6);
+    const m = motionScale();
+    // with motion off the warning beacons stay steadily lit instead of blinking
+    const on = (m === 0 ? 0.5 : Math.sin(t * 2.6 * m) > 0.55 ? 1 : 0.06) * (1 - G.uXray.value * 0.6);
     beaconMat.color.setRGB(6 * on, 0.35 * on, 0.3 * on);
     const cast = G.uXray.value < 0.5;
     for (const r of [refs.parapets, refs.cores, refs.hvac, refs.barrels]) if (r.current) r.current.castShadow = cast;

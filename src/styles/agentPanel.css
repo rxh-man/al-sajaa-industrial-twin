@@ -1,0 +1,384 @@
+/**
+ * Agent Execution Panel Styling
+ */
+
+.agent-execution-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  max-height: 600px;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.87);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Header */
+.agent-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.agent-panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.agent-run-button {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-run-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.agent-run-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Info Section */
+.agent-panel-info {
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.agent-panel-info p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Status Section */
+.agent-panel-status {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.agent-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.agent-status-row:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.agent-status-value {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.agent-status-error {
+  color: #dc2626;
+}
+
+.agent-status-error .agent-status-value {
+  color: #dc2626;
+}
+
+/* Traces Container */
+.agent-traces-container {
+  margin-top: 16px;
+}
+
+.agent-traces-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: rgba(0, 0, 0, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agent-traces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Trace Item */
+.agent-trace-item {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.agent-trace-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.agent-trace-header:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.agent-trace-toggle {
+  display: flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.agent-trace-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.agent-trace-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agent-trace-task-id {
+  font-weight: 600;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.agent-trace-agent-tool {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.agent-trace-agent {
+  font-weight: 500;
+}
+
+.agent-trace-dot {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.agent-trace-tool {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.agent-trace-status {
+  display: flex;
+  align-items: center;
+}
+
+.agent-trace-duration {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Trace Details */
+.agent-trace-details {
+  padding: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.01);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.agent-trace-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-trace-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agent-trace-value {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.7);
+  word-break: break-word;
+}
+
+.agent-trace-code {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Fragment Mono', 'Courier New', monospace;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.7);
+  max-height: 200px;
+  overflow: auto;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.agent-trace-error-section {
+  background: rgba(220, 38, 38, 0.05);
+  padding: 8px;
+  border-left: 3px solid #dc2626;
+  border-radius: 4px;
+}
+
+.agent-trace-error-message {
+  font-size: 12px;
+  color: #dc2626;
+  word-break: break-word;
+  font-family: 'Fragment Mono', 'Courier New', monospace;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .agent-execution-panel {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.87);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .agent-panel-title {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .agent-panel-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .agent-panel-status {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .agent-status-value {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .agent-status-row {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .agent-trace-item {
+    background: rgba(40, 40, 40, 0.5);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .agent-trace-header {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .agent-trace-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .agent-trace-toggle {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .agent-trace-task-id {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .agent-trace-agent-tool {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .agent-trace-dot {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .agent-trace-tool {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .agent-trace-duration {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .agent-trace-details {
+    background: rgba(255, 255, 255, 0.01);
+    border-top-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .agent-trace-label {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .agent-trace-value {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .agent-trace-code {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .agent-trace-error-section {
+    background: rgba(220, 38, 38, 0.1);
+  }
+
+  .agent-trace-error-message {
+    color: #ff6b6b;
+  }
+}
+
+/* Scrollbar Styling */
+.agent-execution-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agent-execution-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.agent-execution-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.agent-execution-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .agent-execution-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .agent-execution-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}

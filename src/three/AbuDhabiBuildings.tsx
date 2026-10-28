@@ -8,6 +8,7 @@ import { G } from './shaders/globals';
 import { useTwinStore } from '../store/useTwinStore';
 import { createBuildingGhostMaterial, createBuildingSolidMaterial } from './materials/buildingMaterials';
 import { variantFor, variantGeometry, type VariantSpec } from './buildingVariants';
+import { classifyBuildingPick } from '../data/warehouseRoofs';
 
 const noRaycast = (_r: Raycaster, _i: Intersection[]) => {};
 
@@ -193,14 +194,18 @@ export function AbuDhabiBuildings() {
           if (e.instanceId === undefined) return;
           e.stopPropagation();
           const { b, bi } = boxes[e.instanceId];
-          setHover({ kind: 'building', id: AD_BUILDING_ID0 + bi });
+          const pick = classifyBuildingPick(b, e.point.y);
+          setHover(pick.kind === 'roof' ? { kind: 'roof', id: pick.id } : { kind: 'building', id: AD_BUILDING_ID0 + bi });
           setHoverSector(sectorAt(b.c[0], b.c[1])?.id ?? null);
         }}
         onPointerOut={() => setHover(null)}
         onClick={(e) => {
           if (e.delta > 4 || e.instanceId === undefined) return;
           e.stopPropagation();
-          select({ info: { kind: 'building', id: AD_BUILDING_ID0 + boxes[e.instanceId].bi }, point: [e.point.x, e.point.y, e.point.z] });
+          const { b, bi } = boxes[e.instanceId];
+          const pick = classifyBuildingPick(b, e.point.y);
+          const info = pick.kind === 'roof' ? ({ kind: 'roof', id: pick.id } as const) : ({ kind: 'building', id: AD_BUILDING_ID0 + bi } as const);
+          select({ info, point: [e.point.x, e.point.y, e.point.z] });
         }}
       />
       <instancedMesh ref={ghostRef} args={[geometry, ghostMat, boxes.length]} frustumCulled={false} raycast={noRaycast} renderOrder={5} />
@@ -309,14 +314,18 @@ function VariantMesh({ spec, items, solidMat, ghostMat }: { spec: VariantSpec; i
           if (e.instanceId === undefined) return;
           e.stopPropagation();
           const { b, bi } = items[e.instanceId];
-          setHover({ kind: 'building', id: AD_BUILDING_ID0 + bi });
+          const pick = classifyBuildingPick(b, e.point.y);
+          setHover(pick.kind === 'roof' ? { kind: 'roof', id: pick.id } : { kind: 'building', id: AD_BUILDING_ID0 + bi });
           setHoverSector(sectorAt(b.c[0], b.c[1])?.id ?? null);
         }}
         onPointerOut={() => setHover(null)}
         onClick={(e) => {
           if (e.delta > 4 || e.instanceId === undefined) return;
           e.stopPropagation();
-          select({ info: { kind: 'building', id: AD_BUILDING_ID0 + items[e.instanceId].bi }, point: [e.point.x, e.point.y, e.point.z] });
+          const { b, bi } = items[e.instanceId];
+          const pick = classifyBuildingPick(b, e.point.y);
+          const info = pick.kind === 'roof' ? ({ kind: 'roof', id: pick.id } as const) : ({ kind: 'building', id: AD_BUILDING_ID0 + bi } as const);
+          select({ info, point: [e.point.x, e.point.y, e.point.z] });
         }}
       />
       <instancedMesh ref={ghostRef} args={[geometry, ghostMat, items.length]} frustumCulled={false} raycast={noRaycast} renderOrder={5} />

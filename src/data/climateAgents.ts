@@ -2,6 +2,7 @@ import { AD } from './abudhabi';
 import { CO2_KG_ABSORBED_PER_TREE_YEAR, FACTORY_CO2_T, O2_KG_PER_TREE_YEAR, SHADE_TREE_COUNT, FACTORIES, MONTHS } from './airClimate';
 import { EXPOSURE_BY_PLACE } from './exposure';
 import { heatAt } from './heatGrid';
+import { solarRoofAreaM2, warehouseRoofs } from './warehouseRoofs';
 
 /**
  * Climate model, shared by the panel, the 3D overlays and the agents. Every number is either
@@ -57,6 +58,9 @@ export const PARK_M2 = AD.parks.reduce((a, p) => a + polyM2(p.p as [number, numb
 export const PARK_COUNT = AD.parks.length;
 export const DEMAND_MWH = (ROOF_M2 * ASSUMPTIONS.demandKwhPerM2.v) / 1000;
 
+/** Stable warehouse roof records (ids WH-…), used for include/exclude and the asset panel. */
+export const WAREHOUSE_ROOF_RECORDS = warehouseRoofs(AD.buildings);
+
 export const WAREHOUSE_ROOFS = AD.buildings
   .filter((b) => b.n === 'Logistics warehouse')
   .map((b, i) => ({ name: `Warehouse ${i + 1}`, m2: b.b.reduce((a, [x0, z0, x1, z1]) => a + (x1 - x0) * 10 * (z1 - z0) * 10, 0) }))
@@ -85,6 +89,8 @@ export interface Scenario {
   gridKg: number;
   /** battery on or off */
   battery: boolean;
+  /** warehouse roof ids (WH-…) left out of the solar scenario */
+  excludedRoofs?: string[];
 }
 
 export const BASELINE: Scenario = {
@@ -100,7 +106,8 @@ export const BASELINE: Scenario = {
 
 /** 24-hour typical day: solar bell curve, flat demand, battery shifts surplus to the evening */
 export function dayProfile(s: Scenario) {
-  const annualGen = ROOF_M2 * s.solarCoverage * ASSUMPTIONS.roofUsableShare.v * ASSUMPTIONS.kwpPerM2.v * ASSUMPTIONS.yieldKwhPerKwp.v; // kWh per year
+  const solarArea = solarRoofAreaM2(ROOF_M2, WAREHOUSE_ROOF_RECORDS, s.excludedRoofs ?? []);
+  const annualGen = solarArea * s.solarCoverage * ASSUMPTIONS.roofUsableShare.v * ASSUMPTIONS.kwpPerM2.v * ASSUMPTIONS.yieldKwhPerKwp.v; // kWh per year
   const dailyGen = annualGen / 365;
   const shape = Array.from({ length: 24 }, (_, h) => (h >= 6 && h <= 18 ? Math.sin((Math.PI * (h - 6)) / 12) ** 1.2 : 0));
   const sum = shape.reduce((a, b) => a + b, 0) || 1;

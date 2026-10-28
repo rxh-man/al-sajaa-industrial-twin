@@ -3,12 +3,13 @@ import { MotionConfig } from 'motion/react';
 import { App } from './App';
 import { Landing } from '../components/landing/Landing';
 import { useTwinStore } from '../store/useTwinStore';
+import { I18nProvider } from '../i18n/i18nContext';
 
 type View = 'landing' | 'twin' | 'demo';
 
-const viewFromHash = (): View => (location.hash === '#twin' ? 'twin' : location.hash === '#demo' ? 'demo' : 'landing');
+/** the twin is the default; `#landing` shows the landing page, `#demo` plays the story */
+const viewFromHash = (): View => (location.hash === '#landing' ? 'landing' : location.hash === '#demo' ? 'demo' : 'twin');
 
-/** `#twin` opens the 3D twin, `#demo` opens it and plays the story, anything else is the landing page. */
 export function Root() {
   const [view, setView] = useState<View>(viewFromHash);
 
@@ -31,5 +32,9 @@ export function Root() {
     });
   }, [view]);
 
-  return <MotionConfig reducedMotion="user">{view === 'landing' ? <Landing /> : <App />}</MotionConfig>;
+  return (
+    <I18nProvider>
+      <MotionConfig reducedMotion="user">{view === 'landing' ? <Landing /> : <App />}</MotionConfig>
+    </I18nProvider>
+  );
 }

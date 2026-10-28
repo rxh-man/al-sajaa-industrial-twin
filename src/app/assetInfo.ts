@@ -4,7 +4,8 @@ import { AD, AD_BUILDING_ID0, type AdKind } from '../data/abudhabi';
 import { findSegment, LAYERS, INCIDENT_SEGMENT_ID } from '../data/networks';
 import { SENSORS, SENSOR_TYPE_LABEL } from '../data/sensors';
 import { INCIDENT, IMPACT, VALVES } from '../data/incident';
-import type { HoverInfo } from '../store/useTwinStore';
+import { useTwinStore, type HoverInfo } from '../store/useTwinStore';
+import { ASSUMPTIONS, WAREHOUSE_ROOF_RECORDS } from '../data/climateAgents';
 import type { SimSnapshot } from '../simulation/engine';
 import { sensorState } from '../three/SensorNodes';
 import { live } from '../simulation/runtime';
@@ -129,6 +130,33 @@ export function describe(info: HoverInfo, snap: SimSnapshot): AssetInfo | null {
           ];
           return { explain: `Main driver: ${POLLUTANTS[top]} at level ${f.levels[top]}. Reduce by: ${options[top]}.` };
         })(),
+      };
+    }
+    case 'roof': {
+      // Warehouse roof: layout geometry is computed; solar figures are labelled assumptions.
+      const r = WAREHOUSE_ROOF_RECORDS.find((x) => x.id === info.id);
+      if (!r) return null;
+      const included = !useTwinStore.getState().excludedRoofs.includes(r.id);
+      const usable = r.areaM2 * ASSUMPTIONS.roofUsableShare.v;
+      const kwp = usable * ASSUMPTIONS.kwpPerM2.v;
+      const kwh = kwp * ASSUMPTIONS.yieldKwhPerKwp.v;
+      const fmt = (v: number) => Math.round(v).toLocaleString('en-US');
+      return {
+        kicker: 'WAREHOUSE ROOF',
+        title: `Warehouse ${r.id}`,
+        subtitle: 'Logistics warehouse · roof',
+        tone: included ? 'ok' : 'info',
+        status: included ? 'In proposed solar' : 'Excluded from solar',
+        rows: [
+          { label: 'Roof area (layout)', value: `${fmt(r.areaM2)} m²` },
+          { label: `Usable area (assumed ${Math.round(ASSUMPTIONS.roofUsableShare.v * 100)}%)`, value: `${fmt(usable)} m²` },
+          { label: 'Solar potential (assumed)', value: `${(kwp / 1000).toFixed(2)} MWp · ${fmt(kwh / 1000)} MWh/yr` },
+        ],
+        rowsExtra: [
+          { label: 'Shading', value: 'Not modelled (treated as unshaded)', tone: 'info' },
+          { label: 'Confidence', value: 'Footprint from layout; yield and density are assumptions', tone: 'info' },
+        ],
+        explain: 'Use the roof panel to include or exclude this roof from the proposed solar scenario.',
       };
     }
     case 'building': {

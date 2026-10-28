@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
 import { AD, type XZ } from '../data/abudhabi';
+import { motionScale } from '../store/useTwinStore';
 
 /**
  * Etihad Rail: the 3D track, the bridges where it crosses roads, and a passenger train on it.
@@ -24,6 +25,11 @@ const CARRIAGE = 2.2;
 const GAP = 0.15;
 const UNITS = [LOCO, CARRIAGE, CARRIAGE, CARRIAGE, CARRIAGE];
 const SPEED = 1.6;
+
+/** Advance the train's clock by one frame at the motion scale (full 1, reduced 0.3, off 0). Pure, so it can be tested. */
+export function advanceRailClock(t: number, dt: number, scale: number): number {
+  return t + Math.min(dt, 0.1) * SPEED * scale;
+}
 const BODY_H = 0.42;
 const BODY_W = 0.36;
 
@@ -223,7 +229,8 @@ export function RailTrain() {
   const tmp = useMemo(() => new Vector3(), []);
 
   useFrame((_, dt) => {
-    t0.current += Math.min(dt, 0.1) * SPEED;
+    // motion setting: reduced slows the train, off holds it where it is
+    t0.current = advanceRailClock(t0.current, dt, motionScale());
     const head = t0.current % (total + 40);
     let back = head;
     UNITS.forEach((len, k) => {
@@ -244,7 +251,7 @@ export function RailTrain() {
   return (
     <group>
       {UNITS.map((len, k) => (
-        <group key={k} ref={(el) => (cars.current[k] = el)}>
+        <group key={k} ref={(el) => (cars.current[k] = el)} userData={{ railCar: k }}>
           <mesh position={[0, BODY_H / 2, 0]} castShadow>
             <boxGeometry args={[BODY_W, BODY_H, len]} />
             <meshStandardMaterial color={k === 0 ? '#e9e7e2' : '#dfe3e8'} roughness={0.5} metalness={0.1} />

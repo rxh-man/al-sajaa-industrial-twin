@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CylinderGeometry, Color, InstancedMesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, SphereGeometry } from 'three';
 import { FACTORIES, SHADE_TREES } from '../data/airClimate';
-import { useTwinStore } from '../store/useTwinStore';
+import { motionScale, useTwinStore } from '../store/useTwinStore';
 
 /**
  * SIMULATED stack smoke and tree oxygen. Smoke rises from each factory roof stack and drifts
@@ -67,7 +67,7 @@ function Smoke() {
   useFrame(({ clock }) => {
     const mesh = ref.current;
     if (!mesh) return;
-    const t0 = clock.elapsedTime * 0.12;
+    const t0 = clock.elapsedTime * 0.12 * motionScale();
     let k = 0;
     for (let i = 0; i < FACTORIES.length; i++) {
       const f = FACTORIES[i];
@@ -116,7 +116,7 @@ function Oxygen() {
   useFrame(({ clock }) => {
     const mesh = ref.current;
     if (!mesh) return;
-    const t0 = clock.elapsedTime * 0.2;
+    const t0 = clock.elapsedTime * 0.2 * motionScale();
     let k = 0;
     for (const tree of sources) {
       for (let p = 0; p < O2_PER_SOURCE; p++, k++) {
