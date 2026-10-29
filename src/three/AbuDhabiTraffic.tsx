@@ -66,22 +66,23 @@ const LANE_W = 0.34;
 const SPEED: Record<string, number> = { trunk: 2.6, primary: 2.4, secondary: 2.1, tertiary: 1.9, unclassified: 1.5, residential: 1.3, living_street: 0.9 };
 const WEIGHT: Record<string, number> = { trunk: 5, primary: 5, secondary: 4, tertiary: 3, unclassified: 1.5, residential: 1, living_street: 0.4 };
 
+// about 330 cars and 140 trucks across the network; the highways carry most (link weight), fast and slow lanes
 const FLEET: { kind: VehicleKind; n: number; paint: string[] }[] = [
-  { kind: 'sedan', n: 52, paint: ['#f1f2f4', '#f1f2f4', '#c9ccd1', '#9aa0a8', '#2a2d32', '#121316', '#1d2f55', '#6e1a20', '#b5a68d'] },
-  { kind: 'suv', n: 34, paint: ['#f1f2f4', '#f1f2f4', '#c9ccd1', '#121316', '#2a2d32', '#b5a68d'] },
-  { kind: 'hatch', n: 18, paint: ['#f1f2f4', '#c9ccd1', '#b8452a', '#3b5878'] },
-  { kind: 'taxi', n: 24, paint: ['#c8ccd1'] }, // Abu Dhabi taxis: silver with a yellow roof sign
-  { kind: 'van', n: 10, paint: ['#f1f2f4', '#c9ccd1'] },
+  { kind: 'sedan', n: 84, paint: ['#f1f2f4', '#f1f2f4', '#c9ccd1', '#9aa0a8', '#2a2d32', '#121316', '#1d2f55', '#6e1a20', '#b5a68d'] },
+  { kind: 'suv', n: 52, paint: ['#f1f2f4', '#f1f2f4', '#c9ccd1', '#121316', '#2a2d32', '#b5a68d'] },
+  { kind: 'hatch', n: 24, paint: ['#f1f2f4', '#c9ccd1', '#b8452a', '#3b5878'] },
+  { kind: 'taxi', n: 32, paint: ['#c8ccd1'] }, // Abu Dhabi taxis: silver with a yellow roof sign
+  { kind: 'van', n: 14, paint: ['#f1f2f4', '#c9ccd1'] },
   { kind: 'bus', n: 6, paint: ['#d3d8dd'] },
   { kind: 'truck', n: 36, paint: ['#f1f2f4', '#2f5f9a'] },
   // newer passenger models: executive saloons, coupés, crossovers and the big Gulf SUVs
-  { kind: 'luxurySedan', n: 14, paint: ['#f1f2f4', '#121316', '#2a2d32', '#9aa0a8', '#1d2f55'] },
+  { kind: 'luxurySedan', n: 22, paint: ['#f1f2f4', '#121316', '#2a2d32', '#9aa0a8', '#1d2f55'] },
   { kind: 'coupe', n: 8, paint: ['#f1f2f4', '#b8452a', '#121316', '#2f5f9a', '#d9b44a'] },
-  { kind: 'crossover', n: 16, paint: ['#f1f2f4', '#c9ccd1', '#6e1a20', '#3b5878', '#2a2d32'] },
-  { kind: 'largeSuv', n: 18, paint: ['#f1f2f4', '#f1f2f4', '#e6e7ea', '#121316', '#b5a68d'] },
+  { kind: 'crossover', n: 24, paint: ['#f1f2f4', '#c9ccd1', '#6e1a20', '#3b5878', '#2a2d32'] },
+  { kind: 'largeSuv', n: 28, paint: ['#f1f2f4', '#f1f2f4', '#e6e7ea', '#121316', '#b5a68d'] },
   { kind: 'boxSuv', n: 8, paint: ['#121316', '#f1f2f4', '#2a2d32', '#7a7f5a'] },
   // the expanded catalogue: passenger, freight and service vehicles on the road network
-  { kind: 'pickup', n: 12, paint: ['#f1f2f4', '#c9ccd1', '#121316', '#8a2e27', '#2f5f9a'] },
+  { kind: 'pickup', n: 18, paint: ['#f1f2f4', '#c9ccd1', '#121316', '#8a2e27', '#2f5f9a'] },
   { kind: 'minibus', n: 4, paint: ['#f1f2f4', '#2f7a5a'] },
   { kind: 'coach', n: 2, paint: ['#f1f2f4', '#2f5f9a'] },
   // freight: twice the earlier truck numbers

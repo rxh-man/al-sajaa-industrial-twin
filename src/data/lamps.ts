@@ -39,6 +39,8 @@ const underDeck = (x: number, z: number) => decks.some((d) => segDist(x, z, d) <
 const lagoonTaken = (x: number, z: number) =>
   LAGOONS.cars.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < 0.5 * 0.5) || LAGOONS.villas.some((v) => (v.x - x) ** 2 + (v.z - z) ** 2 < 0.85 * 0.85);
 const onRail = (x: number, z: number) => inRailEnvelope(x, z, 0.3);
+/** palms on the verges and in the parks: a pole beside a trunk, not through it */
+const nearPalm = (x: number, z: number) => WORLD.palms.some(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 < 0.35 * 0.35);
 const inBuilding = (x: number, z: number) => boxes.some(([x1, z1, x2, z2]) => x > x1 - 0.15 && x < x2 + 0.15 && z > z1 - 0.15 && z < z2 + 0.15);
 const inTrench = (x: number, z: number) => x > TRENCH.minX - 1 && x < TRENCH.maxX + 1 && z > TRENCH.minZ - 1 && z < TRENCH.maxZ + 1;
 
@@ -97,7 +99,7 @@ function build() {
         const z = p.z + nz * off * side;
         if (Math.abs(x) > 110 || z < -67 || !onLand(x, z) || inBuilding(x, z) || inTrench(x, z) || !clear(x, z)) continue;
         // never on another road's carriageway or inside a corrected footprint (the rendered world)
-        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && (lagoonTaken(x, z) || inLagoonPlot(x, z, 0.08))) || underDeck(x, z)) continue;
+        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && (lagoonTaken(x, z) || inLagoonPlot(x, z, 0.08))) || underDeck(x, z) || nearPalm(x, z)) continue;
         placed.push({ x, z, ox: -nx * side, oz: -nz * side });
       }
     }

@@ -121,12 +121,16 @@ for r in roads:
 #    streets already lead from this line to Emirates Road E88
 stub_n = [r['p'][0] for r in roads if r['n'].startswith('Al Sajaa Street') and abs(r['p'][0][1] + 52) < 1e-6]
 acc = [r['p'][0] for r in roads if r['n'].startswith('Rail access street')]
+#    it does not meet Emirates Road E611 head-on: its west end curves up to join the E88 at an angle
+fr_x0 = min(p[0] for p in stub_n)
+e88w = next(r for r in roads if r['n'] == 'Emirates Road E88' and abs(r['p'][0][0] + 68) < 1e-6)
+e88_58 = next(p for p in e88w['p'] if abs(p[0] + 58.0) < 1e-6)
 fx['roads'].append(make_road('Al Sajaa Rail Frontage Road', 'secondary',
-                             along(-66.9, 120.0, -52.0, extra=[p[0] for p in stub_n + acc] + [-66.9, 120.0])))
+                             [e88_58, [-57.6, -54.4], [-56.9, -52.8]] + along(fr_x0, 120.0, -52.0, extra=[p[0] for p in stub_n + acc] + [120.0])))
 
 # 4. northern district: its streets stopped at z = -80 (the district edge) with no road there east of x = -152
 north_x = [r['p'][-1][0] for r in roads if r['n'].startswith('Northern Mixed District Street') and abs(r['p'][-1][1] + 80) < 1e-6 and r['p'][-1][0] > -152]
-fx['roads'].append(make_road('Northern Mixed District Road 10', 'secondary', along(-152.0, 120.0, -80.0, extra=north_x + [-66.9, -69.1])))
+fx['roads'].append(make_road('Northern Mixed District Road 10', 'secondary', along(-152.0, 120.0, -80.0, extra=north_x)))
 
 # 5. south road: the central and Rahmaniya streets end along the old coast line (the hidden Corniche ran there).
 #    It passes through their ends, steps round the Rahmaniya Mall, and joins the two E611 carriageway ends.
@@ -137,14 +141,136 @@ for p in south_r:
     pts.append(p)
     if abs(p[0] + 102) < 1e-6:
         pts.append([-102.0, 32.0])  # north of the mall's south wall (z 31.1)
-pts += [[-69.1, 34.0], [-66.9, 34.0]] + south_c
-fx['roads'].append(make_road('Al Sajaa South Road', 'secondary', pts))
+SVC_E, SVC_W = -64.4, -71.6   # the E611 service roads (east and west), beyond a landscaped verge
+SVC_Z1 = 33.0                 # their south ends, where the two halves of the South Road begin
+fx['roads'].append(make_road('Al Sajaa South Road (Rahmaniya)', 'secondary', pts + [[SVC_W, SVC_Z1]]))
+fx['roads'].append(make_road('Al Sajaa South Road', 'secondary', [[SVC_E, SVC_Z1]] + south_c))
 
 # 6. Rahmaniya joins the rest of the city: links east to Emirates Road E611 and west to the logistics district
 for z in (-48.0, -24.0, 0.0, 24.0):
-    fx['roads'].append(make_road(f'Rahmaniya Road link {int(z)}', 'secondary', [[-78.0, z], [-69.1, z]]))
+    fx['roads'].append(make_road(f'Rahmaniya Road link {int(z)}', 'secondary', [[-78.0, z], [SVC_W, z]]))
 for z in (-48.0, -32.0, -24.0, -16.0, -8.0, 0.0, 8.0, 16.0, 24.0):
     fx['roads'].append(make_road(f'Rahmaniya west link {int(z)}', 'residential', [[-152.0, z], [-150.0, z]]))
+
+
+# 6c. Emirates Road E611 as a real highway (no street meets it head-on):
+#   - north of z = -64 it runs on a viaduct over the district roads (elevate: height from z, see apply_fixes)
+#   - the E88 ends short of it and joins the southbound carriageway by two curved slip lanes
+#   - service roads on both sides beyond a landscaped verge take the side streets, the Rahmaniya links and the
+#     South Road; one-way curved slip lanes join them to the carriageways between the side streets
+DECK = 0.75
+fx['elevate'] = [
+    {'firstId': 'ex_-66.9_-230.0', 'ground': -64.0, 'full': -79.0, 'deck': DECK},
+    {'firstId': 'e611n47', 'ground': -64.0, 'full': -79.0, 'deck': DECK},
+]
+sb = next(r for r in roads if r['n'] == 'Emirates Road E611 southbound' and r['k'][0] == 'e611a0')
+nb = next(r for r in roads if r['n'] == 'Emirates Road E611 northbound' and r['k'][0] == 'e611n0')
+sb_id = {R(p[1]): k for p, k in zip(sb['p'], sb['k'])}
+nb_id = {R(p[1]): k for p, k in zip(nb['p'], nb['k'])}
+# E88: drop its points in the median, join with two slips
+e88 = next(r for r in roads if r['n'] == 'Emirates Road E88' and abs(r['p'][0][0] + 68) < 1e-6)
+for p, k in zip(e88['p'], e88['k']):
+    if p[0] < -62.0 - 1e-6:
+        fx.setdefault('cutVertex', []).append({'id': k})
+e88_i = next(i for i, p in enumerate(e88['p']) if abs(p[0] + 62.0) < 1e-6)
+e88_p, e88_k = e88['p'][e88_i], e88['k'][e88_i]
+
+
+def slip(name, pts, ids):
+    r = make_road(name, 'primary', pts, 0.8)
+    for i, k in ids.items():
+        r['k'][i] = k
+    r['x'] = 1  # one-way, in point order
+    return r
+
+
+fx['roads'].append(slip('E611 southbound exit to E88', [[-66.9, -58.0], [-65.5, -57.8], [-63.8, -57.2], e88_p], {0: sb_id[-58.0], -1: e88_k}))
+fx['roads'].append(slip('E88 entry to E611 southbound', [e88_p, [-63.6, -56.0], [-65.3, -55.0], [-66.9, -54.0]], {0: e88_k, -1: sb_id[-54.0]}))
+# side streets move their ends from the highway's kerb onto the east service road
+moves_now = {m['id']: m['to'] for m in fx['moveVertex']}
+east_j = {}
+for r in roads:
+    if (r['n'].startswith('Al Sajaa Road') or r['n'] == 'Khalifa Bin Zayed Street') and abs(r['p'][0][0] + 66) < 1e-6:
+        z = moves_now.get(r['k'][0], r['p'][0])[1]
+        fx['moveVertex'].append({'id': r['k'][0], 'to': [SVC_E, R(z)]})
+        east_j[R(z)] = r['k'][0]
+west_j = {R(z): node_id(SVC_W, z) for z in (-48.0, -24.0, 0.0, 24.0)}
+east_j[SVC_Z1] = node_id(SVC_E, SVC_Z1)
+west_j[SVC_Z1] = node_id(SVC_W, SVC_Z1)
+
+
+def slips_for(junctions, side):
+    """alternate exits and entries in the gaps between the service road's junctions"""
+    zs = sorted(junctions)
+    out = []
+    flip = 0
+    for za, zb in zip(zs, zs[1:]):
+        if zb - za < 7.0:
+            continue
+        if side == 'east':  # southbound runs +z: an exit leaves at zd and meets the service road 4.5 later
+            zd = math.ceil((za + 1.2) / 2) * 2
+            if zd + 4.5 > zb - 1.0:
+                continue
+            if flip % 2 == 0:
+                out.append(('exit', zd, zd + 4.5))
+            else:
+                zm = zd + 4.0  # entry: from the service road at zm - 4.5 to the carriageway at an even zm
+                out.append(('entry', zm - 4.5, zm))
+        else:  # northbound runs -z
+            zd = math.floor((zb - 1.2) / 2) * 2
+            if zd - 4.5 < za + 1.0:
+                continue
+            if flip % 2 == 0:
+                out.append(('exit', zd, zd - 4.5))
+            else:
+                zm = zd - 4.0
+                out.append(('entry', zm + 4.5, zm))
+        flip += 1
+    return out
+
+
+svc_east_z = set(east_j)
+svc_west_z = set(west_j)
+slip_spans = []
+for kind, z0, z1 in slips_for(east_j, 'east'):
+    if kind == 'exit':
+        slip_spans.append((min(z0, z1), max(z0, z1)))
+        fx['roads'].append(slip('E611 southbound exit', [[-66.9, z0], [-66.2, z0 + 1.5], [-65.2, z0 + 3.0], [SVC_E, z1]], {0: sb_id[R(z0)]}))
+        svc_east_z.add(R(z1))
+    else:
+        slip_spans.append((min(z0, z1), max(z0, z1)))
+        fx['roads'].append(slip('E611 southbound entry', [[SVC_E, z0], [-65.2, z0 + 1.5], [-66.2, z0 + 3.0], [-66.9, z1]], {-1: sb_id[R(z1)]}))
+        svc_east_z.add(R(z0))
+for kind, z0, z1 in slips_for(west_j, 'west'):
+    if kind == 'exit':
+        slip_spans.append((min(z0, z1), max(z0, z1)))
+        fx['roads'].append(slip('E611 northbound exit', [[-69.1, z0], [-69.8, z0 - 1.5], [-70.8, z0 - 3.0], [SVC_W, z1]], {0: nb_id[R(z0)]}))
+        svc_west_z.add(R(z1))
+    else:
+        slip_spans.append((min(z0, z1), max(z0, z1)))
+        fx['roads'].append(slip('E611 northbound entry', [[SVC_W, z0], [-70.8, z0 - 1.5], [-69.8, z0 - 3.0], [-69.1, z1]], {-1: nb_id[R(z1)]}))
+        svc_west_z.add(R(z0))
+for name, x, zset, jids in (('E611 service road (east)', SVC_E, svc_east_z, east_j), ('E611 service road (west)', SVC_W, svc_west_z, west_j)):
+    z0, z1 = min(jids), max(jids)
+    zz = sorted(set([R(z) for z in zset] + [R(z) for z in range(int(math.ceil(z0)), int(z1) + 1, 2)]))
+    zz = [z for z in zz if z0 - 1e-6 <= z <= z1 + 1e-6]
+    keep = [zz[0]]
+    for z in zz[1:]:
+        if z - keep[-1] > 0.6 or z in zset or z in jids:
+            keep.append(z)
+    r = make_road(name, 'secondary', [[x, z] for z in keep])
+    r['k'] = [jids.get(R(z)) or node_id(x, z) for z in keep]
+    fx['roads'].append(r)
+fx['meta']['highway'] = {'svcE': SVC_E, 'svcW': SVC_W, 'z0': min(min(east_j), min(west_j)), 'z1': SVC_Z1,
+                         'slips': sorted(set([R(z) for z in svc_east_z | svc_west_z]))}
+# landscaped verges: palms between the carriageways and the service roads, clear of slips and junctions
+busy = sorted(set([R(z) for z in svc_east_z | svc_west_z]))
+for x in (-65.12, -70.88):
+    z = min(busy) + 1.0
+    while z < SVC_Z1 - 0.8:
+        if all(abs(z - b) > 1.4 for b in busy) and all(not (a - 0.9 < z < b + 0.9) for a, b in slip_spans) and not (-48.0 < z < -46.0):
+            fx.setdefault('palmsAdd', []).append([x, R(z), 1.0])
+        z += 1.6
 
 
 def world_now():
@@ -191,12 +317,15 @@ for r in w['roads']:
     for k in r.get('k') or []:
         uses[k] = uses.get(k, 0) + 1
 done = set()
+rect = w['rect']
 for i in drv:
     r = w['roads'][i]
     for end in (0, -1):
         e, k = r['p'][end], r['k'][end]
         if uses.get(k, 0) > 1 or k in done:
             continue
+        if min(abs(e[0] - rect['minX']), abs(e[0] - rect['maxX']), abs(e[1] - rect['minZ']), abs(e[1] - rect['maxZ'])) < 1.0:
+            continue  # runs off the edge of the model
         best = None
         for j in drv:
             if j == i:

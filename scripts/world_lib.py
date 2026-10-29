@@ -149,6 +149,18 @@ def apply_fixes(roads, buildings, palms, fx):
                 continue
             break
     roads.extend(dict(r) for r in fx.get('roads', []))
+    for el in fx.get('elevate', []):
+        for r in roads:
+            if r.get('k') and r['k'][0] == el['firstId']:
+                g, f, d = el['ground'], el['full'], el['deck']
+                def yz(z):
+                    t = max(0.0, min(1.0, (z - g) / (f - g)))
+                    return round(d * t * t * (3 - 2 * t), 3)
+                r['o'] = 1
+                r['y'] = [yz(p[1]) for p in r['p']]
+                # the raised part shares no node with the roads passing underneath
+                r['k'] = [('el_' + k) if y > 0.05 else k for k, y in zip(r['k'], r['y'])]
+    palms.extend(list(p) for p in fx.get('palmsAdd', []))
     over = {int(k): v for k, v in fx.get('buildings', {}).items()}
     for b in buildings:
         o = over.get(b['id'])

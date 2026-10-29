@@ -130,6 +130,9 @@ interface WorldFixes {
   roads: AdRoad[];
   buildings: Record<string, { b?: [number, number, number, number][]; h?: number; y?: number }>;
   palms: [XZ, XZ][];
+  /** raise a road (by its first node id) onto a viaduct: height from z, ground → full over [ground, full] */
+  elevate?: { firstId: string; ground: number; full: number; deck: number }[];
+  palmsAdd?: [number, number, number][];
 }
 const FIXES = fixesRaw as unknown as WorldFixes;
 
@@ -173,6 +176,17 @@ export function applyFixes(roads: AdRoad[], buildings: AdBuilding[], palms: [num
     outRoads = outRoads.map((q, j) => (j === ri ? { ...r, p: [...r.p.slice(0, i + 1), ins.at, ...r.p.slice(i + 1)], k: [...r.k.slice(0, i + 1), ins.id, ...r.k.slice(i + 1)] } : q));
   }
   outRoads = [...outRoads, ...fx.roads];
+  for (const el of fx.elevate ?? []) {
+    outRoads = outRoads.map((r) => {
+      if (!r.k?.length || r.k[0] !== el.firstId) return r;
+      const y = r.p.map(([, z]) => {
+        const t = Math.min(1, Math.max(0, (z - el.ground) / (el.full - el.ground)));
+        return Math.round(el.deck * t * t * (3 - 2 * t) * 1000) / 1000;
+      });
+      // the raised part shares no node with the roads passing underneath
+      return { ...r, o: 1 as const, y, k: r.k.map((k, i) => (y[i] > 0.05 ? `el_${k}` : k)) };
+    });
+  }
   const outBuildings = buildings.map((b) => {
     const o = fx.buildings[String(b.id)];
     return o ? { ...b, ...(o.b ? { b: o.b } : {}), ...(o.h !== undefined ? { h: o.h } : {}), ...(o.y !== undefined ? { y: o.y } : {}) } : b;
@@ -183,7 +197,7 @@ export function applyFixes(roads: AdRoad[], buildings: AdBuilding[], palms: [num
     const m = moved.get(key(p[0], p[1]));
     return m ? ([m[0], m[1], p[2]] as [number, number, number]) : p;
   });
-  return { roads: outRoads, buildings: outBuildings, palms: outPalms };
+  return { roads: outRoads, buildings: outBuildings, palms: [...outPalms, ...(fx.palmsAdd ?? [])] };
 }
 
 /** roads added by the corrections (boundary and connector roads); the lamps light the main ones */
