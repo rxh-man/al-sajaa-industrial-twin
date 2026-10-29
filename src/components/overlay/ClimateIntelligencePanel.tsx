@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Bot, Cpu } from 'lucide-react';
 import { useTwinStore } from '../../store/useTwinStore';
 import { temperatureCurve, findHighExposureLocations } from '../../data/heatExposure';
 import { airQualityBaseline, compareAirQuality, type Wind } from '../../data/airDispersion';
@@ -35,11 +36,15 @@ export function ClimateIntelligencePanel() {
   const microgridOn = useTwinStore((s) => s.microgridOn ?? false); // default to false if undefined
   const agentExecutorOn = useTwinStore((s) => s.agentExecutorOn ?? false);
   const setAgentExecutorOn = useTwinStore((s) => s.setAgentExecutorOn);
+  // only shown alongside the Air or Climate panel, so the first view of the city stays clear
+  const airPanel = useTwinStore((s) => s.airPanel);
+  const climatePanel = useTwinStore((s) => s.climatePanel);
 
+  if (!airPanel && !climatePanel) return null;
   if (!heatOn && !airOn && !waterOn && !microgridOn && !agentExecutorOn) return null;
 
   return (
-    <aside className="climate-panel panel-enter" aria-label="Climate intelligence controls">
+    <aside className="ov-panel climate-panel climate-intel" aria-label="Climate intelligence controls">
       <div className="climate-header">
         <h3>Climate Intelligence</h3>
         <p className="climate-meta">Modelled scenarios · no real-time data</p>
@@ -47,8 +52,10 @@ export function ClimateIntelligencePanel() {
           onClick={() => setAgentExecutorOn(!agentExecutorOn)}
           className="climate-agent-toggle"
           title="Toggle agent execution engine"
+          aria-label="Toggle agent execution engine"
+          aria-pressed={agentExecutorOn}
         >
-          {agentExecutorOn ? '🤖' : '⚙️'}
+          {agentExecutorOn ? <Bot size={14} /> : <Cpu size={14} />}
         </button>
       </div>
 
@@ -129,6 +136,8 @@ function AirQualitySection() {
 
   const wind: Wind = { directionDeg: windDir, speedUnitsPerSec: windSpeed / 10 };
   const mitigated = mitigationEnabled ? compareAirQuality(selectedLocation, wind, factoryMitigations) : null;
+  // drop sources that round to 0.0%, so the list never shows a column of zeros
+  const topSources = (baselineResult?.sources ?? []).filter((src: any) => src.contribution >= 0.0005).slice(0, 3);
 
   return (
     <div className="climate-section air-section">
@@ -155,24 +164,26 @@ function AirQualitySection() {
             <div className="air-concentration">
               Total: {(baselineResult.totalConcentration * 100).toFixed(1)}% (normalized)
             </div>
-            {baselineResult.sources.length > 0 && (
+            {topSources.length > 0 ? (
               <div className="air-sources">
                 <p>Top contributors:</p>
                 <ul>
-                  {baselineResult.sources.slice(0, 3).map((src: any, i: number) => (
+                  {topSources.map((src: any, i: number) => (
                     <li key={i}>
                       Factory {src.factoryId}: {(src.contribution * 100).toFixed(1)}%
                     </li>
                   ))}
                 </ul>
               </div>
+            ) : (
+              <p className="climate-info">No factory adds a measurable share at this point with this wind.</p>
             )}
           </div>
         )}
       </div>
 
       <div className="climate-controls">
-        <label>
+        <label className="climate-check">
           <input
             type="checkbox"
             checked={mitigationEnabled}
@@ -318,7 +329,7 @@ function WaterSecuritySection() {
       </div>
 
       <div className="climate-controls">
-        <label>
+        <label className="climate-check">
           <input
             type="checkbox"
             checked={showFailureScenario}

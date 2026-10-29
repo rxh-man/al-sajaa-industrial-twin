@@ -2706,3 +2706,289 @@ li.is-done .loader-check {
 .nav-btn:hover {
   background: rgba(79, 209, 232, 0.3);
 }
+
+/* ---- climate intelligence panel (heat, air, water, microgrid scenarios) ---- */
+.climate-intel {
+  width: 300px;
+  padding-top: 2px;
+}
+
+.climate-intel .climate-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -12px 4px;
+  padding: 10px 12px 8px;
+  background: rgba(9, 14, 21, 0.96);
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.climate-intel .climate-meta {
+  order: 3;
+  flex-basis: 100%;
+}
+
+.climate-intel .climate-agent-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  color: var(--text-1);
+}
+
+.climate-intel .climate-agent-toggle[aria-pressed='true'] {
+  color: var(--cyan);
+  border-color: rgba(79, 209, 232, 0.4);
+  background: var(--cyan-soft);
+}
+
+.climate-section {
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--line-2);
+}
+
+.climate-section h4 {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-0);
+}
+
+.climate-section h5 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.climate-controls {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.climate-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 8px;
+}
+
+.climate-controls .climate-control {
+  margin-bottom: 0;
+}
+
+.climate-control label {
+  font-size: 11px;
+  color: var(--text-1);
+}
+
+.climate-control > span {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--text-0);
+  white-space: nowrap;
+}
+
+.climate-control input[type='range'],
+.climate-control select {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.climate-intel input[type='range'] {
+  accent-color: var(--cyan);
+  height: 16px;
+  margin: 0;
+}
+
+.climate-intel input[type='checkbox'] {
+  accent-color: var(--cyan);
+  margin: 0;
+}
+
+.climate-intel select {
+  padding: 5px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-0);
+  font: inherit;
+  font-size: 11.5px;
+}
+
+.climate-check,
+.intervention-checkbox {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-size: 11.5px;
+  color: var(--text-0);
+  cursor: pointer;
+}
+
+.intervention-detail {
+  flex-basis: 100%;
+  padding-left: 21px;
+  font-size: 10.5px;
+  color: var(--text-2);
+}
+
+.climate-results {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.climate-results p {
+  margin: 6px 0 2px;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.climate-results ul {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--text-1);
+}
+
+.climate-results li + li {
+  margin-top: 2px;
+}
+
+.climate-results .location-list {
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.location-item .loc-name,
+.air-concentration,
+.loss-total,
+.air-improvement,
+.failure-impact {
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+.loc-heat,
+.loc-risks,
+.air-mitigated,
+.cascade-msg {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.climate-info {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.scenario-row,
+.dispatch-row,
+.impact-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 11.5px;
+}
+
+.scenario-row + .scenario-row,
+.dispatch-row + .dispatch-row,
+.impact-row + .impact-row {
+  border-top: 1px dashed rgba(148, 172, 204, 0.1);
+}
+
+.scenario-label,
+.dispatch-label,
+.impact-label {
+  color: var(--text-1);
+}
+
+.scenario-value,
+.dispatch-value,
+.impact-value {
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.scenario-savings .scenario-value,
+.scenario-savings .impact-value {
+  color: var(--cyan);
+}
+
+.failure-metrics {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-1);
+}
+
+.climate-intel .climate-note {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.climate-intel .language-switcher {
+  margin: 0 0 4px;
+  border-bottom: 0;
+}
+
+/* bottom strip: keep the emergency numbers, the demo button and the credit line apart */
+.emergency-bar .eb-sim {
+  flex-basis: 100%;
+  font-size: 11px;
+}
+
+.transport.is-idle {
+  padding-bottom: 26px;
+}
+
+@media (max-width: 760px) {
+  .climate-intel {
+    width: min(300px, calc(100vw - 32px));
+  }
+}
+
+/* compact screens: the camera presets sit under the view toggles as a short wrapping row, not a tall column */
+.vp-tr > .ov-bar.presets {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 236px;
+  gap: 2px;
+}
+
+.vp-tr > .presets .bar-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+}
+
+.vp-tr > .presets .place-locator {
+  flex-basis: 100%;
+}
+
+.emergency-bar {
+  max-width: 280px;
+}

@@ -67,6 +67,10 @@
   position: absolute;
   top: 0;
   left: 0;
+  /* panels opened together sit side by side instead of running off the bottom */
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .vp-tr {

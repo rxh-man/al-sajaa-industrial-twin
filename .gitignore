@@ -11,3 +11,4 @@ dist-ssr
 
 # Local working files (screenshots, backups, zips)
 scratchpad/
+__pycache__/
