@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Info, Layers, LayoutGrid, PlayCircle } from 'lucide-react';
+import { Bot, Info, Layers, LayoutGrid, PlayCircle } from 'lucide-react';
+import { useOpsStore } from '../../opsAgent/store';
 import { useTwinStore } from '../../store/useTwinStore';
 import { useDismiss } from '../../hooks/useDismiss';
 import { TwinMark } from '../ui/TwinMark';
@@ -68,6 +69,8 @@ export function Header() {
   const infoOpen = useTwinStore((s) => s.infoOpen);
   const setInfoOpen = useTwinStore((s) => s.setInfoOpen);
   const infoRef = useRef<HTMLDivElement>(null);
+  const opsOpen = useOpsStore((s) => s.open);
+  const setOpsOpen = useOpsStore((s) => s.setOpen);
   const closeInfo = useCallback(() => setInfoOpen(false), [setInfoOpen]);
   useDismiss(infoRef, infoOpen, closeInfo, '[data-popover-toggle="info"]');
 
@@ -96,6 +99,10 @@ export function Header() {
           <button className={`seg-btn ${scenarioMenu ? 'is-on' : ''}`} onClick={() => setScenarioMenu(!scenarioMenu)} aria-pressed={scenarioMenu} title="Scenario" data-popover-toggle="scenario">
             <PlayCircle size={14} />
             Demo
+          </button>
+          <button className={`seg-btn ${opsOpen ? 'is-on' : ''}`} onClick={() => setOpsOpen(!opsOpen)} aria-pressed={opsOpen} title="AI Operations Agent (simulated)">
+            <Bot size={14} />
+            AI Agent
           </button>
         </nav>
         <Clock />

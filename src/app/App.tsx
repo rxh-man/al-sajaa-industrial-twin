@@ -8,6 +8,7 @@ import { EXPOSURE } from '../three/sceneConfig';
 import { POSES } from '../data/cameras';
 import { useTwinStore } from '../store/useTwinStore';
 import { Header } from '../components/dashboard/Header';
+import { OpsAgentPanel } from '../opsAgent/OpsAgentPanel';
 import { SignalRail } from '../components/dashboard/SignalRail';
 import { AgentsPanel } from '../components/agents/AgentsPanel';
 import { LayerPanel } from '../components/overlay/LayerPanel';
@@ -109,6 +110,7 @@ export function App() {
       </div>
 
       <Header />
+      <OpsAgentPanel />
 
       <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
         <SidebarHeader />
