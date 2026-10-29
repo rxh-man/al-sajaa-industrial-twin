@@ -125,6 +125,9 @@ for x in side_x_s:
 for x, z, sid in ENTR:
     pts = [[x, z]] + [[x, q] for q in xs(z, ZN, 2.0)][1:-1] + [[x, ZN]]
     roads.append(road(f'Lagoons Gate {int(round(x))}', 'secondary', pts, keep_ids={(R(x), R(z)): sid}))
+# west link: from Lagoons West Avenue to the Al Sajaa Interchange roundabout (scripts/build-interchange.py
+# continues it from x = -58)
+roads.append(road('Lagoons West Link', 'secondary', [[-58.0, 63.0], [-56.0, 63.0], [X0, 63.0]]))
 bridge = road('Lagoon Bridge', 'residential', [[BRIDGE_X, ring_n(BRIDGE_X)], [BRIDGE_X, zc(BRIDGE_X)], [BRIDGE_X, ring_s(BRIDGE_X)]])
 bridge['bridge'] = 1
 roads.append(bridge)

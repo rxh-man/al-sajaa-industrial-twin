@@ -1,4 +1,4 @@
-import { AD_BASE as AD, AD as WORLD, FIX_ROADS, LAGOONS, inLagoonWater, onLandBase, type XZ } from './abudhabi';
+import { AD_BASE as AD, AD as WORLD, FIX_ROADS, INTERCHANGE, LAGOONS, inLagoonWater, onLandBase, type XZ } from './abudhabi';
 import { inBuilding as inAnyBuilding, kerbDistance, segDist } from './spatial';
 import { TRENCH } from './incident';
 import { ALSAJAA_INLAND } from '../config/overrides';
@@ -27,8 +27,12 @@ const MIN_GAP = 1.6;
 const boxes = AD.buildings.flatMap((b) => b.b);
 /** land for lamps: the baseline outline, or the lagoon community's dry land */
 const LR = LAGOONS.meta.rect;
+const IR = INTERCHANGE.meta.rect;
 const onLand = (x: number, z: number) =>
-  onLandBase(x, z) || (x > LR.minX && x < LR.maxX && z > LR.minZ && z < LR.maxZ && !inLagoonWater(x, z));
+  onLandBase(x, z) || (x > LR.minX && x < LR.maxX && z > LR.minZ && z < LR.maxZ && !inLagoonWater(x, z)) || (x > IR.minX && x < IR.maxX && z > IR.minZ && z < IR.maxZ);
+/** under a raised deck a pole would run into it */
+const decks = WORLD.roads.filter((r) => r.o === 1).flatMap((r) => r.p.slice(1).map((b, i) => ({ ax: r.p[i][0], az: r.p[i][1], bx: b[0], bz: b[1], hw: r.w / 2 + 0.6 })));
+const underDeck = (x: number, z: number) => decks.some((d) => segDist(x, z, d) < d.hw);
 /** the rail corridor (track, ballast and the bridge decks): no lamp poles on it */
 const railSegs = WORLD.roads
   .filter((r) => r.c === 'rail')
@@ -84,7 +88,7 @@ function build() {
   }
 
   // the baseline's main roads, plus the boundary roads the corrections added (Rail Frontage Road, South Road)
-  for (const r of [...AD.roads, ...FIX_ROADS, ...LAGOONS.roads.filter((q) => !q.bridge)]) {
+  for (const r of [...AD.roads, ...FIX_ROADS, ...LAGOONS.roads.filter((q) => !q.bridge), ...INTERCHANGE.roads.filter((q) => q.o !== 1)]) {
     if (!MAIN.test(r.c) || r.t) continue;
     for (const p of along(r.p, ROAD_SPACING)) {
       const nx = -p.tz;
@@ -95,7 +99,7 @@ function build() {
         const z = p.z + nz * off * side;
         if (Math.abs(x) > 110 || z < -67 || !onLand(x, z) || inBuilding(x, z) || inTrench(x, z) || !clear(x, z)) continue;
         // never on another road's carriageway or inside a corrected footprint (the rendered world)
-        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && lagoonTaken(x, z))) continue;
+        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && lagoonTaken(x, z)) || underDeck(x, z)) continue;
         placed.push({ x, z, ox: -nx * side, oz: -nz * side });
       }
     }

@@ -88,8 +88,9 @@ export function groundTexture() {
   }
 
   // inland Al Sajaa: the unnamed coast-side road is not painted (its traffic link stays, so cars keep moving)
+  // raised roads are drawn as decks (ElevatedRoads.tsx), not painted on the ground beneath them
   const roads = [...AD.roads]
-    .filter((r) => !(ALSAJAA_INLAND && r.n === UNNAMED_COAST_ROAD))
+    .filter((r) => !(ALSAJAA_INLAND && r.n === UNNAMED_COAST_ROAD) && r.o !== 1)
     .sort((a, b) => ORDER.indexOf(a.c) - ORDER.indexOf(b.c));
   g.lineJoin = 'round';
   g.lineCap = 'round';

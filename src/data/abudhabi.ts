@@ -2,6 +2,7 @@ import raw from './alsajaa.json';
 import expansionRaw from './alsajaa-expansion.json';
 import fixesRaw from './alsajaa-fixes.json';
 import lagoonsRaw from './alsajaa-lagoons.json';
+import interchangeRaw from './alsajaa-interchange.json';
 import { ALSAJAA_INLAND, ALSAJAA_MAP_SOURCE } from '../config/overrides';
 
 /**
@@ -45,6 +46,8 @@ export interface AdRoad {
   l?: number;
   /** 1 = this polyline is one carriageway of a divided road */
   x?: 0 | 1;
+  /** deck height per point (elevated roads with a rising and falling profile: the interchange flyover) */
+  y?: number[];
   p: XZ[];
   /** OSM node ids per point; shared ids are real junctions */
   k: string[];
@@ -228,14 +231,23 @@ function pointInPolyXZ(x: number, z: number, poly: XZ[]) {
   return inside;
 }
 
-/** Rendering view of the world: baseline plus expansion plus corrections, then the lagoon community. Baseline records keep their order, first. */
+/** The Al Sajaa Interchange: the E611 flyover over a landscaped roundabout (scripts/build-interchange.py; procedural). */
+export interface Interchange {
+  meta: { rect: { minX: number; maxX: number; minZ: number; maxZ: number }; deck: number; centre: XZ; ringR: number; ringW: number; island: number };
+  roads: AdRoad[];
+  palms: [number, number, number][];
+  loops: { x: number; z: number; r: number }[];
+}
+export const INTERCHANGE = interchangeRaw as unknown as Interchange;
+
+/** Rendering view of the world: baseline plus expansion plus corrections, then the lagoon community and the interchange. Baseline records keep their order, first. */
 export const AD: AdData = {
   ...AD_BASE,
   meta: { ...AD_BASE.meta, rect: EXP.meta.combinedRect },
-  roads: [...FIXED.roads, ...LAGOONS.roads],
+  roads: [...FIXED.roads, ...LAGOONS.roads, ...INTERCHANGE.roads],
   buildings: FIXED.buildings,
   parks: [...AD_BASE.parks, ...EXP.parks],
-  palms: [...FIXED.palms, ...LAGOONS.palms],
+  palms: [...FIXED.palms, ...LAGOONS.palms, ...INTERCHANGE.palms],
   places: [...AD_BASE.places, ...EXP.places, ...LAGOONS.places].map((p) => ({ ...p, n: plainName(p.n) })),
   labels: [...AD_BASE.labels, ...EXP.labels].map((l) => ({ ...l, n: plainName(l.n) })),
 };

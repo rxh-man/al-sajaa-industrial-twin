@@ -33,6 +33,7 @@ labels = [
     ('palms_in_building', 'palms inside a building'),
     ('dead_ends', 'dead ends away from the model edge'),
     ('lagoon', 'Al Sajaa Lagoons conflicts (villas, cars, roads, water, palms)'),
+    ('levels', 'roads crossing at different levels with under 5 m between them'),
 ]
 fail = False
 for key, label in labels:

@@ -10,6 +10,7 @@ from collections import defaultdict
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXES_PATH = ROOT / 'src/data/alsajaa-fixes.json'
 LAGOONS_PATH = ROOT / 'src/data/alsajaa-lagoons.json'
+INTERCHANGE_PATH = ROOT / 'src/data/alsajaa-interchange.json'
 
 ELEV = re.compile(r'flyover|Ramp|Cloverleaf')
 DECK_Y = 0.62          # AbuDhabiTraffic.tsx: elevated road deck height
@@ -37,7 +38,21 @@ def load_world(with_fixes=True):
         palms.extend(list(p) for p in lagoons['palms'])
         lr = lagoons['meta']['rect']
         rect = {'minX': min(rect['minX'], lr['minX']), 'maxX': max(rect['maxX'], lr['maxX']), 'minZ': min(rect['minZ'], lr['minZ']), 'maxZ': max(rect['maxZ'], lr['maxZ'])}
-    return {'roads': roads, 'buildings': buildings, 'palms': palms, 'rect': rect, 'fixes': fixes, 'lagoons': lagoons}
+    # the interchange (scripts/build-interchange.py) joins last
+    inter = json.loads(INTERCHANGE_PATH.read_text()) if INTERCHANGE_PATH.exists() else None
+    if inter:
+        roads.extend(dict(r) for r in inter['roads'])
+        palms.extend(list(p) for p in inter['palms'])
+        ir = inter['meta']['rect']
+        rect = {'minX': min(rect['minX'], ir['minX']), 'maxX': max(rect['maxX'], ir['maxX']), 'minZ': min(rect['minZ'], ir['minZ']), 'maxZ': max(rect['maxZ'], ir['maxZ'])}
+    return {'roads': roads, 'buildings': buildings, 'palms': palms, 'rect': rect, 'fixes': fixes, 'lagoons': lagoons, 'interchange': inter}
+
+
+def road_y(r, i):
+    """deck height of road r at point i (elevated roads without a profile sit at DECK_Y)"""
+    if 'y' in r:
+        return r['y'][i]
+    return DECK_Y if is_elevated(r) else 0.0
 
 
 def in_poly(x, z, poly):
@@ -213,7 +228,7 @@ def end_joined(e, i, roads, drv, bxs):
 
 def audit(world):
     roads, buildings, palms, rect = world['roads'], world['buildings'], world['palms'], world['rect']
-    rep = {k: [] for k in ('lagoon', 'rail_crossings', 'on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
+    rep = {k: [] for k in ('levels', 'lagoon', 'rail_crossings', 'on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
     rsegs_all = road_segments(roads, lambda r: r['c'] in DRIVE and r.get('t') != 1)
 
     for b in buildings:
@@ -318,6 +333,32 @@ def audit(world):
             if bx[0] + 0.05 < x < bx[2] - 0.05 and bx[1] + 0.05 < z < bx[3] - 0.05:
                 rep['palms_in_building'].append((pi, round(x, 2), round(z, 2), bid))
                 break
+
+    # where two roads cross in plan without sharing a node, they must be at least 5 m apart in height
+    elev = [r for r in roads if r['c'] in DRIVE and (is_elevated(r) or 'y' in r)]
+    for e in elev:
+        eb = bbox(e['p'], 0)
+        for o in roads:
+            if o is e or o['c'] not in DRIVE or o.get('t') == 1 or not boxes_touch(eb, bbox(o['p'], 0)):
+                continue
+            shared = set(e.get('k') or []) & set(o.get('k') or [])
+            for i, (a, b) in enumerate(segs(e['p'])):
+                for j, (c, d) in enumerate(segs(o['p'])):
+                    den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0])
+                    if abs(den) < 1e-12:
+                        continue
+                    t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den
+                    u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den
+                    if not (0 <= t <= 1 and 0 <= u <= 1):
+                        continue
+                    # crossings at a shared node are junctions
+                    if (t < 1e-6 and e['k'][i] in shared) or (t > 1 - 1e-6 and e['k'][i + 1] in shared):
+                        continue
+                    ye = road_y(e, i) + (road_y(e, i + 1) - road_y(e, i)) * t
+                    yo = road_y(o, j) + (road_y(o, j + 1) - road_y(o, j)) * u
+                    if abs(ye - yo) < 0.5:
+                        rep['levels'].append((e['n'], o['n'], round(a[0] + (b[0] - a[0]) * t, 2), round(a[1] + (b[1] - a[1]) * t, 2), round(abs(ye - yo), 2)))
+    rep['levels'] = sorted(set(rep['levels']))
 
     lg = world.get('lagoons')
     if lg:

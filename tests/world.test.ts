@@ -132,3 +132,41 @@ test('Al Sajaa Lagoons: villas, cars and trees stay off the roads and out of the
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assert.ok(AD.places.some((p: any) => p.n === 'Al Sajaa Lagoons'));
 });
+
+test('Al Sajaa Interchange: flyover clears the roundabout, no column on a road, no lamp under the deck, joined to the city', async () => {
+  const [sp, { AD, INTERCHANGE }, elev, { LAMPS }] = await Promise.all([
+    server.ssrLoadModule('/src/data/spatial.ts'),
+    server.ssrLoadModule('/src/data/abudhabi.ts'),
+    server.ssrLoadModule('/src/three/ElevatedRoads.tsx'),
+    server.ssrLoadModule('/src/data/lamps.ts'),
+  ]);
+  const layout = elev.elevatedLayout();
+  assert.ok(layout.piers.length > 10, `${layout.piers.length} columns`);
+  for (const p of layout.piers) assert.ok(sp.kerbDistance(p.x, p.z) >= 0.35, `column at ${p.x},${p.z} stands on a road`);
+  // deck height over the roundabout (it crosses the E611 line at z = centre ± ringR)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fly = INTERCHANGE.roads.filter((r: any) => r.o === 1);
+  assert.equal(fly.length, 2);
+  const [cx, cz] = INTERCHANGE.meta.centre;
+  for (const r of fly)
+    for (const zc of [cz - INTERCHANGE.meta.ringR, cz + INTERCHANGE.meta.ringR]) {
+      const i = r.p.findIndex((p: number[]) => Math.abs(p[1] - zc) < 0.51);
+      assert.ok(i >= 0 && r.y[i] >= 0.7, `${r.n} is only ${r.y[i]} over the roundabout`);
+    }
+  // ramps are gentle: no more than 12% anywhere on the flyover
+  for (const r of fly)
+    for (let i = 1; i < r.p.length; i++) {
+      const run = Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]);
+      assert.ok(Math.abs(r.y[i] - r.y[i - 1]) / run <= 0.12, `${r.n} too steep near z ${r.p[i][1]}`);
+    }
+  // no street light under the deck
+  for (const l of LAMPS) for (const r of fly) for (const p of r.p) assert.ok(Math.hypot(l.x - p[0], l.z - p[1]) > r.w / 2 + 0.5 || false, `lamp at ${l.x},${l.z} under ${r.n}`);
+  // the slip ramps meet the main line and the roundabout at shared nodes
+  const ids = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of AD.roads) for (const k of r.k ?? []) ids.set(k, (ids.get(k) ?? 0) + 1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of INTERCHANGE.roads.filter((q: any) => /ramp/.test(q.n))) {
+    assert.ok((ids.get(r.k[0]) ?? 0) >= 2 && (ids.get(r.k[r.k.length - 1]) ?? 0) >= 2, `${r.n} is not joined at both ends`);
+  }
+});

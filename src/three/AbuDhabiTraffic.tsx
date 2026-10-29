@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { AdditiveBlending, BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3, type Intersection, type Raycaster } from 'three';
+import { AdditiveBlending, BufferGeometry, Color, Euler, InstancedBufferAttribute, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3, type Intersection, type Raycaster } from 'three';
 import { AD, type XZ } from '../data/abudhabi';
 import { TRENCH } from '../data/incident';
 import { mulberry32 } from '../data/rng';
@@ -108,6 +108,8 @@ interface Link {
   weight: number;
   trench: boolean;
   elev: boolean;
+  /** road height at each point (the flyover rises and falls; ground links are all 0) */
+  ys: number[];
   /** Emirates Road carriageway: grade-separated, so it never stops at a signal */
   hwy: boolean;
 }
@@ -162,6 +164,8 @@ function buildLinks() {
     for (const dir of oneWay ? [1] : [1, -1]) {
       const pts = dir === 1 ? r.p : [...r.p].reverse();
       const ids = dir === 1 ? r.k : [...r.k].reverse();
+      const yAll = r.y ?? r.p.map(() => (isElevated(r) ? DECK_Y : 0));
+      const ys = dir === 1 ? yAll : [...yAll].reverse();
       let s = 0;
       for (let i = 1; i < pts.length; i++) {
         if (i < pts.length - 1 && (uses.get(ids[i]) ?? 0) < 2) continue;
@@ -173,7 +177,7 @@ function buildLinks() {
           for (let j = 1; j < lp.length; j++) cum.push(cum[j - 1] + Math.hypot(lp[j][0] - lp[j - 1][0], lp[j][1] - lp[j - 1][1]));
           const len = cum[cum.length - 1];
           if (len < 0.05) continue;
-          links.push({ a: ids[s], b: ids[i], pts: lp, cum, len, speed: SPEED[r.c] * (hwy ? (k === 0 ? 1.6 : 0.7) : 1), weight: hwy ? WEIGHT[r.c] * 1.5 : WEIGHT[r.c], trench: lp.some((p) => inTrench(p)), elev: isElevated(r), hwy });
+          links.push({ a: ids[s], b: ids[i], pts: lp, cum, len, speed: SPEED[r.c] * (hwy ? (k === 0 ? 1.6 : 0.7) : 1), weight: hwy ? WEIGHT[r.c] * 1.5 : WEIGHT[r.c], trench: lp.some((p) => inTrench(p)), elev: isElevated(r), ys: ys.slice(s, i + 1), hwy });
         }
         s = i;
       }
@@ -182,6 +186,15 @@ function buildLinks() {
   const out = new Map<string, number[]>();
   links.forEach((l, i) => out.set(l.a, [...(out.get(l.a) ?? []), i]));
   return { links, out };
+}
+
+/** road height and slope (rise per unit run) at distance d along a link */
+export function linkHeight(l: Pick<Link, 'cum' | 'ys'>, d: number) {
+  let i = 1;
+  while (i < l.cum.length - 1 && l.cum[i] < d) i++;
+  const seg = Math.max(1e-6, l.cum[i] - l.cum[i - 1]);
+  const t = Math.min(1, Math.max(0, (d - l.cum[i - 1]) / seg));
+  return { y: l.ys[i - 1] + (l.ys[i] - l.ys[i - 1]) * t, slope: (l.ys[i] - l.ys[i - 1]) / seg };
 }
 
 function sample(l: Link, d: number) {
@@ -265,6 +278,7 @@ export function AbuDhabiTraffic() {
   const q = useMemo(() => new Quaternion(), []);
   const p = useMemo(() => new Vector3(), []);
   const up = useMemo(() => new Vector3(0, 1, 0), []);
+  const eul = useMemo(() => new Euler(), []);
   const sc = useMemo(() => new Vector3(), []);
   const beamRef = useRef<InstancedMesh>(null);
   const beamGeo = useMemo(() => {
@@ -377,10 +391,12 @@ export function AbuDhabiTraffic() {
       const prng = mulberry32(500 + gi);
       idxs.forEach((ci, n) => {
         const c = cars[ci];
-        q.setFromAxisAngle(up, c.yaw);
-        p.set(c.x, 0.01, c.z);
+        const hgt = linkHeight(links[c.link], c.d);
+        // heading, then pitch with the ramp (nose up on the way up)
+        eul.set(-Math.atan(hgt.slope), c.yaw, 0, 'YXZ');
+        q.setFromEuler(eul);
+        p.set(c.x, hgt.y + 0.01, c.z);
         sc.setScalar(c.hidden ? 0.0001 : CAR_SCALE);
-        p.y = links[c.link].elev ? DECK_Y : 0.01;
         mesh.setMatrixAt(n, m4.compose(p, q, sc));
         state.setY(n, c.brake);
         if (!painted.current) {
@@ -404,10 +420,12 @@ export function AbuDhabiTraffic() {
         const fz = Math.cos(c.yaw);
         const s = c.hidden ? 0.0001 : CAR_SCALE;
         q.setFromAxisAngle(up, c.yaw);
-        p.set(c.x + fx * (c.len / 2 + 1.1 * s), 0.03, c.z + fz * (c.len / 2 + 1.1 * s));
+        // the light pools lie on the road surface, on the deck where the road is raised
+        const gy = linkHeight(links[c.link], c.d).y + 0.03;
+        p.set(c.x + fx * (c.len / 2 + 1.1 * s), gy, c.z + fz * (c.len / 2 + 1.1 * s));
         beams.setMatrixAt(i * 2, m4.compose(p, q, sc.set(1.1 * s, 1, 2.2 * s)));
         attr.setXY(i * 2, 0, 0);
-        p.set(c.x - fx * (c.len / 2 + 0.14 * s), 0.03, c.z - fz * (c.len / 2 + 0.14 * s));
+        p.set(c.x - fx * (c.len / 2 + 0.14 * s), gy, c.z - fz * (c.len / 2 + 0.14 * s));
         beams.setMatrixAt(i * 2 + 1, m4.compose(p, q, sc.set(0.66 * s, 1, 0.5 * s)));
         attr.setXY(i * 2 + 1, 1, c.brake);
       });
