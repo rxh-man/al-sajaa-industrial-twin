@@ -653,6 +653,44 @@ export const VEHICLE_CENTER: Record<VehicleKind, number> = {
   crew: 0.2 * VEHICLE_SCALE,
 };
 
+/** body width and height per model family (metres), for the distant proxies */
+const PROXY_BODY: Partial<Record<VehicleKind, [number, number]>> = {
+  suv: [1.94, 1.75], largeSuv: [1.98, 1.9], boxSuv: [1.94, 1.86], crossover: [1.86, 1.62], pickup: [1.9, 1.8],
+  van: [1.95, 2.2], serviceVan: [1.98, 2.3], boxTruck: [2.3, 3.2], reefer: [2.4, 3.3], flatbed: [2.3, 2.6],
+  coupe: [1.88, 1.25], luxurySedan: [1.9, 1.42], sedan: [1.82, 1.42], hatch: [1.78, 1.45], taxi: [1.82, 1.5],
+};
+const proxyCache = new Map<VehicleKind, BufferGeometry>();
+
+/**
+ * A distant stand-in for a model: body, glass cabin, roof and wheels as six boxes (72 triangles instead of
+ * ~700), same length, width, height and part ids, so the vehicle material paints it the same way. Parked
+ * vehicles switch to it beyond a short distance from the camera (Streetscape.tsx).
+ */
+export function vehicleProxyGeometry(kind: VehicleKind): BufferGeometry {
+  let g = proxyCache.get(kind);
+  if (!g) {
+    const L = VEHICLE_LENGTH[kind] / VEHICLE_SCALE;
+    const [W, H] = PROXY_BODY[kind] ?? [1.9, 1.6];
+    const heavy = H > 2.4;
+    const bodyH = heavy ? H * 0.85 : H * 0.5;
+    const parts = [
+      box(W, bodyH, L * 0.98, 0, 0.3 + bodyH / 2, 0, PART.paint),
+      box(W - 0.12, H - bodyH - 0.3, heavy ? L * 0.22 : L * 0.5, 0, 0.3 + bodyH + (H - bodyH - 0.3) / 2, heavy ? L * 0.36 : -L * 0.04, PART.glass),
+      box(W - 0.1, 0.06, heavy ? L * 0.22 : L * 0.5, 0, H, heavy ? L * 0.36 : -L * 0.04, PART.paint),
+      box(W + 0.04, 0.6, 0.62, 0, 0.3, L * 0.3, PART.trim),
+      box(W + 0.04, 0.6, 0.62, 0, 0.3, -L * 0.3, PART.trim),
+      box(W - 0.2, 0.14, 0.06, 0, 0.62, L * 0.49, PART.head),
+    ];
+    const merged = mergeGeometries(parts, false);
+    if (!merged) throw new Error(`vehicle proxy ${kind} failed to merge`);
+    merged.scale(VEHICLE_SCALE, VEHICLE_SCALE, VEHICLE_SCALE);
+    merged.computeBoundingSphere();
+    g = merged;
+    proxyCache.set(kind, g);
+  }
+  return g;
+}
+
 const cache = new Map<VehicleKind, BufferGeometry>();
 
 export function vehicleGeometry(kind: VehicleKind): BufferGeometry {

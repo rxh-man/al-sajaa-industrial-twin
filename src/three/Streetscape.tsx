@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import {
   BoxGeometry,
   BufferGeometry,
@@ -15,7 +16,7 @@ import {
 } from 'three';
 import { STREETSCAPE } from '../data/streetscapeData';
 import { PAINTS, PARKED_SCALE, type Parked } from '../data/streetscape';
-import { vehicleGeometry, type VehicleKind } from './vehicles/vehicleModels';
+import { vehicleGeometry, vehicleProxyGeometry, type VehicleKind } from './vehicles/vehicleModels';
 import { createStateAttribute, createVehicleMaterial } from './vehicles/vehicleMaterial';
 
 /**
@@ -55,25 +56,93 @@ function Instances({ geometry, material, items, shadows = false }: { geometry: B
   return <instancedMesh ref={ref} args={[geometry, material, items.length]} castShadow={shadows} receiveShadow raycast={noRaycast} />;
 }
 
-function ParkedKind({ kind, cars, material, shadows }: { kind: VehicleKind; cars: Parked[]; material: Material; shadows: boolean }) {
-  const geometry = useMemo(() => {
-    const base = vehicleGeometry(kind);
-    const g = new BufferGeometry();
-    for (const name of Object.keys(base.attributes)) g.setAttribute(name, base.getAttribute(name));
-    // lights off: parked
-    g.setAttribute('aState', createStateAttribute(cars.length) as InstancedBufferAttribute);
-    g.boundingSphere = base.boundingSphere;
-    return g;
-  }, [kind, cars]);
-  const items = useMemo(
-    () => cars.map((c) => ({ x: c.x, y: 0.01, z: c.z, yaw: c.yaw, sx: PARKED_SCALE, sy: PARKED_SCALE, sz: PARKED_SCALE, color: PAINT_COLORS[c.paint % PAINT_COLORS.length] })),
-    [cars],
+/** distance (scene units) inside which a parked vehicle is drawn with its full model */
+const LOD_NEAR = 30;
+
+function instancedVehicle(base: BufferGeometry, count: number) {
+  const g = new BufferGeometry();
+  for (const name of Object.keys(base.attributes)) g.setAttribute(name, base.getAttribute(name));
+  // lights off: parked
+  g.setAttribute('aState', createStateAttribute(count) as InstancedBufferAttribute);
+  g.boundingSphere = base.boundingSphere;
+  return g;
+}
+
+/**
+ * One model's parked vehicles in two instanced meshes: the full model near the camera, a 72-triangle proxy
+ * (vehicleProxyGeometry) further out. The split is recomputed only when the camera has moved, at most four
+ * times a second; each mesh draws just its own share (mesh.count).
+ */
+function ParkedKind({ kind, cars, material }: { kind: VehicleKind; cars: Parked[]; material: Material }) {
+  const fullRef = useRef<InstancedMesh>(null);
+  const farRef = useRef<InstancedMesh>(null);
+  const geos = useMemo(() => ({ full: instancedVehicle(vehicleGeometry(kind), cars.length), far: instancedVehicle(vehicleProxyGeometry(kind), cars.length) }), [kind, cars]);
+  const mats = useMemo(() => {
+    const m = new Matrix4();
+    const q = new Quaternion();
+    const p = new Vector3();
+    const s = new Vector3(PARKED_SCALE, PARKED_SCALE, PARKED_SCALE);
+    return cars.map((c) => m.compose(p.set(c.x, 0.01, c.z), q.setFromAxisAngle(UP, c.yaw), s).clone());
+  }, [cars]);
+  const colors = useMemo(() => cars.map((c) => PAINT_COLORS[c.paint % PAINT_COLORS.length]), [cars]);
+  const last = useRef({ x: Infinity, z: Infinity, y: Infinity, t: -1 });
+
+  useFrame(({ camera }) => {
+    const full = fullRef.current;
+    const far = farRef.current;
+    if (!full || !far) return;
+    const L = last.current;
+    const cp = camera.position;
+    const moved = Math.abs(cp.x - L.x) + Math.abs(cp.y - L.y) + Math.abs(cp.z - L.z);
+    // wall-clock throttle (the scene clock can be stepped or paused by the motion setting and dev hooks)
+    const now = performance.now() / 1000;
+    if (moved < 0.5 || now - L.t < 0.25) return;
+    L.x = cp.x;
+    L.y = cp.y;
+    L.z = cp.z;
+    L.t = now;
+    let n = 0;
+    let f = 0;
+    const near2 = LOD_NEAR * LOD_NEAR;
+    cars.forEach((c, i) => {
+      const d2 = (c.x - cp.x) ** 2 + (c.z - cp.z) ** 2 + cp.y * cp.y;
+      if (d2 < near2) {
+        full.setMatrixAt(n, mats[i]);
+        full.setColorAt(n++, colors[i]);
+      } else {
+        far.setMatrixAt(f, mats[i]);
+        far.setColorAt(f++, colors[i]);
+      }
+    });
+    full.count = n;
+    far.count = f;
+    full.instanceMatrix.needsUpdate = true;
+    far.instanceMatrix.needsUpdate = true;
+    if (full.instanceColor) full.instanceColor.needsUpdate = true;
+    if (far.instanceColor) far.instanceColor.needsUpdate = true;
+  });
+
+  // bounds cover the whole set, so a mesh is not culled while it holds a share of the cars
+  useLayoutEffect(() => {
+    for (const mesh of [fullRef.current, farRef.current]) {
+      if (!mesh) continue;
+      mats.forEach((m, i) => mesh.setMatrixAt(i, m));
+      mesh.setColorAt(0, colors[0]);
+      mesh.computeBoundingSphere();
+      mesh.count = 0;
+    }
+  }, [mats, colors]);
+
+  return (
+    <group>
+      <instancedMesh ref={fullRef} args={[geos.full, material, cars.length]} receiveShadow raycast={noRaycast} />
+      <instancedMesh ref={farRef} args={[geos.far, material, cars.length]} receiveShadow raycast={noRaycast} />
+    </group>
   );
-  return <Instances geometry={geometry} material={material} items={items} shadows={shadows} />;
 }
 
 /** a set of parked vehicles, one instanced mesh per model (also used by the lagoon community) */
-export function ParkedSet({ cars, shadows }: { cars: Parked[]; shadows: boolean }) {
+export function ParkedSet({ cars }: { cars: Parked[]; shadows?: boolean }) {
   const material = useMemo(() => createVehicleMaterial('#e0b23a'), []);
   const groups = useMemo(() => {
     const map = new Map<VehicleKind, Parked[]>();
@@ -83,7 +152,7 @@ export function ParkedSet({ cars, shadows }: { cars: Parked[]; shadows: boolean 
   return (
     <group>
       {groups.map(([kind, list]) => (
-        <ParkedKind key={kind} kind={kind} cars={list} material={material} shadows={shadows} />
+        <ParkedKind key={kind} kind={kind} cars={list} material={material} />
       ))}
     </group>
   );
@@ -188,7 +257,7 @@ export function TreeSet({ trees: all, quality }: { trees: { x: number; z: number
   const geo = useMemo(() => {
     const trunk = new CylinderGeometry(0.035, 0.05, 1, 6);
     trunk.translate(0, 0.5, 0);
-    const crown = new IcosahedronGeometry(1, 1);
+    const crown = new IcosahedronGeometry(1, 0); // 20 faces: flat-shaded crowns read the same at street scale
     return { trunk, crown };
   }, []);
   const mats = useMemo(

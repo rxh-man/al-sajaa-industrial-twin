@@ -206,15 +206,28 @@ export function buildStreetscape() {
       const L = Math.hypot(bx - ax, bz - az);
       const n = Math.max(1, Math.round(L / 0.25));
       const yaw = Math.atan2(bx - ax, bz - az);
+      // pieces next to each other on a side are stored as one run (one box when drawn)
+      let run: number[] = [];
+      const flush = () => {
+        if (!run.length) return;
+        const t0 = run[0] / n;
+        const t1 = (run[run.length - 1] + 1) / n;
+        walls.push({ x: ax + (bx - ax) * ((t0 + t1) / 2), z: az + (bz - az) * ((t0 + t1) / 2), yaw, len: L * (t1 - t0) });
+        run = [];
+      };
       for (let i = 0; i < n; i++) {
         const t = (i + 0.5) / n;
         const x = ax + (bx - ax) * t;
         const z = az + (bz - az) * t;
-        if (side === front && Math.hypot(x - mids[side][0], z - mids[side][1]) < 0.32) continue; // the gate
-        if (kerbDistance(x, z) < 0.1 || inBuilding(x, z, 0.06) || obs.hit(x, z, 0.05)) continue;
-        walls.push({ x, z, yaw, len: L / n });
+        const gate = side === front && Math.hypot(x - mids[side][0], z - mids[side][1]) < 0.32;
+        if (gate || kerbDistance(x, z) < 0.1 || inBuilding(x, z, 0.06) || obs.hit(x, z, 0.05)) {
+          flush();
+          continue;
+        }
+        run.push(i);
         obs.add(x, z, 0.07);
       }
+      flush();
     }
   }
 
