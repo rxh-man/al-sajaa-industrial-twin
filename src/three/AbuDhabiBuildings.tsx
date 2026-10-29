@@ -38,7 +38,28 @@ const GLASS_T: RGB[] = [
   [0.36, 0.39, 0.43],
   [0.42, 0.44, 0.46],
 ];
-const WHITE: RGB = [0.85, 0.85, 0.83];
+const WHITE: RGB = [0.92, 0.91, 0.88];
+/** Gulf whites and beiges: lime-washed white, warm beige and light stone, as most UAE homes and low blocks are */
+const WHITES: RGB[] = [
+  [0.94, 0.93, 0.9],
+  [0.9, 0.89, 0.85],
+  [0.96, 0.95, 0.92],
+];
+const BEIGE: RGB[] = [
+  [0.87, 0.79, 0.65],
+  [0.84, 0.75, 0.6],
+  [0.9, 0.84, 0.72],
+  [0.8, 0.71, 0.56],
+];
+const STONE: RGB[] = [
+  [0.88, 0.84, 0.76],
+  [0.82, 0.77, 0.68],
+];
+/** homes and low blocks: about a third white, half beige, the rest stone or sand */
+const homeTint = (r: number, r2: number): RGB => (r < 0.35 ? pick(WHITES, r2) : r < 0.82 ? pick(BEIGE, r2) : r < 0.93 ? pick(STONE, r2) : pick(SAND, r2));
+/** sheds and halls: white or beige cladding, some grey */
+const INDUSTRY_NAME = /Factory|Warehouse|warehouse|Workshop|Truck|depot|Plant|Substation|Loading/;
+const industryTint = (r: number, r2: number): RGB => (r < 0.4 ? pick(WHITES, r2) : r < 0.75 ? pick(BEIGE, r2) : pick(CREAM, r2));
 
 const hash = (n: number) => {
   const x = Math.sin(n * 91.3458 + 47.2) * 43758.5453;
@@ -54,7 +75,7 @@ function look(b: AdBuilding): { style: number; tint: RGB; lit: number } {
     case 'hotel':
       return { style: r < 0.62 ? GLASS : RIBBON, tint: r < 0.62 ? pick(GLASS_T, r2) : pick(CREAM, r2), lit: 0.42 };
     case 'office':
-      return { style: r < 0.5 ? CONCRETE : GLASS, tint: r < 0.5 ? pick(CREAM, r2) : pick(GLASS_T, r2), lit: 0.34 };
+      return { style: r < 0.5 ? CONCRETE : GLASS, tint: r < 0.5 ? homeTint(r2, r) : pick(GLASS_T, r2), lit: 0.34 };
     case 'mall':
       return { style: RIBBON, tint: pick(SAND, r2), lit: 0.5 };
     case 'mosque':
@@ -66,16 +87,19 @@ function look(b: AdBuilding): { style: number; tint: RGB; lit: number } {
     case 'fort':
       return { style: WARM, tint: [0.8, 0.72, 0.58], lit: 0.2 };
     case 'house':
-      return { style: WARM, tint: pick(SAND, r2), lit: 0.3 };
+      // villas: smooth lime plaster (not brick), mostly white or beige, a few sand
+      return { style: CONCRETE, tint: r < 0.45 ? pick(WHITES, r2) : r < 0.9 ? pick(BEIGE, r2) : pick(SAND, r2), lit: 0.3 };
     case 'pool':
       return { style: RESIDENTIAL, tint: [0.36, 0.66, 0.82], lit: 0.45 };
     case 'utility':
     case 'roof':
       return { style: INDUSTRIAL, tint: [0.6, 0.59, 0.56], lit: 0.1 };
     case 'residential':
-      return { style: r < 0.55 ? RESIDENTIAL : RIBBON, tint: pick(CREAM, r2), lit: 0.38 };
+      return { style: r < 0.55 ? RESIDENTIAL : RIBBON, tint: homeTint(r2, r), lit: 0.38 };
     default:
-      return b.h > 9 ? { style: r < 0.45 ? GLASS : RESIDENTIAL, tint: r < 0.45 ? pick(GLASS_T, r2) : pick(CREAM, r2), lit: 0.36 } : { style: RESIDENTIAL, tint: pick(CREAM, r2), lit: 0.32 };
+      if (b.h > 9) return { style: r < 0.45 ? GLASS : RESIDENTIAL, tint: r < 0.45 ? pick(GLASS_T, r2) : homeTint(r2, r), lit: 0.36 };
+      if (INDUSTRY_NAME.test(b.n)) return { style: RESIDENTIAL, tint: industryTint(r2, r), lit: 0.3 };
+      return { style: RESIDENTIAL, tint: homeTint(r2, r), lit: 0.32 };
   }
 }
 

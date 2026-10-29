@@ -204,9 +204,99 @@ function Trees({ quality }: { quality: 'high' | 'low' }) {
   );
 }
 
+/**
+ * Emirati villa details on the baseline villas: crenellated sharafat parapets along the roof edge, a barjeel
+ * (wind tower) on some, a columned portico with an arched door on the street side, and the compound wall
+ * with its gate (the wall pieces come from streetscape.ts so the cars and trees keep clear of them).
+ */
+function VillaDetails() {
+  const geo = useMemo(() => {
+    const box = new BoxGeometry(1, 1, 1);
+    box.translate(0, 0.5, 0);
+    // a half disc standing upright: the arch over the door
+    const arch = new CylinderGeometry(0.5, 0.5, 1, 14, 1, false, -Math.PI / 2, Math.PI);
+    arch.rotateX(Math.PI / 2);
+    return { box, arch };
+  }, []);
+  const mats = useMemo(
+    () => ({
+      lime: new MeshStandardMaterial({ color: '#f1ece2', roughness: 0.75 }),
+      wall: new MeshStandardMaterial({ color: '#d8c9ac', roughness: 0.85 }),
+      door: new MeshStandardMaterial({ color: '#5a4330', roughness: 0.7 }),
+      vent: new MeshStandardMaterial({ color: '#2e2a26', roughness: 0.9 }),
+    }),
+    [],
+  );
+  const built = useMemo(() => {
+    const merlons: Placement[] = [];
+    const lime: Placement[] = [];
+    const doors: Placement[] = [];
+    const arches: Placement[] = [];
+    const vents: Placement[] = [];
+    const walls: Placement[] = [];
+    for (const v of STREETSCAPE.villas) {
+      const [x0, z0, x1, z1] = v.b;
+      const top = v.h;
+      // sharafat: small stepped merlons every ~0.18 along each roof edge
+      const edge = (ax: number, az: number, bx: number, bz: number) => {
+        const L = Math.hypot(bx - ax, bz - az);
+        const n = Math.max(2, Math.round(L / 0.18));
+        const yaw = Math.atan2(bx - ax, bz - az);
+        for (let i = 0; i <= n; i++) merlons.push({ x: ax + ((bx - ax) * i) / n, z: az + ((bz - az) * i) / n, y: top, yaw, sx: 0.06, sy: 0.07, sz: 0.07 });
+      };
+      const i = 0.03;
+      edge(x0 + i, z0 + i, x1 - i, z0 + i);
+      edge(x0 + i, z1 - i, x1 - i, z1 - i);
+      edge(x0 + i, z0 + i, x0 + i, z1 - i);
+      edge(x1 - i, z0 + i, x1 - i, z1 - i);
+      // the street-side face: centre, outward normal, and the heading along the face
+      const f = [
+        { x: (x0 + x1) / 2, z: z0, nx: 0, nz: -1 },
+        { x: (x0 + x1) / 2, z: z1, nx: 0, nz: 1 },
+        { x: x0, z: (z0 + z1) / 2, nx: -1, nz: 0 },
+        { x: x1, z: (z0 + z1) / 2, nx: 1, nz: 0 },
+      ][v.front];
+      const along = Math.atan2(-f.nz, f.nx); // heading parallel to the face
+      const face = Math.atan2(f.nx, f.nz);
+      const colH = Math.min(0.32, top * 0.75);
+      for (const s of [-0.24, 0.24]) {
+        const p = local(f.x + f.nx * 0.16, f.z + f.nz * 0.16, along, s, 0);
+        lime.push({ ...p, y: 0, yaw: along, sx: 0.06, sy: colH, sz: 0.06 });
+      }
+      lime.push({ x: f.x + f.nx * 0.09, z: f.z + f.nz * 0.09, y: colH, yaw: face, sx: 0.62, sy: 0.05, sz: 0.2 });
+      doors.push({ x: f.x + f.nx * 0.006, z: f.z + f.nz * 0.006, y: 0, yaw: face, sx: 0.2, sy: colH * 0.62, sz: 0.012 });
+      arches.push({ x: f.x + f.nx * 0.006, z: f.z + f.nz * 0.006, y: colH * 0.62, yaw: face, sx: 0.2, sy: 0.2, sz: 0.012 });
+      // barjeel: a square tower over a back corner, with dark vents on each face
+      if (v.tower) {
+        const tx = f.nx !== 0 ? (f.nx > 0 ? x0 + 0.22 : x1 - 0.22) : x0 + 0.22;
+        const tz = f.nz !== 0 ? (f.nz > 0 ? z0 + 0.22 : z1 - 0.22) : z0 + 0.22;
+        lime.push({ x: tx, z: tz, y: top, yaw: 0, sx: 0.26, sy: 0.3, sz: 0.26 });
+        for (const [dx, dz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) vents.push({ x: tx + dx * 0.131, z: tz + dz * 0.131, y: top + 0.1, yaw: Math.atan2(dx, dz), sx: 0.16, sy: 0.16, sz: 0.004 });
+        lime.push({ x: tx, z: tz, y: top + 0.3, yaw: 0, sx: 0.3, sy: 0.03, sz: 0.3 });
+      }
+    }
+    for (const w of STREETSCAPE.walls) {
+      walls.push({ x: w.x, z: w.z, y: 0, yaw: w.yaw, sx: 0.05, sy: 0.16, sz: w.len + 0.01 });
+      lime.push({ x: w.x, z: w.z, y: 0.16, yaw: w.yaw, sx: 0.07, sy: 0.02, sz: w.len + 0.01 });
+    }
+    return { merlons, lime, doors, arches, vents, walls };
+  }, []);
+  return (
+    <group>
+      <Instances geometry={geo.box} material={mats.lime} items={built.merlons} />
+      <Instances geometry={geo.box} material={mats.lime} items={built.lime} shadows />
+      <Instances geometry={geo.box} material={mats.door} items={built.doors} />
+      <Instances geometry={geo.arch} material={mats.door} items={built.arches} />
+      <Instances geometry={geo.box} material={mats.vent} items={built.vents} />
+      <Instances geometry={geo.box} material={mats.wall} items={built.walls} shadows />
+    </group>
+  );
+}
+
 export function Streetscape({ quality }: { quality: 'high' | 'low' }) {
   return (
     <group>
+      <VillaDetails />
       <ParkedVehicles quality={quality} />
       <Furniture />
       <Trees quality={quality} />

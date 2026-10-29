@@ -80,6 +80,21 @@ export interface Prop {
   z: number;
   yaw: number;
 }
+/** an Emirati villa's extras: the footprint, which features it carries, and its compound wall pieces */
+export interface Villa {
+  b: [number, number, number, number];
+  h: number;
+  /** a barjeel (wind tower) on the roof */
+  tower: boolean;
+  /** the side facing the street (0 -z, 1 +z, 2 -x, 3 +x): portico and gate */
+  front: number;
+}
+export interface WallPiece {
+  x: number;
+  z: number;
+  yaw: number;
+  len: number;
+}
 export interface Tree {
   x: number;
   z: number;
@@ -88,13 +103,18 @@ export interface Tree {
 
 export const PAINTS = ['#f1f2f4', '#f1f2f4', '#e6e7ea', '#c9ccd1', '#9aa0a8', '#2a2d32', '#121316', '#1d2f55', '#6e1a20', '#b5a68d', '#3b5878', '#8a2e27'];
 const CAR_MIX: [VehicleKind, number][] = [
-  ['sedan', 0.34],
-  ['suv', 0.26],
-  ['hatch', 0.1],
-  ['pickup', 0.12],
-  ['van', 0.08],
-  ['taxi', 0.04],
-  ['serviceVan', 0.06],
+  ['sedan', 0.22],
+  ['luxurySedan', 0.07],
+  ['coupe', 0.03],
+  ['suv', 0.14],
+  ['largeSuv', 0.12],
+  ['crossover', 0.1],
+  ['boxSuv', 0.04],
+  ['hatch', 0.07],
+  ['pickup', 0.1],
+  ['van', 0.05],
+  ['taxi', 0.03],
+  ['serviceVan', 0.03],
 ];
 const pick = (rnd: () => number): VehicleKind => {
   let u = rnd();
@@ -107,6 +127,10 @@ const PUBLIC = /Mall|mall|Hotel|Office|office|Tasheel|Hospital|School|school|Mus
 const INDUSTRY = /Factory|Warehouse|warehouse|Workshop|Container|Truck|Plant|Tank|depot|yard|Yard/;
 const DOCKS = /^(Logistics warehouse|Warehouse|Factory hall)$/;
 
+const hashOf = (n: number) => {
+  const x = Math.sin(n * 91.3458 + 47.2) * 43758.5453;
+  return x - Math.floor(x);
+};
 const inCore = (x: number, z: number) => x > CORE.minX && x < CORE.maxX && z > CORE.minZ && z < CORE.maxZ;
 const buildingIndex = new Map<number[], AdBuilding>();
 for (const b of AD.buildings) for (const box of b.b) buildingIndex.set(box, b);
@@ -151,6 +175,47 @@ export function buildStreetscape() {
   const benches: Prop[] = [];
   const bins: Prop[] = [];
   const trees: Tree[] = [];
+  const villas: Villa[] = [];
+  const walls: WallPiece[] = [];
+
+  // 0. Emirati villas: compound walls first (gate on the street side), so everything placed later keeps clear
+  for (const b of AD.buildings) {
+    if (b.procedural || b.b.length !== 1 || !/Mansion|Small house|Emirati villa|^Villa$/.test(b.n)) continue;
+    const [x0, z0, x1, z1] = b.b[0];
+    const cx = (x0 + x1) / 2;
+    const cz = (z0 + z1) / 2;
+    if (!inCore(cx, cz)) continue;
+    const mids = [
+      [cx, z0, 0, -1],
+      [cx, z1, 0, 1],
+      [x0, cz, -1, 0],
+      [x1, cz, 1, 0],
+    ];
+    const gaps = mids.map(([mx, mz, nx, nz]) => kerbDistance(mx + nx * 0.02, mz + nz * 0.02, 4));
+    const front = gaps.indexOf(Math.min(...gaps));
+    villas.push({ b: [x0, z0, x1, z1], h: b.h, tower: hashOf(b.id) < 0.35, front });
+    const O = 0.3;
+    const ring = [
+      [x0 - O, z0 - O, x1 + O, z0 - O, 0],
+      [x0 - O, z1 + O, x1 + O, z1 + O, 1],
+      [x0 - O, z0 - O, x0 - O, z1 + O, 2],
+      [x1 + O, z0 - O, x1 + O, z1 + O, 3],
+    ] as const;
+    for (const [ax, az, bx, bz, side] of ring) {
+      const L = Math.hypot(bx - ax, bz - az);
+      const n = Math.max(1, Math.round(L / 0.25));
+      const yaw = Math.atan2(bx - ax, bz - az);
+      for (let i = 0; i < n; i++) {
+        const t = (i + 0.5) / n;
+        const x = ax + (bx - ax) * t;
+        const z = az + (bz - az) * t;
+        if (side === front && Math.hypot(x - mids[side][0], z - mids[side][1]) < 0.32) continue; // the gate
+        if (kerbDistance(x, z) < 0.1 || inBuilding(x, z, 0.06) || obs.hit(x, z, 0.05)) continue;
+        walls.push({ x, z, yaw, len: L / n });
+        obs.add(x, z, 0.07);
+      }
+    }
+  }
 
   /** place a vehicle if its footprint is clear; it then becomes an obstacle */
   const park = (kind: VehicleKind, x: number, z: number, yaw: number, opts: { kerb?: number } = {}) => {
@@ -277,7 +342,7 @@ export function buildStreetscape() {
     if (!rectClearOfCity(cx, cz, yaw, len - 0.06, 0.36, 0.0) || obs.hit(cx, cz, 0.15)) continue;
     driveways.push({ x: cx, z: cz, yaw, len, wid: 0.4 });
     if (rnd() < 0.72 && len > carLen('suv') + 0.1) {
-      const kind = rnd() < 0.55 ? 'suv' : pick(rnd);
+      const kind = rnd() < 0.5 ? (rnd() < 0.6 ? 'largeSuv' : 'suv') : pick(rnd);
       const cl = carLen(kind);
       park(kind, s.mx + s.nx * (cl / 2 + 0.06), s.mz + s.nz * (cl / 2 + 0.06), yaw + (rnd() < 0.5 ? 0 : Math.PI));
     } else obs.addRect(cx, cz, yaw, len, 0.4);
@@ -441,7 +506,7 @@ export function buildStreetscape() {
     }
   }
 
-  return { parked, lots, driveways, aprons, stops, busBays, crossings, benches, bins, trees };
+  return { parked, lots, driveways, aprons, stops, busBays, crossings, benches, bins, trees, villas, walls };
 }
 
 export type Streetscape = ReturnType<typeof buildStreetscape>;

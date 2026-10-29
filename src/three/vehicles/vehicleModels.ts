@@ -31,7 +31,8 @@ export const PART = {
 export type VehicleKind = 'sedan' | 'hatch' | 'suv' | 'van' | 'taxi' | 'bus' | 'truck' | 'police' | 'crew'
   | 'pickup' | 'minibus' | 'coach' | 'boxTruck' | 'flatbed' | 'tanker' | 'waterTanker' | 'reefer' | 'tractor'
   | 'semi' | 'container20' | 'carTransporter' | 'towTruck' | 'fireEngine' | 'ambulance' | 'garbage' | 'serviceVan'
-  | 'forklift' | 'yardTractor' | 'reachStacker' | 'excavator' | 'wheelLoader' | 'bulldozer';
+  | 'forklift' | 'yardTractor' | 'reachStacker' | 'excavator' | 'wheelLoader' | 'bulldozer'
+  | 'luxurySedan' | 'coupe' | 'crossover' | 'largeSuv' | 'boxSuv';
 
 export function tag(g: BufferGeometry, part: number): BufferGeometry {
   const ng = g.index ? g.toNonIndexed() : g;
@@ -134,6 +135,81 @@ function suv(): BufferGeometry[] {
     box(W - 0.2, 0.66, 0.14, 0, 1.38, -1.36, PART.paint),
     ...carDetails({ W, front: 2.42, rear: -2.44, headY: 0.82, tailY: 0.98, bumperY: 0.48, mirrorZ: 1.1, mirrorY: 1.2 }),
     ...wheels([1.5, -1.5], W / 2 - 0.13, 0.38, 0.25),
+  ];
+}
+
+/** Long, low executive saloon (5.1 m): a longer bonnet and a fast rear screen. */
+function luxurySedan(): BufferGeometry[] {
+  const W = 1.9;
+  return [
+    profile([[-2.55, 0.3], [2.5, 0.3], [2.58, 0.48], [2.53, 0.66], [1.55, 0.82], [-1.95, 0.88], [-2.48, 0.84], [-2.58, 0.6]], W, PART.paint),
+    profile([[1.55, 0.8], [0.45, 1.36], [-0.9, 1.38], [-1.9, 0.88]], W - 0.3, PART.glass, 0.04),
+    box(W - 0.26, 0.05, 1.2, 0, 1.405, -0.24, PART.paint),
+    box(W - 0.26, 0.48, 0.1, 0, 1.12, -0.3, PART.trim),
+    box(0.9, 0.16, 0.05, 0, 0.5, 2.56, PART.chrome), // wide chrome grille
+    ...carDetails({ W, front: 2.55, rear: -2.56, headY: 0.6, tailY: 0.72, bumperY: 0.36, mirrorZ: 1.2, mirrorY: 0.96 }),
+    ...wheels([1.58, -1.55], W / 2 - 0.12, 0.34, 0.24),
+  ];
+}
+
+/** Two-door sports coupé (4.6 m): low roof set well back. */
+function coupe(): BufferGeometry[] {
+  const W = 1.88;
+  return [
+    profile([[-2.28, 0.28], [2.26, 0.28], [2.34, 0.44], [2.28, 0.6], [1.0, 0.76], [-1.7, 0.84], [-2.22, 0.8], [-2.32, 0.56]], W, PART.paint),
+    profile([[1.0, 0.74], [0.0, 1.2], [-0.9, 1.22], [-1.75, 0.84]], W - 0.36, PART.glass, 0.04),
+    box(W - 0.34, 0.05, 0.9, 0, 1.235, -0.45, PART.paint),
+    box(1.2, 0.05, 0.22, 0, 0.88, -2.14, PART.trim), // rear spoiler
+    ...carDetails({ W, front: 2.28, rear: -2.3, headY: 0.54, tailY: 0.66, bumperY: 0.32, mirrorZ: 0.85, mirrorY: 0.9 }),
+    ...wheels([1.4, -1.36], W / 2 - 0.13, 0.33, 0.26),
+  ];
+}
+
+/** Compact crossover SUV (4.5 m): raised, rounded, roof rails. */
+function crossover(): BufferGeometry[] {
+  const W = 1.86;
+  return [
+    profile([[-2.22, 0.4], [2.2, 0.4], [2.28, 0.6], [2.22, 0.86], [1.2, 1.0], [-2.05, 1.04], [-2.24, 0.94], [-2.28, 0.68]], W, PART.paint),
+    profile([[1.2, 0.98], [0.35, 1.58], [-1.6, 1.6], [-2.08, 1.02]], W - 0.26, PART.glass, 0.04),
+    box(W - 0.22, 0.05, 2.0, 0, 1.625, -0.62, PART.paint),
+    box(0.05, 0.05, 1.8, W / 2 - 0.24, 1.67, -0.62, PART.trim),
+    box(0.05, 0.05, 1.8, -(W / 2 - 0.24), 1.67, -0.62, PART.trim),
+    box(W - 0.22, 0.6, 0.12, 0, 1.3, -0.3, PART.trim),
+    ...carDetails({ W, front: 2.24, rear: -2.26, headY: 0.78, tailY: 0.94, bumperY: 0.46, mirrorZ: 1.0, mirrorY: 1.14 }),
+    ...wheels([1.36, -1.36], W / 2 - 0.13, 0.36, 0.24),
+  ];
+}
+
+/** Full-size body-on-frame SUV (4.95 m), the Land Cruiser shape: tall, square shoulders, roof rack. */
+function largeSuv(): BufferGeometry[] {
+  const W = 1.98;
+  return [
+    profile([[-2.42, 0.46], [2.4, 0.46], [2.48, 0.7], [2.44, 1.02], [1.45, 1.12], [-2.4, 1.14], [-2.48, 1.04], [-2.48, 0.72]], W, PART.paint),
+    profile([[1.45, 1.1], [0.8, 1.86], [-2.22, 1.88], [-2.38, 1.12]], W - 0.2, PART.glass, 0.03),
+    box(W - 0.16, 0.06, 3.1, 0, 1.91, -0.72, PART.paint),
+    box(W - 0.4, 0.05, 2.4, 0, 1.99, -0.72, PART.trim), // roof rack
+    box(W - 0.16, 0.74, 0.12, 0, 1.5, -0.4, PART.trim),
+    box(W - 0.16, 0.74, 0.12, 0, 1.5, -1.5, PART.paint),
+    box(1.0, 0.22, 0.05, 0, 0.82, 2.49, PART.chrome),
+    box(W + 0.08, 0.06, 2.6, 0, 0.42, 0, PART.trim), // side steps
+    ...carDetails({ W, front: 2.44, rear: -2.46, headY: 0.92, tailY: 1.04, bumperY: 0.52, mirrorZ: 1.2, mirrorY: 1.3 }),
+    ...wheels([1.45, -1.45], W / 2 - 0.12, 0.4, 0.27),
+  ];
+}
+
+/** Boxy upright off-roader (4.8 m), the G-Class shape: flat panels, upright screen, spare wheel on the tailgate. */
+function boxSuv(): BufferGeometry[] {
+  const W = 1.94;
+  return [
+    box(W, 0.74, 4.5, 0, 0.82, 0, PART.paint),
+    box(W - 0.06, 0.62, 2.9, 0, 1.5, -0.55, PART.glass),
+    box(W - 0.02, 0.06, 3.0, 0, 1.84, -0.55, PART.paint),
+    box(W - 0.02, 0.62, 0.1, 0, 1.5, 0.92, PART.paint),
+    box(0.1, 0.62, 0.1, W / 2 - 0.05, 1.5, -1.95, PART.paint),
+    box(0.1, 0.62, 0.1, -(W / 2 - 0.05), 1.5, -1.95, PART.paint),
+    tag(new CylinderGeometry(0.36, 0.36, 0.22, 12).rotateX(Math.PI / 2).translate(0, 1.0, -2.38), PART.trim),
+    ...carDetails({ W, front: 2.25, rear: -2.27, headY: 0.94, tailY: 1.0, bumperY: 0.5, mirrorZ: 0.95, mirrorY: 1.3 }),
+    ...wheels([1.42, -1.42], W / 2 - 0.1, 0.4, 0.27),
   ];
 }
 
@@ -528,6 +604,7 @@ const BUILDERS: Record<VehicleKind, () => BufferGeometry[]> = {
   pickup, minibus, coach, boxTruck, flatbed, tanker, waterTanker, reefer, tractor, semi, container20,
   carTransporter, towTruck, fireEngine, ambulance, garbage, serviceVan,
   forklift, yardTractor, reachStacker, excavator, wheelLoader, bulldozer,
+  luxurySedan, coupe, crossover, largeSuv, boxSuv,
 };
 
 /** Length of each model in world units (bumper to bumper). */
@@ -539,6 +616,11 @@ export const VEHICLE_LENGTH: Record<VehicleKind, number> = {
   serviceVan: 5.47 * VEHICLE_SCALE, forklift: 3.5 * VEHICLE_SCALE, yardTractor: 3.8 * VEHICLE_SCALE, reachStacker: 11.8 * VEHICLE_SCALE,
   excavator: 10.25 * VEHICLE_SCALE, wheelLoader: 6.35 * VEHICLE_SCALE, bulldozer: 6.55 * VEHICLE_SCALE,
   sedan: 4.75 * VEHICLE_SCALE,
+  luxurySedan: 5.16 * VEHICLE_SCALE,
+  coupe: 4.62 * VEHICLE_SCALE,
+  crossover: 4.54 * VEHICLE_SCALE,
+  largeSuv: 4.96 * VEHICLE_SCALE,
+  boxSuv: 4.86 * VEHICLE_SCALE,
   hatch: 4.15 * VEHICLE_SCALE,
   suv: 4.92 * VEHICLE_SCALE,
   van: 5.25 * VEHICLE_SCALE,
@@ -556,6 +638,11 @@ export const VEHICLE_CENTER: Record<VehicleKind, number> = {
   carTransporter: -2.2 * VEHICLE_SCALE, towTruck: -0.4 * VEHICLE_SCALE, fireEngine: -0.5 * VEHICLE_SCALE, ambulance: 0,
   garbage: -0.4 * VEHICLE_SCALE, serviceVan: 0, forklift: 0, yardTractor: 0, reachStacker: 0, excavator: 0, wheelLoader: 0, bulldozer: 0,
   sedan: 0,
+  luxurySedan: 0,
+  coupe: 0,
+  crossover: 0,
+  largeSuv: 0,
+  boxSuv: 0,
   hatch: 0,
   suv: 0,
   van: 0,
