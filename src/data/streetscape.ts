@@ -1,6 +1,7 @@
 import { AD, LAGOONS, onLand, type AdBuilding } from './abudhabi';
 import { LAMPS } from './lamps';
 import { mulberry32 } from './rng';
+import PARKING from './parking.json';
 import {
   JUNCTIONS,
   Obstacles,
@@ -155,6 +156,19 @@ export function buildStreetscape() {
   const obs = new Obstacles();
   for (const [x, z] of AD.palms) obs.add(x, z, 0.28);
   for (const l of LAMPS) obs.add(l.x, l.z, 0.2);
+  // painted ground that is not a road or a building: the car park, its access lane and footpath stay clear
+  {
+    const [px0, pz0, px1, pz1] = PARKING.rect;
+    for (let x = px0 - 0.3; x <= px1 + 0.3; x += 0.4) for (let z = pz0 - 0.3; z <= pz1 + 0.3; z += 0.4) obs.add(x, z, 0.35);
+    for (const line of [PARKING.access, PARKING.walk] as number[][][]) {
+      for (let i = 1; i < line.length; i++) {
+        const [ax, az] = line[i - 1];
+        const [bx, bz] = line[i];
+        const L = Math.hypot(bx - ax, bz - az) || 1;
+        for (let t = 0; t <= L; t += 0.3) obs.add(ax + ((bx - ax) * t) / L, az + ((bz - az) * t) / L, 0.7);
+      }
+    }
+  }
   // the rail corridor (track, ballast and a clearance either side) is not a road, so mark it explicitly
   for (const r of AD.roads) {
     if (r.c !== 'rail') continue;
@@ -178,6 +192,25 @@ export function buildStreetscape() {
   const trees: Tree[] = [];
   const villas: Villa[] = [];
   const walls: WallPiece[] = [];
+
+  // the Etihad Rail station car park (painted from parking.json): cars in its bays, nosed toward the aisles
+  {
+    const [px0, pz0, px1, pz1] = PARKING.rect;
+    const aisle = 0.8;
+    const block = 2 * PARKING.bayDepth + aisle;
+    for (let zt = pz0; zt + block <= pz1 + 1e-6; zt += block) {
+      for (const [zc, yaw] of [
+        [zt + PARKING.bayDepth / 2, 0],
+        [zt + PARKING.bayDepth + aisle + PARKING.bayDepth / 2, Math.PI],
+      ] as const) {
+        for (let x = px0 + PARKING.bayPitch / 2; x < px1; x += PARKING.bayPitch) {
+          if (rnd() > 0.55) continue;
+          const kind = pick(rnd);
+          parked.push({ kind, x, z: zc, yaw, paint: Math.floor(rnd() * PAINTS.length) });
+        }
+      }
+    }
+  }
 
   // 0. Emirati villas: compound walls first (gate on the street side), so everything placed later keeps clear
   for (const b of AD.buildings) {
@@ -455,7 +488,7 @@ export function buildStreetscape() {
   const roads = [...AD.roads]
     .filter((r) => atGrade(r) && /^(residential|secondary|unclassified|tertiary)$/.test(r.c) && !r.l)
     .sort((a, b) => Math.hypot(...a.p[0]) - Math.hypot(...b.p[0]));
-  const MAX_PARKED = 1600;
+  const MAX_PARKED = 2100; // includes the ~460 in the station car park
   for (const r of roads) {
     if (parked.length >= MAX_PARKED) break;
     for (let i = 1; i < r.p.length; i++) {

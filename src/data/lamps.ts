@@ -1,4 +1,4 @@
-import { AD_BASE as AD, AD as WORLD, FIX_ROADS, INTERCHANGE, LAGOONS, inLagoonWater, onLandBase, type XZ } from './abudhabi';
+import { AD_BASE as AD, AD as WORLD, FIX_ROADS, INTERCHANGE, LAGOONS, inLagoonPlot, inLagoonWater, onLandBase, type XZ } from './abudhabi';
 import { inBuilding as inAnyBuilding, kerbDistance, segDist } from './spatial';
 import { TRENCH } from './incident';
 import { ALSAJAA_INLAND } from '../config/overrides';
@@ -99,7 +99,7 @@ function build() {
         const z = p.z + nz * off * side;
         if (Math.abs(x) > 110 || z < -67 || !onLand(x, z) || inBuilding(x, z) || inTrench(x, z) || !clear(x, z)) continue;
         // never on another road's carriageway or inside a corrected footprint (the rendered world)
-        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && lagoonTaken(x, z)) || underDeck(x, z)) continue;
+        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && (lagoonTaken(x, z) || inLagoonPlot(x, z, 0.08))) || underDeck(x, z)) continue;
         placed.push({ x, z, ox: -nx * side, oz: -nz * side });
       }
     }

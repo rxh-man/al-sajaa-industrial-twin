@@ -395,6 +395,20 @@ def audit(world):
         for p in lg['palms']:
             if wet(p[0], p[1]):
                 rep['lagoon'].append(('palm in the water', p[0], p[1]))
+        # plot walls: off the carriageways and out of the water
+        for q in lg.get('plots', []):
+            for x, z in oriented_corners(q['x'], q['z'], q['yaw'], q['w'] - 0.04, q['d'] - 0.04):
+                if kerb(x, z) < 0.08:
+                    rep['lagoon'].append(('plot wall on a carriageway', q['x'], q['z'])); break
+                if wdist(x, z) < 0.15:
+                    rep['lagoon'].append(('plot in the water', q['x'], q['z'])); break
+        # the mosque in the park stands on dry land
+        c = lg['centre']
+        for sx in (-1, 0, 1):
+            for sz in (-1, 0, 1):
+                x, z = c['x'] + sx * c['w'] / 2, c['z'] + sz * c['d'] / 2
+                if wdist(x, z) < 0.2:
+                    rep['lagoon'].append(('mosque in the water', x, z))
         # no AD building inside the community (it is laid out on open land)
         lr = lg['meta']['rect']
         for b in buildings:

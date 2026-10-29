@@ -210,17 +210,28 @@ export interface Lagoons {
   roads: (AdRoad & { bridge?: 1 })[];
   water: XZ[][];
   villas: LagoonVilla[];
+  /** walled plots (oriented rectangles; the front, at -d/2, faces the street) */
+  plots: { x: number; z: number; yaw: number; w: number; d: number }[];
   cars: { kind: string; x: number; z: number; yaw: number; paint: number }[];
   palms: [number, number, number][];
   trees: { x: number; z: number; s: number }[];
   lawns: XZ[][];
   pitch: { x0: number; z0: number; x1: number; z1: number };
-  centre: { x: number; z: number; w: number; d: number; h: number };
+  centre: { x: number; z: number; w: number; d: number; h: number; minaret?: [number, number] };
   bridges: { x: number; z0: number; z1: number; w: number }[];
   places: AdPlace[];
 }
 export const LAGOONS = lagoonsRaw as unknown as Lagoons;
 export const inLagoonWater = (x: number, z: number) => LAGOONS.water.some((w) => pointInPolyXZ(x, z, w));
+/** inside a walled villa plot of the lagoon community */
+export const inLagoonPlot = (x: number, z: number, pad = 0) =>
+  LAGOONS.plots.some((q) => {
+    const ux = Math.sin(q.yaw);
+    const uz = Math.cos(q.yaw);
+    const dx = x - q.x;
+    const dz = z - q.z;
+    return Math.abs(dx * ux + dz * uz) < q.d / 2 + pad && Math.abs(dx * uz - dz * ux) < q.w / 2 + pad;
+  });
 function pointInPolyXZ(x: number, z: number, poly: XZ[]) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {

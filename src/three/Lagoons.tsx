@@ -79,16 +79,22 @@ function groundTexture() {
     g.beginPath();
     pts.forEach(([x, z], i) => (i ? g.lineTo(X(x), Y(z)) : g.moveTo(X(x), Y(z))));
   };
-  // landscaped ground: warm sand with soft green patches
-  g.fillStyle = '#b9a988';
+  // landscaped ground: irrigated grass everywhere (it is a garden community), lightly mottled
+  g.fillStyle = '#5f8a45';
   g.fillRect(0, 0, canvas.width, canvas.height);
-  // gardens: a lawn around each villa plot
-  g.fillStyle = '#6f8f4e';
-  for (const v of LAGOONS.villas) {
+  for (let i = 0; i < 1400; i++) {
+    const x = (Math.sin(i * 12.9898) * 0.5 + 0.5) * canvas.width;
+    const y = (Math.sin(i * 78.233) * 0.5 + 0.5) * canvas.height;
+    g.fillStyle = i % 2 ? 'rgba(30,60,20,0.08)' : 'rgba(170,200,120,0.07)';
+    g.fillRect(x, y, 10 + (i % 7) * 6, 10 + (i % 5) * 6);
+  }
+  // each plot: a brighter garden lawn
+  g.fillStyle = '#74a554';
+  for (const q of LAGOONS.plots) {
     g.save();
-    g.translate(X(v.x), Y(v.z));
-    g.rotate(Math.atan2(Math.cos(v.yaw), Math.sin(v.yaw)));
-    g.fillRect((-v.d / 2 - 0.15) * PX, (-v.w / 2 - 0.2) * PX, (v.d + 1.15) * PX, (v.w + 0.4) * PX);
+    g.translate(X(q.x), Y(q.z));
+    g.rotate(Math.atan2(Math.cos(q.yaw), Math.sin(q.yaw)));
+    g.fillRect((-q.d / 2) * PX, (-q.w / 2) * PX, q.d * PX, q.w * PX);
     g.restore();
   }
   for (const l of LAGOONS.lawns) {
@@ -149,7 +155,7 @@ function groundTexture() {
     g.stroke();
   }
   g.setLineDash([]);
-  g.fillStyle = '#c9bfae';
+  g.fillStyle = '#d2c7b4';
   for (const c of LAGOONS.cars) {
     g.save();
     g.translate(X(c.x), Y(c.z));
@@ -248,6 +254,58 @@ function Villas() {
   );
 }
 
+/** low boundary walls round every plot (white coping on beige), with a gate in the front wall */
+function PlotWalls() {
+  const geo = useMemo(() => {
+    const b = new BoxGeometry(1, 1, 1);
+    b.translate(0, 0.5, 0);
+    return b;
+  }, []);
+  const mats = useMemo(() => ({ wall: new MeshStandardMaterial({ color: '#dccdb0', roughness: 0.85 }), coping: new MeshStandardMaterial({ color: '#f1ece2', roughness: 0.7 }) }), []);
+  const built = useMemo(() => {
+    const walls: Placement[] = [];
+    const tops: Placement[] = [];
+    const H = 0.12;
+    const GATE = 0.9;
+    const run = (ax: number, az: number, bx: number, bz: number) => {
+      const L = Math.hypot(bx - ax, bz - az);
+      if (L < 0.05) return;
+      const yaw = Math.atan2(bx - ax, bz - az);
+      walls.push({ x: (ax + bx) / 2, z: (az + bz) / 2, y: 0, yaw, sx: 0.05, sy: H, sz: L });
+      tops.push({ x: (ax + bx) / 2, z: (az + bz) / 2, y: H, yaw, sx: 0.075, sy: 0.018, sz: L + 0.02 });
+    };
+    for (const q of LAGOONS.plots) {
+      // plot frame: u along the depth (toward the back), v across
+      const ux = Math.sin(q.yaw);
+      const uz = Math.cos(q.yaw);
+      const vx = uz;
+      const vz = -ux;
+      const P = (a: number, b: number): [number, number] => [q.x + ux * a + vx * b, q.z + uz * a + vz * b];
+      const hd = q.d / 2;
+      const hw = q.w / 2;
+      // the front is at -d/2 (toward the street), with the gate in the middle
+      const [f1x, f1z] = P(-hd, -hw);
+      const [g1x, g1z] = P(-hd, -GATE / 2);
+      const [g2x, g2z] = P(-hd, GATE / 2);
+      const [f2x, f2z] = P(-hd, hw);
+      const [b1x, b1z] = P(hd, -hw);
+      const [b2x, b2z] = P(hd, hw);
+      run(f1x, f1z, g1x, g1z);
+      run(g2x, g2z, f2x, f2z);
+      run(f1x, f1z, b1x, b1z);
+      run(f2x, f2z, b2x, b2z);
+      run(b1x, b1z, b2x, b2z);
+    }
+    return { walls, tops };
+  }, []);
+  return (
+    <group>
+      <Instances geometry={geo} material={mats.wall} items={built.walls} shadows />
+      <Instances geometry={geo} material={mats.coping} items={built.tops} />
+    </group>
+  );
+}
+
 function ParkAndBridge() {
   const mats = useMemo(
     () => ({
@@ -263,7 +321,20 @@ function ParkAndBridge() {
   const mid = (p.z0 + p.z1) / 2;
   return (
     <group>
-      {/* community centre: a white pavilion, a glass band and a shallow dome */}
+      {/* the community mosque: a white prayer hall, a glass band, a dome and a minaret */}
+      {c.minaret && (
+        <group position={[c.minaret[0], 0, c.minaret[1]]}>
+          <mesh position={[0, 1.0, 0]} material={mats.white} castShadow raycast={noRaycast}>
+            <cylinderGeometry args={[0.2, 0.26, 2.0, 12]} />
+          </mesh>
+          <mesh position={[0, 2.06, 0]} material={mats.white} raycast={noRaycast}>
+            <cylinderGeometry args={[0.32, 0.32, 0.1, 12]} />
+          </mesh>
+          <mesh position={[0, 2.4, 0]} material={mats.dome} castShadow raycast={noRaycast}>
+            <coneGeometry args={[0.22, 0.6, 12]} />
+          </mesh>
+        </group>
+      )}
       <mesh position={[c.x, c.h / 2, c.z]} material={mats.white} castShadow receiveShadow raycast={noRaycast}>
         <boxGeometry args={[c.w, c.h, c.d]} />
       </mesh>
@@ -308,6 +379,7 @@ export function Lagoons({ quality }: { quality: 'high' | 'low' }) {
       <LagoonGround />
       <Water />
       <Villas />
+      <PlotWalls />
       <ParkAndBridge />
       <TreeSet trees={LAGOONS.trees} quality={quality} />
       <ParkedSet cars={quality === 'low' ? cars.filter((_, i) => i % 2 === 0) : cars} shadows={quality === 'high'} />

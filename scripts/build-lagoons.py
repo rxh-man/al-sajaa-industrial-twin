@@ -188,27 +188,56 @@ def in_park(x, z):
     return PARK[0] - 0.4 < x < PARK[2] + 0.4 and PARK[1] - 0.4 < z < PARK[3] + 0.4
 
 
-# ---- villas ---------------------------------------------------------------------------------------------
+# ---- villas on walled plots ---------------------------------------------------------------------------------------
+# Every villa stands on its own plot: a strip of land from the pavement back to halfway to the next street behind
+# it (back-to-back plots meet), or to the promenade on the waterfront. The plot is walled on all sides, with a
+# gate in the front wall where the car turns in; the house, a pool and a garden tree sit inside.
 villas = []
+plots = []
 cars = []
+garden_trees = []
 CAR_KINDS = ['largeSuv', 'suv', 'luxurySedan', 'sedan', 'crossover', 'boxSuv', 'largeSuv', 'coupe', 'sedan', 'suv']
-placed = []        # (x, z, r) discs for spacing
+placed = []        # (x, z, r) discs for spacing (cars, palms)
+PW = 1.48          # plot width along the street (15 m)
+VW, VD = 1.35, 1.15  # villa footprint (13.5 m x 11.5 m)
+FRONT = 0.12       # pavement between the kerb and the plot
+SET = 0.62         # front yard: the car parks here, behind the gate
+MAX_D = 4.6        # deepest plot (46 m)
 
 
-def free(cs, r_clear):
-    for x, z in cs:
-        if kerb((x, z)) < 0.18 or water_dist(x, z) < 0.25 or in_park(x, z):
-            return False
-        if not (X0 - 1.5 < x < X1 + 1.5 and ZN - 0.5 < z < ZS + 0.5):
-            return False
-    cx, cz = cs[4]
-    return all(math.hypot(cx - px, cz - pz) > r_clear + pr for px, pz, pr in placed)
+def in_rect(x, z, r):
+    ux, uz = math.sin(r['yaw']), math.cos(r['yaw'])
+    dx, dz = x - r['x'], z - r['z']
+    a = dx * ux + dz * uz
+    b = dx * uz - dz * ux
+    return abs(a) < r['d'] / 2 and abs(b) < r['w'] / 2
+
+
+def plot_depth(px, pz, nx, nz, tx, tz, own):
+    """how deep a plot can go from the front line (px, pz + normal * front) along the normal"""
+    best = MAX_D
+    for side in (-0.68, 0.0, 0.68):
+        bx, bz = px + tx * side, pz + tz * side
+        t = 0.2
+        while t <= 2 * MAX_D + 0.5:
+            x, z = bx + nx * t, bz + nz * t
+            if not (X0 - 1.0 < x < X1 + 1.0 and ZN - 0.4 < z < ZS + 0.4) or in_park(x, z):
+                best = min(best, t - 0.1)
+                break
+            if water_dist(x, z) < 0.55:
+                best = min(best, t - 0.3)
+                break
+            if min((pt_seg((x, z), a, b) - r['w'] / 2 for r, a, b in segs_all if r is not own), default=9) < 0.15:
+                best = min(best, t / 2 - 0.03)  # back-to-back: half each
+                break
+            t += 0.1
+    return best
 
 
 TINTS = [[0.95, 0.94, 0.91], [0.93, 0.92, 0.88], [0.97, 0.96, 0.93], [0.9, 0.86, 0.78], [0.88, 0.82, 0.72]]
 h = 0
 for r in roads:
-    if r.get('bridge') or r['n'].startswith('Lagoons Gate'):
+    if r.get('bridge') or r['n'].startswith('Lagoons Gate') or r['n'] == 'Lagoons West Link':
         continue
     pts = r['p']
     for i in range(len(pts) - 1):
@@ -223,25 +252,38 @@ for r in roads:
             s += 1.55
             for side in (1, -1):
                 nx, nz = -tz * side, tx * side
-                W, D = 1.2, 1.0
-                SET = 0.78  # front setback: a car parks across the frontage
-                off = r['w'] / 2 + SET + D / 2
-                cx, cz = px + nx * off, pz + nz * off
-                yaw = math.atan2(-nx, -nz)          # the villa's front faces the road
                 h += 1
-                waterfront = water_dist(cx - nx * 0, cz) < 3.2
-                if not free(corners(cx, cz, yaw, W + 0.15, D + 0.15), 0.62):
+                fx, fz = px + nx * (r['w'] / 2 + FRONT), pz + nz * (r['w'] / 2 + FRONT)
+                depth = plot_depth(fx, fz, nx, nz, tx, tz, r)
+                if depth < SET + VD + 0.35:
                     continue
+                yaw = math.atan2(-nx, -nz)          # front faces the street
+                plot = {'x': R(fx + nx * depth / 2), 'z': R(fz + nz * depth / 2), 'yaw': R(yaw), 'w': PW, 'd': R(depth)}
+                cs = corners(plot['x'], plot['z'], yaw, PW - 0.04, depth - 0.04)
+                if any(kerb(c) < 0.1 or water_dist(*c) < 0.2 for c in cs):
+                    continue
+                inner = corners(plot['x'], plot['z'], yaw, PW - 0.12, depth - 0.12)
+                near = [q for q in plots if math.hypot(q['x'] - plot['x'], q['z'] - plot['z']) < (q['d'] + depth) / 2 + 1.6]
+                shrunk = dict(plot, w=PW - 0.12, d=depth - 0.12)
+                if any(in_rect(x, z, q) for q in near for x, z in inner) or any(
+                        in_rect(x, z, shrunk) for q in near for x, z in corners(q['x'], q['z'], q['yaw'], q['w'] - 0.12, q['d'] - 0.12)):
+                    continue  # a neighbour's plot (on this street or round the corner) is in the way
+                cx, cz = fx + nx * (SET + VD / 2), fz + nz * (SET + VD / 2)
+                waterfront = water_dist(cx, cz) < 3.6
                 pool = None
-                bx, bz = cx + nx * (D / 2 + 0.45), cz + nz * (D / 2 + 0.45)
-                if free(corners(bx, bz, yaw, 0.6, 0.35), 0.0) and water_dist(bx, bz) > 0.35:
-                    pool = [R(bx), R(bz), R(yaw), 0.6, 0.35]
+                if depth >= SET + VD + 0.75:
+                    bx, bz = fx + nx * (SET + VD + 0.42), fz + nz * (SET + VD + 0.42)
+                    pool = [R(bx), R(bz), R(yaw), 0.72, 0.4]
+                if depth >= SET + VD + 1.25:
+                    gx, gz = fx + nx * (depth - 0.38) + tx * 0.42, fz + nz * (depth - 0.38) + tz * 0.42
+                    garden_trees.append({'x': R(gx), 'z': R(gz), 's': R(0.85 + 0.3 * ((h * 37) % 10) / 10)})
                 tint = TINTS[(h * 7) % len(TINTS)]
-                villas.append({'x': R(cx), 'z': R(cz), 'yaw': R(yaw), 'w': W, 'd': D, 'h': 0.62 if (h % 3) else 0.78, 'tint': tint, 'pool': pool, 'wf': 1 if waterfront else 0, 'upper': 1 if h % 2 else 0})
-                placed.append((cx, cz, 0.62))
-                # the car on the frontage (most villas), parallel to the street
-                kx, kz = px + nx * (r['w'] / 2 + 0.38), pz + nz * (r['w'] / 2 + 0.38)
-                if h % 10 < 7 and all(kerb(c) > 0.03 for c in corners(kx, kz, math.atan2(tx, tz) + math.pi / 2, 0.76, 0.32)):
+                plots.append(plot)
+                villas.append({'x': R(cx), 'z': R(cz), 'yaw': R(yaw), 'w': VW, 'd': VD, 'h': 0.62 if (h % 3) else 0.78, 'tint': tint, 'pool': pool, 'wf': 1 if waterfront else 0, 'upper': 1 if h % 2 else 0})
+                placed.append((cx, cz, 0.7))
+                # the car in the front yard, parallel to the street, behind the gate
+                kx, kz = fx + nx * (SET / 2), fz + nz * (SET / 2)
+                if h % 10 < 7:
                     placed.append((kx, kz, 0.3))
                     cars.append({'kind': CAR_KINDS[(h * 5) % len(CAR_KINDS)], 'x': R(kx), 'z': R(kz), 'yaw': R(math.atan2(tx, tz)), 'paint': (h * 3) % 12})
 
@@ -289,6 +331,8 @@ for gx in xs(X0 + 1.0, X1 - 1.0, 1.25):
             continue
         if any(math.hypot(jx - px, jz - pz) < 0.5 for px, pz in pool_pts):
             continue
+        if any(in_rect(jx, jz, q) for q in plots):
+            continue
         if (int(gx * 7 + gz * 13) % 5) == 0:
             continue  # leave some gaps
         trees.append({'x': R(jx), 'z': R(jz), 's': R(0.8 + 0.4 * abs(math.sin(jx * 3.1 + jz)))})
@@ -296,7 +340,11 @@ for gx in xs(X0 + 1.0, X1 - 1.0, 1.25):
 
 # ---- park ---------------------------------------------------------------------------------------------------
 pitch = {'x0': 10.0, 'z0': 42.4, 'x1': 20.5, 'z1': 49.0}
-centre = {'x': 34.0, 'z': 46.0, 'w': 5.0, 'd': 3.6, 'h': 0.9}
+# the community mosque: east of the lake on dry land (the lake reaches x 32.2), with a minaret at its corner
+centre = {'x': 35.6, 'z': 46.0, 'w': 5.0, 'd': 3.6, 'h': 0.9, 'minaret': [38.4, 44.4]}
+for cx, cz in ((centre['x'] + sx * centre['w'] / 2, centre['z'] + sz * centre['d'] / 2) for sx in (-1, 0, 1) for sz in (-1, 0, 1)):
+    assert water_dist(cx, cz) > 0.4, f'mosque corner {cx},{cz} too close to the water'
+    assert PARK[0] <= cx <= PARK[2] and PARK[1] <= cz <= PARK[3], 'mosque outside the park'
 lawns = [[[PARK[0], PARK[1]], [PARK[2], PARK[1]], [PARK[2], PARK[3]], [PARK[0], PARK[3]]]]
 
 data = {
@@ -305,14 +353,16 @@ data = {
     'roads': [{k: v for k, v in r.items() if k != 'lagoon'} for r in roads],
     'water': water,
     'villas': villas,
+    'plots': plots,
     'cars': cars,
     'palms': palms,
-    'trees': trees,
+    'trees': trees + garden_trees,
     'lawns': lawns,
     'pitch': pitch,
     'centre': centre,
     'bridges': [{'x': BRIDGE_X, 'z0': R(zc(BRIDGE_X) - hw(BRIDGE_X) - 0.4), 'z1': R(zc(BRIDGE_X) + hw(BRIDGE_X) + 0.4), 'w': 1.2}],
-    'places': [{'role': 'landmark', 'n': 'Al Sajaa Lagoons', 'x': 26.0, 'z': R(zc(26.0)), 'h': 1.0, 'm': 0}],
+    'places': [{'role': 'landmark', 'n': 'Al Sajaa Lagoons', 'x': 26.0, 'z': R(zc(26.0)), 'h': 1.0, 'm': 0},
+               {'role': 'mosque', 'n': 'Al Sajaa Lagoons Mosque', 'x': centre['x'], 'z': centre['z'], 'h': 1.2, 'm': 0}],
 }
 OUT.write_text(json.dumps(data, separators=(',', ':')) + '\n')
 print(f"trees {len(trees)} · cars {len(cars)} · roads {len(roads)} · villas {len(villas)} (pools {sum(1 for v in villas if v['pool'])}, waterfront {sum(v['wf'] for v in villas)}) · palms {len(palms)}")

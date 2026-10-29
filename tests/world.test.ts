@@ -79,6 +79,11 @@ test('streetscape items stay off carriageways and out of buildings', async () =>
     assert.ok(sp.kerbDistance(s.x, s.z) > 0.1, `bus stop at ${s.x},${s.z} is on a carriageway`);
     assert.ok(!sp.inBuilding(s.x, s.z), `bus stop at ${s.x},${s.z} is inside a building`);
   }
+  // nothing on the station car park (painted ground, src/data/parking.json)
+  const P = (await server.ssrLoadModule('/src/data/parking.json')).default;
+  const onPark = (x: number, z: number) => x > P.rect[0] - 0.2 && x < P.rect[2] + 0.2 && z > P.rect[1] - 0.2 && z < P.rect[3] + 0.2;
+  for (const t of STREETSCAPE.trees) assert.ok(!onPark(t.x, t.z), `tree on the station car park at ${t.x},${t.z}`);
+  for (const l of STREETSCAPE.lots) assert.ok(l.x1 < P.rect[0] || l.x0 > P.rect[2] || l.z1 < P.rect[1] || l.z0 > P.rect[3], 'lot over the station car park');
   // nothing on the rail corridor (z = -50.5 in the core)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onRail = (x: number, z: number) => x > -152 && x < 120 && Math.abs(z + 50.5) < 0.7;
