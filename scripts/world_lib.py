@@ -52,6 +52,25 @@ def apply_fixes(roads, buildings, palms, fx):
             if k[0] in drops and len(p) > 2:
                 p, k = p[1:], k[1:]
             r['p'], r['k'] = p, k
+    cuts = {c['id'] for c in fx.get('cutVertex', [])}
+    if cuts:
+        out = []
+        for r in roads:
+            k = r.get('k') or []
+            if not any(i in cuts for i in k):
+                out.append(r)
+                continue
+            piece_p, piece_k = [], []
+            for p_, k_ in zip(r['p'], k):
+                if k_ in cuts:
+                    if len(piece_p) >= 2:
+                        out.append({**r, 'p': piece_p, 'k': piece_k})
+                    piece_p, piece_k = [], []
+                else:
+                    piece_p.append(list(p_)); piece_k.append(k_)
+            if len(piece_p) >= 2:
+                out.append({**r, 'p': piece_p, 'k': piece_k})
+        roads[:] = out
     for ins in inserts:
         for r in roads:
             k = r.get('k') or []
@@ -169,7 +188,7 @@ def end_joined(e, i, roads, drv, bxs):
 
 def audit(world):
     roads, buildings, palms, rect = world['roads'], world['buildings'], world['palms'], world['rect']
-    rep = {k: [] for k in ('on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
+    rep = {k: [] for k in ('rail_crossings', 'on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
     rsegs_all = road_segments(roads, lambda r: r['c'] in DRIVE and r.get('t') != 1)
 
     for b in buildings:
@@ -238,6 +257,25 @@ def audit(world):
                         break
             if run > 1.0:
                 rep['along_rail'].append((r['n'], round(run, 1)))
+
+    # rail crossings: distinct places where drivable roads cross the line (a divided highway counts once)
+    rep['rail_crossings'] = []
+    if rail:
+        pts = []
+        for r in roads:
+            if r['c'] not in DRIVE or r.get('t') == 1 or is_elevated(r):
+                continue
+            for a, b in segs(r['p']):
+                for c, d in segs(rail['p']):
+                    if seg_cross(a, b, c, d):
+                        pts.append((c[0] + (d[0] - c[0]) * 0.5, r['n']))
+        pts.sort()
+        for x, n in pts:
+            if rep['rail_crossings'] and abs(rep['rail_crossings'][-1][0] - x) < 4.0:
+                rep['rail_crossings'][-1][1].add(n)
+            else:
+                rep['rail_crossings'].append([x, {n}])
+        rep['rail_crossings'] = [(round(x, 1), sorted(ns)) for x, ns in rep['rail_crossings']]
 
     for pi, (x, z, *_rest) in enumerate(palms):
         for ri, a, c, sb, hw in rsegs_all:

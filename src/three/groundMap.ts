@@ -2,6 +2,7 @@ import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace, Vector4 } from
 import { AD, AD_RECT, LAND_POLYS, UNNAMED_COAST_ROAD, type XZ } from '../data/abudhabi';
 import { mulberry32 } from '../data/rng';
 import PARKING from '../data/parking.json';
+import { STREETSCAPE } from '../data/streetscapeData';
 import { ALSAJAA_INLAND } from '../config/overrides';
 
 /**
@@ -174,6 +175,43 @@ export function groundTexture() {
   path(PARKING.walk as XZ[]);
   g.stroke();
   g.setLineDash([]);
+
+  // streetscape paint (src/data/streetscape.ts): car parks with bay lines, villa driveways, loading aprons, bus bays
+  const patch = (p: { x: number; z: number; yaw: number; len: number; wid: number }, fill: string) => {
+    g.save();
+    g.translate(X(p.x), Y(p.z));
+    // yaw is the heading about +y: the long axis runs along (sin yaw, cos yaw) in xz, i.e. canvas (sin, cos)
+    g.rotate(Math.atan2(Math.cos(p.yaw), Math.sin(p.yaw)));
+    g.fillStyle = fill;
+    g.fillRect((-p.len / 2) * PX, (-p.wid / 2) * PX, p.len * PX, p.wid * PX);
+    g.restore();
+  };
+  for (const lot of STREETSCAPE.lots) {
+    g.fillStyle = '#3a3c41';
+    g.fillRect(X(lot.x0), Y(lot.z0), (lot.x1 - lot.x0) * PX, (lot.z1 - lot.z0) * PX);
+    g.strokeStyle = 'rgba(236,236,232,0.8)';
+    g.lineWidth = 1.1;
+    const [a0, a1] = lot.alongX ? [lot.x0 + 0.25, lot.x1 - 0.25] : [lot.z0 + 0.25, lot.z1 - 0.25];
+    for (const [r0, r1] of lot.rows) {
+      g.beginPath();
+      for (let q = a0; q <= a1 + 1e-6; q += lot.pitch) {
+        if (lot.alongX) {
+          g.moveTo(X(q), Y(r0));
+          g.lineTo(X(q), Y(r1));
+        } else {
+          g.moveTo(X(r0), Y(q));
+          g.lineTo(X(r1), Y(q));
+        }
+      }
+      g.stroke();
+    }
+  }
+  for (const d of STREETSCAPE.driveways) patch(d, '#b9ad98');
+  for (const a of STREETSCAPE.aprons) patch(a, '#8f8a82');
+  for (const b of STREETSCAPE.busBays) {
+    patch(b, 'rgba(214,170,58,0.9)');
+    patch({ ...b, len: b.len - 0.06, wid: b.wid - 0.06 }, '#2c2e33');
+  }
 
   // rail: ballast bed, sleepers and two track lines
   g.lineCap = 'butt';

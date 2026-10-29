@@ -113,13 +113,15 @@ const EXP = expansionRaw as unknown as Pick<AdData, 'roads' | 'buildings' | 'par
 /**
  * Corrections over the baseline and the expansion (src/data/alsajaa-fixes.json, built by scripts/build-world-fixes.py and
  * checked by scripts/validate-world.py): connector and boundary roads that close dead ends and join the networks,
- * footprints trimmed off carriageways and out of each other, palms moved off roads, the reservoir moved off a
- * labour camp, and the rail platforms raised onto the viaduct. Records keep their order and ids, so building
+ * streets cut either side of the rail so it is crossed at four underpasses only, footprints trimmed off
+ * carriageways and out of each other, palms moved off roads, and the reservoir moved off a labour camp. Records keep their order and ids, so building
  * indices (picking, roofs) are unchanged. scripts/world_lib.py apply_fixes mirrors this function.
  */
 interface WorldFixes {
   moveVertex: { id: string; to: XZ }[];
   dropVertex: { id: string }[];
+  /** a vertex removed mid-road, splitting the road there (streets cut either side of the rail) */
+  cutVertex?: { id: string }[];
   insertVertex: { after: string; before: string; at: XZ; id: string }[];
   roads: AdRoad[];
   buildings: Record<string, { b?: [number, number, number, number][]; h?: number; y?: number }>;
@@ -138,6 +140,27 @@ export function applyFixes(roads: AdRoad[], buildings: AdBuilding[], palms: [num
     if (drops.has(k[0]) && p.length > 2) (p = p.slice(1)), (k = k.slice(1));
     return { ...r, p, k };
   });
+  const cuts = new Set((fx.cutVertex ?? []).map((c) => c.id));
+  if (cuts.size) {
+    outRoads = outRoads.flatMap((r) => {
+      if (!r.k?.some((id) => cuts.has(id))) return [r];
+      const pieces: AdRoad[] = [];
+      let p: XZ[] = [];
+      let k: string[] = [];
+      r.k.forEach((id, i) => {
+        if (cuts.has(id)) {
+          if (p.length >= 2) pieces.push({ ...r, p, k });
+          p = [];
+          k = [];
+        } else {
+          p.push(r.p[i]);
+          k.push(id);
+        }
+      });
+      if (p.length >= 2) pieces.push({ ...r, p, k });
+      return pieces;
+    });
+  }
   for (const ins of fx.insertVertex) {
     const ri = outRoads.findIndex((r) => r.k?.some((id, i) => i < r.k.length - 1 && ((id === ins.after && r.k[i + 1] === ins.before) || (id === ins.before && r.k[i + 1] === ins.after))));
     if (ri < 0) continue;
@@ -158,6 +181,9 @@ export function applyFixes(roads: AdRoad[], buildings: AdBuilding[], palms: [num
   });
   return { roads: outRoads, buildings: outBuildings, palms: outPalms };
 }
+
+/** roads added by the corrections (boundary and connector roads); the lamps light the main ones */
+export const FIX_ROADS: AdRoad[] = FIXES.roads;
 
 const FIXED = applyFixes([...AD_BASE.roads, ...EXP.roads], [...AD_BASE.buildings, ...EXP.buildings], [...AD_BASE.palms, ...EXP.palms], FIXES);
 

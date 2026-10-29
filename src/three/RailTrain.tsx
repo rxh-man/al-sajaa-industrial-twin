@@ -6,10 +6,11 @@ import { motionScale } from '../store/useTwinStore';
 
 /**
  * Etihad Rail: the 3D track, the bridges where it crosses roads, and a passenger train on it.
- * The line comes from the baseline data (class 'rail'). It is grade-separated from every street it crosses:
- * over each crossing it rises onto a deck above the road, and where crossings come closer together than two
- * ramps the decks join into one continuous viaduct (the dense street grid), with piers along it. The track and
- * the train share one height profile, so the train rides over the crossings and stops at deck-level platforms.
+ * The line comes from the baseline data (class 'rail'). It is crossed at four underpasses only (Emirates Road
+ * E611 and Al Sajaa Streets 4, 13 and 19; the other streets stop either side of the track, see
+ * scripts/build-world-fixes.py): over each one it rises onto a deck above the road, with ramps either side and
+ * piers kept out of the carriageway. Crossings closer together than two ramps share one deck. The track and the
+ * train share one height profile, so the train rides over the underpasses.
  */
 
 const BRIDGE_H = 0.7;   // deck height above ground (about 7 m); clears a five-lane carriageway
@@ -121,16 +122,18 @@ function pointAt(path: XZ[], cum: number[], s: number, out: { x: number; z: numb
   return out;
 }
 
-/** shared path data: arc lengths, crossings with roads, and the height profile */
+/** shared path data: arc lengths, crossings with roads, and the height profile (pure; tested) */
+export function railGeometry() {
+  const path = railPath();
+  const cum = arcLengths(path);
+  const total = cum[cum.length - 1] || 1;
+  const crossS = path.length > 1 ? crossings(path, cum) : [];
+  const spans = viaductSpans(crossS);
+  return { path, cum, total, crossS, spans, height: heightFn(spans) };
+}
+
 function useRailGeometry() {
-  return useMemo(() => {
-    const path = railPath();
-    const cum = arcLengths(path);
-    const total = cum[cum.length - 1] || 1;
-    const crossS = path.length > 1 ? crossings(path, cum) : [];
-    const spans = viaductSpans(crossS);
-    return { path, cum, total, crossS, spans, height: heightFn(spans) };
-  }, []);
+  return useMemo(railGeometry, []);
 }
 
 /**

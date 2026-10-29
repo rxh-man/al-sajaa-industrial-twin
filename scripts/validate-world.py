@@ -39,6 +39,10 @@ for key, label in labels:
     for x in rep[key][:10]:
         print('   ', x)
     fail |= bool(rep[key])
+print(f"rail crossings (each bridged, at most 4): {len(rep['rail_crossings'])}")
+for x in rep['rail_crossings']:
+    print('   ', x)
+fail |= len(rep['rail_crossings']) > 4
 print(f"drivable road networks: {len(rep['components'])}")
 for x in rep['components'][:5]:
     print('   ', x)

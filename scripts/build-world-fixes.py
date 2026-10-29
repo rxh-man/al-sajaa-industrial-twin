@@ -15,7 +15,7 @@ frame). Instead this script records small, reviewable corrections:
 Run: python3 scripts/build-world-fixes.py && python3 scripts/validate-world.py
 """
 import json, math
-from world_lib import (FIXES_PATH, DRIVE, RAIL_HALF, load_world, apply_fixes, audit, segs, pt_seg, closest_on_seg,
+from world_lib import (FIXES_PATH, seg_cross, DRIVE, RAIL_HALF, load_world, apply_fixes, audit, segs, pt_seg, closest_on_seg,
                        seg_box, bbox, boxes_touch, is_elevated, at_grade, end_joined)
 
 R = lambda v: round(v, 3)
@@ -66,11 +66,48 @@ for r in roads:
     by_name.setdefault(r['n'], []).append(r)
 
 # 1. Al Sajaa Road 1 drifts into the rail corridor (rail at z = -50.5): keep its kerb 0.15 clear of the ballast
+#    by the station and the halt it also leaves room for the platform (z -49.9 to -49.1) beside the track
+plat = [b['b'][0] for b in buildings if b['n'] in ('Etihad Rail platform', 'Etihad Rail halt platform')]
 for r in by_name['Al Sajaa Road 1']:
-    lim = -50.5 + RAIL_HALF + r['w'] / 2 + 0.15
     for p, k in zip(r['p'], r['k']):
+        lim = -50.5 + RAIL_HALF + r['w'] / 2 + 0.15
+        for x0, z0, x1, z1 in plat:
+            if x0 - 2.0 <= p[0] <= x1 + 2.0:
+                lim = max(lim, z1 + r['w'] / 2 + 0.1)
         if p[1] < lim:
             fx['moveVertex'].append({'id': k, 'to': [p[0], R(lim)]})
+
+# 1b. the rail line has four grade-separated passways only (RailTrain.tsx bridges them): Emirates Road E611 and
+#     Al Sajaa Streets 4, 13 and 19. Every other street that crossed the track stops either side of it, at
+#     Al Sajaa Road 1 to the south and the Rail Frontage Road to the north, so traffic turns along the line
+#     to the nearest underpass. cutVertex removes a vertex and splits the road there.
+PASSWAYS = {'Emirates Road E611 southbound', 'Emirates Road E611 northbound', 'Al Sajaa Street 4', 'Al Sajaa Street 13', 'Al Sajaa Street 19'}
+rail = next(r for r in roads if r['c'] == 'rail')
+# the track used to start and end on the boundary streets at x = -152 and x = 120: it now stops at buffers
+# just short of their kerbs instead of running onto them
+for end, step in ((0, 1), (-1, -1)):
+    p, k = rail['p'][end], rail['k'][end]
+    for o in roads:
+        if o is rail or o['c'] not in DRIVE:
+            continue
+        d = min(pt_seg(p, a, b) for a, b in segs(o['p']))
+        if d < o['w'] / 2 + RAIL_HALF:
+            nx = rail['p'][end + step][0] - p[0]
+            L = abs(nx) or 1
+            to = [R(p[0] + nx / L * (o['w'] / 2 + RAIL_HALF + 0.3 - d)), p[1]]
+            fx['moveVertex'].append({'id': k, 'to': to})
+            rail['p'] = [list(q) for q in rail['p']]
+            rail['p'][end] = to
+            break
+rail_segs = segs(rail['p'])
+for r in roads:
+    if r['c'] not in DRIVE or r['n'] in PASSWAYS or r.get('t') == 1 or is_elevated(r):
+        continue
+    if not any(seg_cross(a, b, c, d) for a, b in segs(r['p']) for c, d in rail_segs):
+        continue  # runs beside the line (Al Sajaa Road 1) or stops short of it: nothing to cut
+    for p, k in zip(r['p'], r['k']):
+        if min(pt_seg(p, c, d) for c, d in rail_segs) < r['w'] / 2 + RAIL_HALF + 0.6:
+            fx.setdefault('cutVertex', []).append({'id': k})
 
 # 2. west and far-west district streets run 20 m past their last junction (z = 24) to the land edge: end them there
 for r in roads:
@@ -119,6 +156,35 @@ def world_now():
     return w
 
 
+# 6b. a cut can leave a short stub past the last road it crossed (Street 20 runs on past Road 1 where Road 1
+#     bends north): that end moves back to the crossing, which step 7 then makes a shared junction
+w = world_now()
+drv = [i for i, r in enumerate(w['roads']) if r['c'] in DRIVE and len(r['p']) >= 2]
+bxs = {i: bbox(w['roads'][i]['p'], 0) for i in drv}
+cut_ids = {c['id'] for c in fx.get('cutVertex', [])}
+for i in drv:
+    r = w['roads'][i]
+    for end in (0, -1):
+        e = r['p'][end]
+        if end_joined(e, i, w['roads'], drv, bxs):
+            continue
+        a, b = (r['p'][0], r['p'][1]) if end == 0 else (r['p'][-1], r['p'][-2])
+        best = None
+        for j in drv:
+            if j == i:
+                continue
+            for c, d in segs(w['roads'][j]['p']):
+                den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0])
+                if abs(den) < 1e-12:
+                    continue
+                t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den
+                u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den
+                if 0 <= t <= 1 and 0 <= u <= 1 and (best is None or t < best):
+                    best = t
+        if best is not None:
+            to = [R(a[0] + (b[0] - a[0]) * best), R(a[1] + (b[1] - a[1]) * best)]
+            fx['moveVertex'].append({'id': r['k'][end], 'to': to})
+
 # 7. road ends that stop at a kerb (or on a centre line) without a shared node: add a short connector to the
 #    centre line and a vertex there, so the junction is real for traffic too
 w = world_now()
@@ -152,6 +218,11 @@ for i in drv:
         a, b = o['p'][si], o['p'][si + 1]
         c = closest_on_seg(e, a, b)
         # snap to an existing vertex when the foot of the perpendicular is close to one
+        if d < 0.05 and math.hypot(c[0] - a[0], c[1] - a[1]) >= 0.3 and math.hypot(c[0] - b[0], c[1] - b[1]) >= 0.3:
+            # the end already lies on the other road's centre line: share the node, no connector
+            fx['insertVertex'].append({'after': o['k'][si], 'before': o['k'][si + 1], 'at': [R(e[0]), R(e[1])], 'id': k})
+            done.add(k)
+            continue
         if math.hypot(c[0] - a[0], c[1] - a[1]) < 0.3:
             cid = o['k'][si]; c = a
         elif math.hypot(c[0] - b[0], c[1] - b[1]) < 0.3:
@@ -165,11 +236,7 @@ for i in drv:
         fx['roads'].append(conn)
         done.add(k)
 
-# 8. rail platforms sit on the viaduct deck now that the line is raised over every street (RailTrain.tsx)
-PLATFORM_Y, PLATFORM_H = 0.58, 0.14
-for b in buildings:
-    if b['n'] in ('Etihad Rail platform', 'Etihad Rail halt platform'):
-        fx['buildings'][str(b['id'])] = {'y': PLATFORM_Y, 'h': PLATFORM_H}
+# 8. (the rail platforms stay at ground level: the line is at grade by the station and the halt)
 
 # 8b. the reservoir was drawn under a labour camp and factory halls across four blocks; it moves, at its full
 #     size, to the open land north of Emirates Road E88 by the solar fields (nothing else references it)
@@ -332,6 +399,18 @@ for (x, z) in sorted(bad):
             break
     if to:
         fx['palms'].append([[p[0], p[1]], to])
+
+# fingerprint of the corrected world, checked by tests/world.test.ts against src/data/abudhabi.ts (keeps the
+# TypeScript merge and the Python mirror in step)
+w = world_now()
+fx['meta']['expect'] = {
+    'roads': len(w['roads']),
+    'buildings': len(w['buildings']),
+    'roadPoints': sum(len(r['p']) for r in w['roads']),
+    'roadSum': R(sum(p[0] + 2 * p[1] for r in w['roads'] for p in r['p'])),
+    'boxSum': R(sum(q[0] + q[1] + q[2] + q[3] for b in w['buildings'] for q in b['b'])),
+    'palmSum': R(sum(p[0] + p[1] for p in w['palms'])),
+}
 
 FIXES_PATH.write_text(json.dumps(fx, separators=(',', ':')) + '\n')
 print(f"roads added {len(fx['roads'])} · vertices moved {len(fx['moveVertex'])} dropped {len(fx['dropVertex'])} inserted {len(fx['insertVertex'])}"

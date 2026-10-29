@@ -15,6 +15,7 @@ import { MapLabels } from './MapLabels';
 import { Sea } from './Sea';
 import { AbuDhabiTraffic } from './AbuDhabiTraffic';
 import { RailTrack, RailTrain } from './RailTrain';
+import { Streetscape } from './Streetscape';
 import { ElevatedRoads } from './ElevatedRoads';
 import { Cutaway, TrenchVolume } from './Cutaway';
 import { SurfaceMarkers } from './SensorNodes';
@@ -127,6 +128,7 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <Sea />
         <AbuDhabiBuildings />
         <YardEquipment />
+        <Streetscape quality={quality} />
         <Mosques />
         <Palms />
         <StreetLights />
