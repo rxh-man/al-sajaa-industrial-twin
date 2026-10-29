@@ -1,4 +1,4 @@
-import { AD, onLand, type AdBuilding } from './abudhabi';
+import { AD, LAGOONS, onLand, type AdBuilding } from './abudhabi';
 import { LAMPS } from './lamps';
 import { mulberry32 } from './rng';
 import {
@@ -28,8 +28,9 @@ export const PARKED_SCALE = 0.72;
 const carLen = (k: VehicleKind) => VEHICLE_LENGTH[k] * PARKED_SCALE;
 const CAR_W = 2.0 * VEHICLE_SCALE * PARKED_SCALE; // ≈ body width with mirrors
 
-/** where the streetscape is laid out in detail: the Al Sajaa core and Rahmaniya */
-export const CORE = { minX: -152, maxX: 120, minZ: -80, maxZ: 46 } as const;
+/** where the streetscape is laid out in detail: the Al Sajaa core and Rahmaniya, stopping short of the lagoon
+ *  community (it brings its own cars and palms, scripts/build-lagoons.py) */
+export const CORE = { minX: -152, maxX: 120, minZ: -80, maxZ: LAGOONS.meta.rect.minZ - 0.5 } as const;
 
 export interface Parked {
   kind: VehicleKind;

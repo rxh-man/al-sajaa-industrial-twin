@@ -110,3 +110,25 @@ test('no street lamp stands on a carriageway or on the rail corridor', async () 
     }
   }
 });
+
+test('Al Sajaa Lagoons: villas, cars and trees stay off the roads and out of the water, and it joins the road network', async () => {
+  const [sp, { AD, LAGOONS, inLagoonWater }] = await Promise.all([server.ssrLoadModule('/src/data/spatial.ts'), server.ssrLoadModule('/src/data/abudhabi.ts')]);
+  assert.ok(LAGOONS.villas.length > 500, `${LAGOONS.villas.length} villas`);
+  for (const v of LAGOONS.villas) {
+    assert.ok(sp.kerbDistance(v.x, v.z) > 0.4, `villa at ${v.x},${v.z} is on a road`);
+    assert.ok(!inLagoonWater(v.x, v.z), `villa at ${v.x},${v.z} is in the water`);
+  }
+  for (const c of LAGOONS.cars) assert.ok(sp.kerbDistance(c.x, c.z) > 0, `car at ${c.x},${c.z} is on a carriageway`);
+  for (const t of LAGOONS.trees) assert.ok(sp.kerbDistance(t.x, t.z) > 0.3 && !inLagoonWater(t.x, t.z), `tree at ${t.x},${t.z}`);
+  // the gates share node ids with the South Road, so traffic can drive in
+  const ids = new Set<string>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of AD.roads) if (r.n === 'Al Sajaa South Road') r.k.forEach((k: string) => ids.add(k));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gates = LAGOONS.roads.filter((r: any) => r.n.startsWith('Lagoons Gate'));
+  assert.equal(gates.length, 3);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const g of gates) assert.ok(ids.has(g.k[0]), `${g.n} does not meet the South Road at a shared node`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assert.ok(AD.places.some((p: any) => p.n === 'Al Sajaa Lagoons'));
+});

@@ -1,6 +1,7 @@
 import raw from './alsajaa.json';
 import expansionRaw from './alsajaa-expansion.json';
 import fixesRaw from './alsajaa-fixes.json';
+import lagoonsRaw from './alsajaa-lagoons.json';
 import { ALSAJAA_INLAND, ALSAJAA_MAP_SOURCE } from '../config/overrides';
 
 /**
@@ -187,15 +188,55 @@ export const FIX_ROADS: AdRoad[] = FIXES.roads;
 
 const FIXED = applyFixes([...AD_BASE.roads, ...EXP.roads], [...AD_BASE.buildings, ...EXP.buildings], [...AD_BASE.palms, ...EXP.palms], FIXES);
 
-/** Rendering view of the world: baseline plus expansion plus corrections. Baseline records keep their order, first. */
+/** Al Sajaa Lagoons: the waterfront villa community south of the South Road (scripts/build-lagoons.py; procedural). */
+export interface LagoonVilla {
+  x: number;
+  z: number;
+  /** heading about +y of the villa's depth axis; the front faces the street */
+  yaw: number;
+  w: number;
+  d: number;
+  h: number;
+  tint: [number, number, number];
+  pool: [number, number, number, number, number] | null;
+  wf: 0 | 1;
+  upper: 0 | 1;
+}
+export interface Lagoons {
+  meta: { rect: { minX: number; maxX: number; minZ: number; maxZ: number } };
+  roads: (AdRoad & { bridge?: 1 })[];
+  water: XZ[][];
+  villas: LagoonVilla[];
+  cars: { kind: string; x: number; z: number; yaw: number; paint: number }[];
+  palms: [number, number, number][];
+  trees: { x: number; z: number; s: number }[];
+  lawns: XZ[][];
+  pitch: { x0: number; z0: number; x1: number; z1: number };
+  centre: { x: number; z: number; w: number; d: number; h: number };
+  bridges: { x: number; z0: number; z1: number; w: number }[];
+  places: AdPlace[];
+}
+export const LAGOONS = lagoonsRaw as unknown as Lagoons;
+export const inLagoonWater = (x: number, z: number) => LAGOONS.water.some((w) => pointInPolyXZ(x, z, w));
+function pointInPolyXZ(x: number, z: number, poly: XZ[]) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i];
+    const [xj, zj] = poly[j];
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** Rendering view of the world: baseline plus expansion plus corrections, then the lagoon community. Baseline records keep their order, first. */
 export const AD: AdData = {
   ...AD_BASE,
   meta: { ...AD_BASE.meta, rect: EXP.meta.combinedRect },
-  roads: FIXED.roads,
+  roads: [...FIXED.roads, ...LAGOONS.roads],
   buildings: FIXED.buildings,
   parks: [...AD_BASE.parks, ...EXP.parks],
-  palms: FIXED.palms,
-  places: [...AD_BASE.places, ...EXP.places].map((p) => ({ ...p, n: plainName(p.n) })),
+  palms: [...FIXED.palms, ...LAGOONS.palms],
+  places: [...AD_BASE.places, ...EXP.places, ...LAGOONS.places].map((p) => ({ ...p, n: plainName(p.n) })),
   labels: [...AD_BASE.labels, ...EXP.labels].map((l) => ({ ...l, n: plainName(l.n) })),
 };
 export const AD_RECT = AD.meta.rect;

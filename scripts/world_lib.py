@@ -9,6 +9,7 @@ from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXES_PATH = ROOT / 'src/data/alsajaa-fixes.json'
+LAGOONS_PATH = ROOT / 'src/data/alsajaa-lagoons.json'
 
 ELEV = re.compile(r'flyover|Ramp|Cloverleaf')
 DECK_Y = 0.62          # AbuDhabiTraffic.tsx: elevated road deck height
@@ -29,7 +30,31 @@ def load_world(with_fixes=True):
     if with_fixes and FIXES_PATH.exists():
         fixes = json.loads(FIXES_PATH.read_text())
         apply_fixes(roads, buildings, palms, fixes)
-    return {'roads': roads, 'buildings': buildings, 'palms': palms, 'rect': rect, 'fixes': fixes}
+    # the lagoon community (scripts/build-lagoons.py) joins after the corrections, as in abudhabi.ts
+    lagoons = json.loads(LAGOONS_PATH.read_text()) if LAGOONS_PATH.exists() else None
+    if lagoons:
+        roads.extend(dict(r) for r in lagoons['roads'])
+        palms.extend(list(p) for p in lagoons['palms'])
+        lr = lagoons['meta']['rect']
+        rect = {'minX': min(rect['minX'], lr['minX']), 'maxX': max(rect['maxX'], lr['maxX']), 'minZ': min(rect['minZ'], lr['minZ']), 'maxZ': max(rect['maxZ'], lr['maxZ'])}
+    return {'roads': roads, 'buildings': buildings, 'palms': palms, 'rect': rect, 'fixes': fixes, 'lagoons': lagoons}
+
+
+def in_poly(x, z, poly):
+    inside = False
+    j = len(poly) - 1
+    for i in range(len(poly)):
+        xi, zi = poly[i]; xj, zj = poly[j]
+        if (zi > z) != (zj > z) and x < (xj - xi) * (z - zi) / (zj - zi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def oriented_corners(cx, cz, yaw, w, d):
+    ux, uz = math.sin(yaw), math.cos(yaw)
+    vx, vz = uz, -ux
+    return [(cx + ux * d * a + vx * w * b, cz + uz * d * a + vz * w * b) for a in (-0.5, 0, 0.5) for b in (-0.5, 0, 0.5)]
 
 
 def apply_fixes(roads, buildings, palms, fx):
@@ -188,7 +213,7 @@ def end_joined(e, i, roads, drv, bxs):
 
 def audit(world):
     roads, buildings, palms, rect = world['roads'], world['buildings'], world['palms'], world['rect']
-    rep = {k: [] for k in ('rail_crossings', 'on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
+    rep = {k: [] for k in ('lagoon', 'rail_crossings', 'on_carriageway', 'overlaps', 'on_rail', 'along_rail', 'under_deck', 'palms_on_road', 'palms_in_building', 'dead_ends', 'components')}
     rsegs_all = road_segments(roads, lambda r: r['c'] in DRIVE and r.get('t') != 1)
 
     for b in buildings:
@@ -293,6 +318,48 @@ def audit(world):
             if bx[0] + 0.05 < x < bx[2] - 0.05 and bx[1] + 0.05 < z < bx[3] - 0.05:
                 rep['palms_in_building'].append((pi, round(x, 2), round(z, 2), bid))
                 break
+
+    lg = world.get('lagoons')
+    if lg:
+        water = lg['water']
+        wseg = [(w[i], w[(i + 1) % len(w)]) for w in water for i in range(len(w))]
+        wet = lambda x, z: any(in_poly(x, z, w) for w in water)
+        wdist = lambda x, z: 0.0 if wet(x, z) else min(pt_seg((x, z), a, b) for a, b in wseg)
+        lsegs = [s for s in rsegs_all if s[3][3] > 36]
+        kerb = lambda x, z: min((pt_seg((x, z), a, c) - hw for ri, a, c, sb, hw in lsegs if sb[0] - 2 < x < sb[2] + 2 and sb[1] - 2 < z < sb[3] + 2), default=9)
+        for v in lg['villas']:
+            for x, z in oriented_corners(v['x'], v['z'], v['yaw'], v['w'], v['d']):
+                if kerb(x, z) < 0.05:
+                    rep['lagoon'].append(('villa on a carriageway', v['x'], v['z'])); break
+                if wdist(x, z) < 0.1:
+                    rep['lagoon'].append(('villa in the water', v['x'], v['z'])); break
+        cs = sorted((v['x'], v['z']) for v in lg['villas'])
+        for i in range(len(cs)):
+            for j in range(i + 1, len(cs)):
+                if cs[j][0] - cs[i][0] > 1.3:
+                    break
+                if math.hypot(cs[j][0] - cs[i][0], cs[j][1] - cs[i][1]) < 1.15:
+                    rep['lagoon'].append(('villas overlap', cs[i], cs[j]))
+        for c in lg['cars']:
+            if kerb(c['x'], c['z']) < 0.0:
+                rep['lagoon'].append(('car on a carriageway', c['x'], c['z']))
+        for r in lg['roads']:
+            if r.get('bridge'):
+                continue
+            for a, b in segs(r['p']):
+                for t in (0, 0.5, 1):
+                    x, z = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+                    if wdist(x, z) < r['w'] / 2:
+                        rep['lagoon'].append(('road in the water', r['n'], round(x, 2), round(z, 2)))
+        for p in lg['palms']:
+            if wet(p[0], p[1]):
+                rep['lagoon'].append(('palm in the water', p[0], p[1]))
+        # no AD building inside the community (it is laid out on open land)
+        lr = lg['meta']['rect']
+        for b in buildings:
+            for q in b['b']:
+                if q[2] > lr['minX'] and q[0] < lr['maxX'] and q[3] > lr['minZ'] + 1 and q[1] < lr['maxZ']:
+                    rep['lagoon'].append(('building inside the community', b['id'], b['n']))
 
     drv = [i for i, r in enumerate(roads) if r['c'] in DRIVE and len(r['p']) >= 2]
     bxs = {i: bbox(roads[i]['p'], 0) for i in drv}

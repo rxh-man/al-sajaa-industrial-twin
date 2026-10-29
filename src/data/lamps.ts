@@ -1,4 +1,4 @@
-import { AD_BASE as AD, AD as WORLD, FIX_ROADS, onLandBase as onLand, type XZ } from './abudhabi';
+import { AD_BASE as AD, AD as WORLD, FIX_ROADS, LAGOONS, inLagoonWater, onLandBase, type XZ } from './abudhabi';
 import { inBuilding as inAnyBuilding, kerbDistance, segDist } from './spatial';
 import { TRENCH } from './incident';
 import { ALSAJAA_INLAND } from '../config/overrides';
@@ -25,10 +25,17 @@ const PROMENADE_SPACING = 7.5;
 const MIN_GAP = 1.6;
 
 const boxes = AD.buildings.flatMap((b) => b.b);
+/** land for lamps: the baseline outline, or the lagoon community's dry land */
+const LR = LAGOONS.meta.rect;
+const onLand = (x: number, z: number) =>
+  onLandBase(x, z) || (x > LR.minX && x < LR.maxX && z > LR.minZ && z < LR.maxZ && !inLagoonWater(x, z));
 /** the rail corridor (track, ballast and the bridge decks): no lamp poles on it */
 const railSegs = WORLD.roads
   .filter((r) => r.c === 'rail')
   .flatMap((r) => r.p.slice(1).map((b, i) => ({ ax: r.p[i][0], az: r.p[i][1], bx: b[0], bz: b[1] })));
+/** the lagoon community's parked cars and villas are placed before the lamps: keep the poles off them */
+const lagoonTaken = (x: number, z: number) =>
+  LAGOONS.cars.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < 0.5 * 0.5) || LAGOONS.villas.some((v) => (v.x - x) ** 2 + (v.z - z) ** 2 < 0.85 * 0.85);
 const onRail = (x: number, z: number) => railSegs.some((s) => segDist(x, z, s) < 0.75);
 const inBuilding = (x: number, z: number) => boxes.some(([x1, z1, x2, z2]) => x > x1 - 0.15 && x < x2 + 0.15 && z > z1 - 0.15 && z < z2 + 0.15);
 const inTrench = (x: number, z: number) => x > TRENCH.minX - 1 && x < TRENCH.maxX + 1 && z > TRENCH.minZ - 1 && z < TRENCH.maxZ + 1;
@@ -77,7 +84,7 @@ function build() {
   }
 
   // the baseline's main roads, plus the boundary roads the corrections added (Rail Frontage Road, South Road)
-  for (const r of [...AD.roads, ...FIX_ROADS]) {
+  for (const r of [...AD.roads, ...FIX_ROADS, ...LAGOONS.roads.filter((q) => !q.bridge)]) {
     if (!MAIN.test(r.c) || r.t) continue;
     for (const p of along(r.p, ROAD_SPACING)) {
       const nx = -p.tz;
@@ -86,9 +93,9 @@ function build() {
         const off = r.w / 2 + 0.28;
         const x = p.x + nx * off * side;
         const z = p.z + nz * off * side;
-        if (Math.abs(x) > 95 || z < -67 || !onLand(x, z) || inBuilding(x, z) || inTrench(x, z) || !clear(x, z)) continue;
+        if (Math.abs(x) > 110 || z < -67 || !onLand(x, z) || inBuilding(x, z) || inTrench(x, z) || !clear(x, z)) continue;
         // never on another road's carriageway or inside a corrected footprint (the rendered world)
-        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z)) continue;
+        if (kerbDistance(x, z) < 0.08 || inAnyBuilding(x, z, 0.1) || onRail(x, z) || (z > LR.minZ && lagoonTaken(x, z))) continue;
         placed.push({ x, z, ox: -nx * side, oz: -nz * side });
       }
     }

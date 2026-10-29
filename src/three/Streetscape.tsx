@@ -72,21 +72,26 @@ function ParkedKind({ kind, cars, material, shadows }: { kind: VehicleKind; cars
   return <Instances geometry={geometry} material={material} items={items} shadows={shadows} />;
 }
 
-function ParkedVehicles({ quality }: { quality: 'high' | 'low' }) {
+/** a set of parked vehicles, one instanced mesh per model (also used by the lagoon community) */
+export function ParkedSet({ cars, shadows }: { cars: Parked[]; shadows: boolean }) {
   const material = useMemo(() => createVehicleMaterial('#e0b23a'), []);
   const groups = useMemo(() => {
-    const keep = quality === 'low' ? STREETSCAPE.parked.filter((_, i) => i % 2 === 0) : STREETSCAPE.parked;
     const map = new Map<VehicleKind, Parked[]>();
-    for (const c of keep) map.set(c.kind, [...(map.get(c.kind) ?? []), c]);
+    for (const c of cars) map.set(c.kind, [...(map.get(c.kind) ?? []), c]);
     return [...map.entries()];
-  }, [quality]);
+  }, [cars]);
   return (
     <group>
-      {groups.map(([kind, cars]) => (
-        <ParkedKind key={kind} kind={kind} cars={cars} material={material} shadows={quality === 'high'} />
+      {groups.map(([kind, list]) => (
+        <ParkedKind key={kind} kind={kind} cars={list} material={material} shadows={shadows} />
       ))}
     </group>
   );
+}
+
+function ParkedVehicles({ quality }: { quality: 'high' | 'low' }) {
+  const cars = useMemo(() => (quality === 'low' ? STREETSCAPE.parked.filter((_, i) => i % 2 === 0) : STREETSCAPE.parked), [quality]);
+  return <ParkedSet cars={cars} shadows={quality === 'high'} />;
 }
 
 /** a point offset in a prop's local frame: a along its heading, b across it */
@@ -176,6 +181,10 @@ const CROWNS = ['#4f7a3a', '#5c8743', '#476f35', '#6b8f4a', '#3f6a33'].map((c) =
 
 /** shade trees (ghaf / neem): a trunk and a rounded crown each, lightly varied in size and green */
 function Trees({ quality }: { quality: 'high' | 'low' }) {
+  return <TreeSet trees={STREETSCAPE.trees} quality={quality} />;
+}
+
+export function TreeSet({ trees: all, quality }: { trees: { x: number; z: number; s: number }[]; quality: 'high' | 'low' }) {
   const geo = useMemo(() => {
     const trunk = new CylinderGeometry(0.035, 0.05, 1, 6);
     trunk.translate(0, 0.5, 0);
@@ -187,7 +196,7 @@ function Trees({ quality }: { quality: 'high' | 'low' }) {
     [],
   );
   const items = useMemo(() => {
-    const trees = quality === 'low' ? STREETSCAPE.trees.filter((_, i) => i % 2 === 0) : STREETSCAPE.trees;
+    const trees = quality === 'low' ? all.filter((_, i) => i % 2 === 0) : all;
     const trunks: Placement[] = [];
     const crowns: Placement[] = [];
     trees.forEach((t, i) => {
@@ -195,7 +204,7 @@ function Trees({ quality }: { quality: 'high' | 'low' }) {
       crowns.push({ x: t.x, z: t.z, y: 0.42 * t.s, yaw: i, sx: 0.3 * t.s, sy: 0.22 * t.s, sz: 0.3 * t.s, color: CROWNS[i % CROWNS.length] });
     });
     return { trunks, crowns };
-  }, [quality]);
+  }, [quality, all]);
   return (
     <group>
       <Instances geometry={geo.trunk} material={mats.trunk} items={items.trunks} />
