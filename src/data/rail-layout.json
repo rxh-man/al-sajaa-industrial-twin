@@ -1,0 +1,15 @@
+{
+  "note": "Etihad Rail double track (procedural). Offsets are across the line from its centre (the baseline rail polyline, z = -50.5): negative = north. At stations the tracks spread around an island platform.",
+  "tracks": [
+    { "id": "westbound", "offset": -0.225, "stationOffset": -0.6, "dir": -1 },
+    { "id": "eastbound", "offset": 0.225, "stationOffset": 0.9, "dir": 1 }
+  ],
+  "stations": [
+    { "n": "Etihad Rail Station", "x0": -7, "x1": 7, "platformId": 100346 },
+    { "n": "Etihad Rail Halt", "x0": 89, "x1": 103, "platformId": 100320 }
+  ],
+  "blend": 3.0,
+  "ballast": 0.26,
+  "platform": { "z0": -50.82, "z1": -49.88, "h": 0.12 },
+  "dwellSeconds": 10
+}

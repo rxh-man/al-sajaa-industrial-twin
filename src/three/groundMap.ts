@@ -3,6 +3,7 @@ import { AD, AD_RECT, LAND_POLYS, UNNAMED_COAST_ROAD, type XZ } from '../data/ab
 import { mulberry32 } from '../data/rng';
 import PARKING from '../data/parking.json';
 import { STREETSCAPE } from '../data/streetscapeData';
+import { trackPath } from '../data/railLayout';
 import { ALSAJAA_INLAND } from '../config/overrides';
 
 /**
@@ -214,25 +215,26 @@ export function groundTexture() {
     patch({ ...b, len: b.len - 0.06, wid: b.wid - 0.06 }, '#2c2e33');
   }
 
-  // rail: ballast bed, sleepers and two track lines
+  // rail: per track (src/data/railLayout.ts), a ballast bed, sleepers and two rails
   g.lineCap = 'butt';
-  for (const r of roads) {
-    if (r.c !== 'rail') continue;
+  for (const id of ['westbound', 'eastbound'] as const) {
+    const tp = trackPath(id);
+    if (tp.length < 2) continue;
     g.setLineDash([]);
     g.strokeStyle = '#5f5b54';
-    g.lineWidth = (r.w + 0.9) * PX;
-    path(r.p);
+    g.lineWidth = 0.62 * PX;
+    path(tp);
     g.stroke();
     g.strokeStyle = '#3f3a33';
     g.lineWidth = 0.45 * PX;
     g.setLineDash([0.12 * PX, 0.2 * PX]);
-    path(r.p);
+    path(tp);
     g.stroke();
     g.setLineDash([]);
     g.strokeStyle = '#d6d2c9';
     g.lineWidth = 1.4;
-    offsetLine(r.p, 0.12);
-    offsetLine(r.p, -0.12);
+    offsetLine(tp, 0.12);
+    offsetLine(tp, -0.12);
   }
   g.setLineDash([]);
   g.restore();

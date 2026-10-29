@@ -1,5 +1,6 @@
 import { AD_BASE as AD, AD as WORLD, FIX_ROADS, INTERCHANGE, LAGOONS, inLagoonPlot, inLagoonWater, onLandBase, type XZ } from './abudhabi';
 import { inBuilding as inAnyBuilding, kerbDistance, segDist } from './spatial';
+import { inRailEnvelope } from './railLayout';
 import { TRENCH } from './incident';
 import { ALSAJAA_INLAND } from '../config/overrides';
 
@@ -33,14 +34,11 @@ const onLand = (x: number, z: number) =>
 /** under a raised deck a pole would run into it */
 const decks = WORLD.roads.filter((r) => r.o === 1).flatMap((r) => r.p.slice(1).map((b, i) => ({ ax: r.p[i][0], az: r.p[i][1], bx: b[0], bz: b[1], hw: r.w / 2 + 0.6 })));
 const underDeck = (x: number, z: number) => decks.some((d) => segDist(x, z, d) < d.hw);
-/** the rail corridor (track, ballast and the bridge decks): no lamp poles on it */
-const railSegs = WORLD.roads
-  .filter((r) => r.c === 'rail')
-  .flatMap((r) => r.p.slice(1).map((b, i) => ({ ax: r.p[i][0], az: r.p[i][1], bx: b[0], bz: b[1] })));
+/** the rail corridor (both tracks, their ballast and the bridge decks): no lamp poles on it */
 /** the lagoon community's parked cars and villas are placed before the lamps: keep the poles off them */
 const lagoonTaken = (x: number, z: number) =>
   LAGOONS.cars.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < 0.5 * 0.5) || LAGOONS.villas.some((v) => (v.x - x) ** 2 + (v.z - z) ** 2 < 0.85 * 0.85);
-const onRail = (x: number, z: number) => railSegs.some((s) => segDist(x, z, s) < 0.75);
+const onRail = (x: number, z: number) => inRailEnvelope(x, z, 0.3);
 const inBuilding = (x: number, z: number) => boxes.some(([x1, z1, x2, z2]) => x > x1 - 0.15 && x < x2 + 0.15 && z > z1 - 0.15 && z < z2 + 0.15);
 const inTrench = (x: number, z: number) => x > TRENCH.minX - 1 && x < TRENCH.maxX + 1 && z > TRENCH.minZ - 1 && z < TRENCH.maxZ + 1;
 

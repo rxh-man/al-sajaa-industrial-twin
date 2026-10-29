@@ -99,20 +99,54 @@ test('streetscape items stay off carriageways and out of buildings', async () =>
   assert.equal(keys.size, STREETSCAPE.parked.length);
 });
 
-test('no street lamp stands on a carriageway or on the rail corridor', async () => {
-  const [{ LAMPS }, sp, { AD }] = await Promise.all([
+test('no street lamp stands on a carriageway or on the rail tracks', async () => {
+  const [{ LAMPS }, sp, rl] = await Promise.all([
     server.ssrLoadModule('/src/data/lamps.ts'),
     server.ssrLoadModule('/src/data/spatial.ts'),
-    server.ssrLoadModule('/src/data/abudhabi.ts'),
+    server.ssrLoadModule('/src/data/railLayout.ts'),
   ]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rail = AD.roads.find((r: any) => r.c === 'rail');
   for (const l of LAMPS) {
     assert.ok(sp.kerbDistance(l.x, l.z) > 0.05, `lamp at ${l.x},${l.z} is on a carriageway`);
-    for (let i = 1; i < rail.p.length; i++) {
-      const d = sp.segDist(l.x, l.z, { ax: rail.p[i - 1][0], az: rail.p[i - 1][1], bx: rail.p[i][0], bz: rail.p[i][1] });
-      assert.ok(d >= 0.75, `lamp at ${l.x},${l.z} is on the rail corridor`);
+    assert.ok(!rl.inRailEnvelope(l.x, l.z, 0.1), `lamp at ${l.x},${l.z} is on the rail tracks`);
+  }
+});
+
+test('Etihad Rail: two tracks, a train each way; each train stops at both platforms, waits 10 s, and leaves', async () => {
+  const rl = await server.ssrLoadModule('/src/data/railLayout.ts');
+  const g = rail.railGeometry();
+  assert.equal(g.tracks.length, 2);
+  // the tracks stay apart everywhere, and spread round the island platforms
+  for (const x of [-100, -40, 0, 50, 96]) {
+    const gap = rl.trackOffset('eastbound', x) - rl.trackOffset('westbound', x);
+    assert.ok(gap >= 0.45 - 1e-9, `tracks only ${gap} apart at x ${x}`);
+  }
+  assert.ok(rl.trackOffset('eastbound', 0) - rl.trackOffset('westbound', 0) >= 1.4, 'no room for the island platform at the station');
+  // platforms hold the whole train
+  for (const st of rl.RAIL_LAYOUT.stations) assert.ok(st.x1 - st.x0 >= rail.TRAIN_LENGTH, `${st.n} platform is shorter than the train`);
+  for (const t of g.tracks) {
+    const stops = rail.trainStops(t);
+    assert.equal(stops.length, 2);
+    let st = { u: 0, v: 0, dwell: 0, next: 0 };
+    const stoppedAt: number[] = [];
+    let waited = 0;
+    let wasStill = false;
+    for (let i = 0; i < 60 * 600 && st.u < t.total; i++) {
+      st = rail.stepTrain(st, 1 / 60, 1, stops, t.total);
+      if (st.dwell > 0) {
+        if (!wasStill) stoppedAt.push(st.u);
+        waited += 1 / 60;
+        wasStill = true;
+      } else wasStill = false;
     }
+    assert.equal(stoppedAt.length, 2, `${t.id} train stopped ${stoppedAt.length} times`);
+    stoppedAt.forEach((u, k) => assert.ok(Math.abs(u - stops[k]) < 1e-6, `${t.id} stopped off its mark`));
+    assert.ok(Math.abs(waited - 20) < 0.2, `${t.id} waited ${waited.toFixed(2)} s in total (two 10 s stops)`);
+    // motion off holds it; a long frame is clamped
+    const held = rail.stepTrain({ u: 5, v: 1, dwell: 0, next: 0 }, 1 / 60, 0, stops, t.total);
+    assert.equal(held.u, 5);
+    const a = rail.stepTrain({ u: 5, v: 1, dwell: 0, next: 0 }, 5, 1, stops, t.total);
+    const b = rail.stepTrain({ u: 5, v: 1, dwell: 0, next: 0 }, 0.1, 1, stops, t.total);
+    assert.equal(a.u, b.u);
   }
 });
 

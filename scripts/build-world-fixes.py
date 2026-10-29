@@ -15,7 +15,7 @@ frame). Instead this script records small, reviewable corrections:
 Run: python3 scripts/build-world-fixes.py && python3 scripts/validate-world.py
 """
 import json, math
-from world_lib import (FIXES_PATH, seg_cross, DRIVE, RAIL_HALF, load_world, apply_fixes, audit, segs, pt_seg, closest_on_seg,
+from world_lib import (FIXES_PATH, seg_cross, rail_envelope, RAIL_LAYOUT, DRIVE, RAIL_HALF, load_world, apply_fixes, audit, segs, pt_seg, closest_on_seg,
                        seg_box, bbox, boxes_touch, is_elevated, at_grade, end_joined)
 
 R = lambda v: round(v, 3)
@@ -67,13 +67,10 @@ for r in roads:
 
 # 1. Al Sajaa Road 1 drifts into the rail corridor (rail at z = -50.5): keep its kerb 0.15 clear of the ballast
 #    by the station and the halt it also leaves room for the platform (z -49.9 to -49.1) beside the track
-plat = [b['b'][0] for b in buildings if b['n'] in ('Etihad Rail platform', 'Etihad Rail halt platform')]
+#    it follows the south edge of the double-track envelope, which widens round the island platforms
 for r in by_name['Al Sajaa Road 1']:
     for p, k in zip(r['p'], r['k']):
-        lim = -50.5 + RAIL_HALF + r['w'] / 2 + 0.15
-        for x0, z0, x1, z1 in plat:
-            if x0 - 2.0 <= p[0] <= x1 + 2.0:
-                lim = max(lim, z1 + r['w'] / 2 + 0.1)
+        lim = -50.5 + max(RAIL_HALF, rail_envelope(p[0])[1]) + r['w'] / 2 + 0.15
         if p[1] < lim:
             fx['moveVertex'].append({'id': k, 'to': [p[0], R(lim)]})
 
@@ -236,7 +233,10 @@ for i in drv:
         fx['roads'].append(conn)
         done.add(k)
 
-# 8. (the rail platforms stay at ground level: the line is at grade by the station and the halt)
+# 8. island platforms between the two tracks at the station and the halt, long enough for the whole train
+P = RAIL_LAYOUT['platform']
+for st in RAIL_LAYOUT['stations']:
+    fx['buildings'][str(st['platformId'])] = {'b': [[st['x0'], P['z0'], st['x1'], P['z1']]], 'h': P['h'], 'y': 0}
 
 # 8b. the reservoir was drawn under a labour camp and factory halls across four blocks; it moves, at its full
 #     size, to the open land north of Emirates Road E88 by the solar fields (nothing else references it)

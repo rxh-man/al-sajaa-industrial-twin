@@ -2,6 +2,7 @@ import { AD, LAGOONS, onLand, type AdBuilding } from './abudhabi';
 import { LAMPS } from './lamps';
 import { mulberry32 } from './rng';
 import PARKING from './parking.json';
+import { envelopeAt, railCentre } from './railLayout';
 import {
   JUNCTIONS,
   Obstacles,
@@ -169,17 +170,17 @@ export function buildStreetscape() {
       }
     }
   }
-  // the rail corridor (track, ballast and a clearance either side) is not a road, so mark it explicitly
-  for (const r of AD.roads) {
-    if (r.c !== 'rail') continue;
-    for (let i = 1; i < r.p.length; i++) {
-      const [ax, az] = r.p[i - 1];
-      const [bx, bz] = r.p[i];
-      const L = Math.hypot(bx - ax, bz - az);
-      for (let t = 0; t <= L; t += 0.4) obs.add(ax + ((bx - ax) * t) / (L || 1), az + ((bz - az) * t) / (L || 1), 0.8);
+  // the rail corridor (both tracks, ballast and a clearance; wider round the island platforms) is not a road
+  {
+    const c = railCentre();
+    if (c.length > 1) {
+      const cz = c[0][1];
+      for (let x = c[0][0] - 0.5; x <= c[c.length - 1][0] + 0.5; x += 0.4) {
+        const [n, so] = envelopeAt(x);
+        for (let o = n - 0.25; o <= so + 0.25; o += 0.35) obs.add(x, cz + o, 0.4);
+      }
     }
   }
-
   const parked: Parked[] = [];
   const lots: Lot[] = [];
   const driveways: Patch[] = [];

@@ -11,6 +11,31 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXES_PATH = ROOT / 'src/data/alsajaa-fixes.json'
 LAGOONS_PATH = ROOT / 'src/data/alsajaa-lagoons.json'
 INTERCHANGE_PATH = ROOT / 'src/data/alsajaa-interchange.json'
+RAIL_LAYOUT = json.loads((ROOT / 'src/data/rail-layout.json').read_text())
+
+
+def _smooth(t):
+    t = max(0.0, min(1.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def station_weight(x):
+    """mirror of railLayout.ts stationWeight"""
+    w = 0.0
+    for st in RAIL_LAYOUT['stations']:
+        d = st['x0'] - x if x < st['x0'] else (x - st['x1'] if x > st['x1'] else 0.0)
+        w = max(w, 1 - _smooth(d / RAIL_LAYOUT['blend']))
+    return w
+
+
+def track_offset(track_id, x):
+    t = next(q for q in RAIL_LAYOUT['tracks'] if q['id'] == track_id)
+    return t['offset'] + (t['stationOffset'] - t['offset']) * station_weight(x)
+
+
+def rail_envelope(x):
+    """[north, south] offsets of the double track plus ballast from the line's centre at x"""
+    return (track_offset('westbound', x) - RAIL_LAYOUT['ballast'], track_offset('eastbound', x) + RAIL_LAYOUT['ballast'])
 
 ELEV = re.compile(r'flyover|Ramp|Cloverleaf')
 DECK_Y = 0.62          # AbuDhabiTraffic.tsx: elevated road deck height
@@ -274,11 +299,22 @@ def audit(world):
     if rail:
         rs = segs(rail['p'])
         rb = bbox(rail['p'], RAIL_HALF + 0.1)
+        cz = rail['p'][0][1]
+        x_lo, x_hi = rail['p'][0][0], rail['p'][-1][0]
         for b in buildings:
-            if b['n'].startswith('Etihad Rail') and 'platform' in b['n']:
-                pass  # platforms stand beside the track; checked like any other box below
+            if 'platform' in b['n'] and b['n'].startswith('Etihad Rail'):
+                continue  # the island platforms stand between the tracks
             for box in b['b']:
-                if boxes_touch(rb, box) and any(seg_box(a, c, box) < RAIL_HALF for a, c in rs):
+                if box[2] < x_lo or box[0] > x_hi:
+                    continue
+                hit = False
+                for k in range(11):
+                    x = min(max(box[0] + (box[2] - box[0]) * k / 10, x_lo), x_hi)
+                    n, so = rail_envelope(x)
+                    if box[1] < cz + so and box[3] > cz + n:
+                        hit = True
+                        break
+                if hit:
                     rep['on_rail'].append((b['id'], b['n']))
                     break
         for r in roads:
@@ -288,13 +324,15 @@ def audit(world):
             for a, c in segs(r['p']):
                 L = math.hypot(c[0] - a[0], c[1] - a[1]) or 1e-9
                 mid = ((a[0] + c[0]) / 2, (a[1] + c[1]) / 2)
-                for p, q in rs:
-                    if pt_seg(mid, p, q) < r['w'] / 2 + RAIL_HALF:
-                        Lr = math.hypot(q[0] - p[0], q[1] - p[1]) or 1e-9
-                        cos = abs((c[0] - a[0]) * (q[0] - p[0]) + (c[1] - a[1]) * (q[1] - p[1])) / (L * Lr)
-                        if cos > 0.7:  # parallel: sharing the corridor, not crossing it
-                            run += L
-                        break
+                if not (rail['p'][0][0] <= mid[0] <= rail['p'][-1][0]):
+                    continue
+                n, so = rail_envelope(mid[0])
+                cz = rail['p'][0][1]
+                if mid[1] - r['w'] / 2 < cz + so and mid[1] + r['w'] / 2 > cz + n:
+                    Lr = 1.0
+                    cos = abs(c[0] - a[0]) / L  # the line runs along x
+                    if cos > 0.7:  # parallel: sharing the corridor, not crossing it
+                        run += L
             if run > 1.0:
                 rep['along_rail'].append((r['n'], round(run, 1)))
 
