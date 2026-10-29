@@ -6,9 +6,10 @@ import { motionScale } from '../store/useTwinStore';
 
 /**
  * Etihad Rail: the 3D track, the bridges where it crosses roads, and a passenger train on it.
- * The line comes from the baseline data (class 'rail'). Wherever it crosses a road it rises onto a
- * short bridge deck above the road, with ramps on either side and piers at the ends. The track and the
- * train share one height profile, so the train rides over the crossings.
+ * The line comes from the baseline data (class 'rail'). It is grade-separated from every street it crosses:
+ * over each crossing it rises onto a deck above the road, and where crossings come closer together than two
+ * ramps the decks join into one continuous viaduct (the dense street grid), with piers along it. The track and
+ * the train share one height profile, so the train rides over the crossings and stops at deck-level platforms.
  */
 
 const BRIDGE_H = 0.7;   // deck height above ground (about 7 m); clears a five-lane carriageway
@@ -19,6 +20,8 @@ const RAIL_GAUGE = 0.12;
 const SLEEPER_PITCH = 0.3;
 const PIER_W = 0.22;
 const DECK_W = 0.5;   // width of the bridge deck slab (units)
+const PIER_EVERY = 3.0; // pier spacing along a viaduct (30 m)
+const PIER_CLEAR = 1.1; // piers stay this far (along the line) from a crossing's centre line: clear of a trunk carriageway
 
 const LOCO = 2.4;
 const CARRIAGE = 2.2;
@@ -56,8 +59,8 @@ function crossings(path: XZ[], cum: number[]): number[] {
     return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? t : null;
   };
   for (const r of AD.roads) {
-    // bridges only over highways (trunk roads); every other street is crossed at grade
-    if (!MAJOR_ROAD.test(r.c)) continue;
+    // every drivable street at ground level is bridged (tunnels and flyovers already clear the line)
+    if (!DRIVABLE.test(r.c) || r.t === 1 || r.o === 1) continue;
     const rp = r.p as XZ[];
     for (let i = 1; i < path.length; i++) {
       for (let j = 1; j < rp.length; j++) {
@@ -73,22 +76,36 @@ function crossings(path: XZ[], cum: number[]): number[] {
   return merged;
 }
 
-const MAJOR_ROAD = /^trunk$/; // highways: the rail rises over these
+const DRIVABLE = /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service)$/;
+
+/** raised spans [start, end] in arc length: one per crossing, merged where two would leave less than two ramps between them */
+export function viaductSpans(crossS: number[]): [number, number][] {
+  const spans: [number, number][] = [];
+  for (const c of crossS) {
+    const a = c - DECK_HALF;
+    const b = c + DECK_HALF;
+    const last = spans[spans.length - 1];
+    if (last && a - last[1] < RAMP * 2 + 1) last[1] = b;
+    else spans.push([a, b]);
+  }
+  return spans;
+}
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
 
-/** height of the rail deck at arc length s: BRIDGE_H over each crossing, ramping down to the ground */
-function heightFn(crossS: number[]) {
+/** height of the rail deck at arc length s: BRIDGE_H along each raised span, ramping down to the ground */
+export function heightFn(spans: [number, number][]) {
   return (s: number) => {
     let h = 0;
-    for (const c of crossS) {
-      const d = Math.abs(s - c);
-      if (d <= DECK_HALF) h = Math.max(h, BRIDGE_H);
-      else if (d < DECK_HALF + RAMP) h = Math.max(h, BRIDGE_H * (1 - smooth((d - DECK_HALF) / RAMP)));
+    for (const [a, b] of spans) {
+      const d = s < a ? a - s : s > b ? s - b : 0;
+      if (d === 0) return BRIDGE_H;
+      if (d < RAMP) h = Math.max(h, BRIDGE_H * (1 - smooth(d / RAMP)));
     }
     return h;
   };
 }
+export const RAIL_BRIDGE_H = BRIDGE_H;
 
 /** position on the path at arc length s */
 function pointAt(path: XZ[], cum: number[], s: number, out: { x: number; z: number; dx: number; dz: number }) {
@@ -111,7 +128,8 @@ function useRailGeometry() {
     const cum = arcLengths(path);
     const total = cum[cum.length - 1] || 1;
     const crossS = path.length > 1 ? crossings(path, cum) : [];
-    return { path, cum, total, crossS, height: heightFn(crossS) };
+    const spans = viaductSpans(crossS);
+    return { path, cum, total, crossS, spans, height: heightFn(spans) };
   }, []);
 }
 
@@ -120,7 +138,7 @@ function useRailGeometry() {
  * smoothly. Piers stand at the ends of each bridge deck.
  */
 export function RailTrack() {
-  const { path, cum, total, crossS, height } = useRailGeometry();
+  const { path, cum, total, crossS, spans, height } = useRailGeometry();
   const built = useMemo(() => {
     const rails: Matrix4[] = [];
     const sleepers: Matrix4[] = [];
@@ -165,10 +183,15 @@ export function RailTrack() {
         nextSleeper += SLEEPER_PITCH;
       }
     }
-    // piers: at both ends of each deck, from the ground up to the deck
-    for (const c of crossS) {
-      for (const off of [-DECK_HALF, DECK_HALF]) {
-        pointAt(path, cum, c + off, p);
+    // piers: at both ends of each span and every PIER_EVERY along it, from the ground up to the deck
+    for (const [a, b] of spans) {
+      const n = Math.max(1, Math.round((b - a) / PIER_EVERY));
+      for (let i = 0; i <= n; i++) {
+        let sAt = a + ((b - a) * i) / n;
+        // never in a carriageway: a pier near a crossing steps clear of the road under the deck
+        for (const c of crossS) if (Math.abs(sAt - c) < PIER_CLEAR) sAt = c + (sAt < c ? -PIER_CLEAR : PIER_CLEAR);
+        if (sAt < 0 || sAt > total) continue;
+        pointAt(path, cum, sAt, p);
         const yaw = Math.atan2(p.dx, p.dz);
         q.setFromAxisAngle(new Vector3(0, 1, 0), yaw);
         pos.set(p.x, BRIDGE_H / 2, p.z);
@@ -177,7 +200,7 @@ export function RailTrack() {
       }
     }
     return { rails, sleepers, piers, decks };
-  }, [path, cum, total, crossS, height]);
+  }, [path, cum, total, crossS, spans, height]);
 
   const railRef = useRef<InstancedMesh>(null);
   const sleeperRef = useRef<InstancedMesh>(null);

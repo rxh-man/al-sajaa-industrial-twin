@@ -1,5 +1,6 @@
 import raw from './alsajaa.json';
 import expansionRaw from './alsajaa-expansion.json';
+import fixesRaw from './alsajaa-fixes.json';
 import { ALSAJAA_INLAND, ALSAJAA_MAP_SOURCE } from '../config/overrides';
 
 /**
@@ -109,14 +110,65 @@ const EXP = expansionRaw as unknown as Pick<AdData, 'roads' | 'buildings' | 'par
   meta: { combinedRect: { minX: number; maxX: number; minZ: number; maxZ: number } };
 };
 
-/** Rendering view of the world: baseline plus expansion. Baseline records are kept as they are, first. */
+/**
+ * Corrections over the baseline and the expansion (src/data/alsajaa-fixes.json, built by scripts/build-world-fixes.py and
+ * checked by scripts/validate-world.py): connector and boundary roads that close dead ends and join the networks,
+ * footprints trimmed off carriageways and out of each other, palms moved off roads, the reservoir moved off a
+ * labour camp, and the rail platforms raised onto the viaduct. Records keep their order and ids, so building
+ * indices (picking, roofs) are unchanged. scripts/world_lib.py apply_fixes mirrors this function.
+ */
+interface WorldFixes {
+  moveVertex: { id: string; to: XZ }[];
+  dropVertex: { id: string }[];
+  insertVertex: { after: string; before: string; at: XZ; id: string }[];
+  roads: AdRoad[];
+  buildings: Record<string, { b?: [number, number, number, number][]; h?: number; y?: number }>;
+  palms: [XZ, XZ][];
+}
+const FIXES = fixesRaw as unknown as WorldFixes;
+
+export function applyFixes(roads: AdRoad[], buildings: AdBuilding[], palms: [number, number, number][], fx: WorldFixes) {
+  const moves = new Map(fx.moveVertex.map((m) => [m.id, m.to]));
+  const drops = new Set(fx.dropVertex.map((d) => d.id));
+  let outRoads = roads.map((r) => {
+    if (!r.k?.length || (!r.k.some((id) => moves.has(id)) && !drops.has(r.k[0]) && !drops.has(r.k[r.k.length - 1]))) return r;
+    let p = r.p.map((q, i) => (moves.get(r.k[i]) ?? q) as XZ);
+    let k = [...r.k];
+    if (drops.has(k[k.length - 1]) && p.length > 2) (p = p.slice(0, -1)), (k = k.slice(0, -1));
+    if (drops.has(k[0]) && p.length > 2) (p = p.slice(1)), (k = k.slice(1));
+    return { ...r, p, k };
+  });
+  for (const ins of fx.insertVertex) {
+    const ri = outRoads.findIndex((r) => r.k?.some((id, i) => i < r.k.length - 1 && ((id === ins.after && r.k[i + 1] === ins.before) || (id === ins.before && r.k[i + 1] === ins.after))));
+    if (ri < 0) continue;
+    const r = outRoads[ri];
+    const i = r.k.findIndex((id, j) => j < r.k.length - 1 && ((id === ins.after && r.k[j + 1] === ins.before) || (id === ins.before && r.k[j + 1] === ins.after)));
+    outRoads = outRoads.map((q, j) => (j === ri ? { ...r, p: [...r.p.slice(0, i + 1), ins.at, ...r.p.slice(i + 1)], k: [...r.k.slice(0, i + 1), ins.id, ...r.k.slice(i + 1)] } : q));
+  }
+  outRoads = [...outRoads, ...fx.roads];
+  const outBuildings = buildings.map((b) => {
+    const o = fx.buildings[String(b.id)];
+    return o ? { ...b, ...(o.b ? { b: o.b } : {}), ...(o.h !== undefined ? { h: o.h } : {}), ...(o.y !== undefined ? { y: o.y } : {}) } : b;
+  });
+  const key = (x: number, z: number) => `${Math.round(x * 1000)}:${Math.round(z * 1000)}`;
+  const moved = new Map(fx.palms.map(([a, c]) => [key(a[0], a[1]), c]));
+  const outPalms = palms.map((p) => {
+    const m = moved.get(key(p[0], p[1]));
+    return m ? ([m[0], m[1], p[2]] as [number, number, number]) : p;
+  });
+  return { roads: outRoads, buildings: outBuildings, palms: outPalms };
+}
+
+const FIXED = applyFixes([...AD_BASE.roads, ...EXP.roads], [...AD_BASE.buildings, ...EXP.buildings], [...AD_BASE.palms, ...EXP.palms], FIXES);
+
+/** Rendering view of the world: baseline plus expansion plus corrections. Baseline records keep their order, first. */
 export const AD: AdData = {
   ...AD_BASE,
   meta: { ...AD_BASE.meta, rect: EXP.meta.combinedRect },
-  roads: [...AD_BASE.roads, ...EXP.roads],
-  buildings: [...AD_BASE.buildings, ...EXP.buildings],
+  roads: FIXED.roads,
+  buildings: FIXED.buildings,
   parks: [...AD_BASE.parks, ...EXP.parks],
-  palms: [...AD_BASE.palms, ...EXP.palms],
+  palms: FIXED.palms,
   places: [...AD_BASE.places, ...EXP.places].map((p) => ({ ...p, n: plainName(p.n) })),
   labels: [...AD_BASE.labels, ...EXP.labels].map((l) => ({ ...l, n: plainName(l.n) })),
 };
