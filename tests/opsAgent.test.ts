@@ -252,8 +252,10 @@ test('failures stop the loop at the failing step with a clear message', () => {
   assert.equal(empty.steps.understand.status, 'failed');
   const unknown = M.runtime.plan('make the city nicer');
   assert.match(unknown.error, /No workflow matched/);
-  const notYet = M.runtime.plan('Blackout on a feeder, restore the microgrid');
-  assert.match(notYet.error, /not implemented yet/);
+  // the energy workflow used to be unimplemented; it now plans (covered in opsAgentWorkflows.test.ts)
+  const energy = M.runtime.plan('Blackout on a feeder, restore the microgrid');
+  assert.equal(energy.scenarioId, 'energy');
+  assert.equal(energy.state, 'awaiting-approval');
   const bad = M.runtime.plan('Leak of 900 L/s on the water main');
   assert.equal(bad.steps.tools.status, 'failed');
   assert.match(bad.error, /between 5 and 80/);

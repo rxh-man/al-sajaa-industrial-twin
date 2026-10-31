@@ -1,0 +1,31 @@
+/* Sustainability Command Centre (src/sustainability). Builds on the ops-* panel styles. */
+.sus-panel { width: min(640px, calc(100vw - 24px)); }
+.sus-tabs { overflow-x: auto; scrollbar-width: thin; }
+.sus-tabs .ops-tabbtn { white-space: nowrap; }
+.sus-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.sus-kpi { display: grid; gap: 3px; text-align: start; border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 10px; background: rgba(148, 172, 204, 0.04); color: var(--text-0); font: inherit; }
+button.sus-kpi { cursor: pointer; }
+button.sus-kpi:hover { border-color: rgba(79, 209, 232, 0.5); }
+button.sus-kpi:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.sus-kpi.is-on { border-color: var(--cyan); background: rgba(79, 209, 232, 0.08); }
+.sus-kpi-top { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--text-1); }
+.sus-kpi-v { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.sus-kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; color: var(--cyan); }
+.sus-balance { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; }
+.sus-seg { display: block; min-width: 2px; }
+.sus-ind, .sus-seg.sus-ind { background: #f97316; }
+.sus-bld, .sus-seg.sus-bld { background: #a78bfa; }
+.sus-veh, .sus-seg.sus-veh { background: #38bdf8; }
+.sus-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.sus-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; vertical-align: -1px; }
+.sus-levers { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; margin-bottom: 8px; }
+.sus-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.ops-chip.is-on { background: rgba(79, 209, 232, 0.2); border-color: var(--cyan); }
+.sus-count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--cyan); color: #04121a; font-size: 11px; text-align: center; margin-inline: 4px; }
+.sus-rank { list-style: none; margin: 0; padding: 0 !important; display: grid; gap: 4px; }
+.sus-rank-row { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; text-align: start; background: none; border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 8px; color: var(--text-0); font: inherit; font-size: 12px; cursor: pointer; }
+.sus-rank-row:hover, .sus-rank-row.is-sel { border-color: var(--cyan); }
+.sus-grid2 { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin-bottom: 6px; }
+.sus-detail { background: rgba(79, 209, 232, 0.05); border-radius: 8px; padding: 8px; }
+.ops-bar-row[role='button'] { cursor: pointer; }
+.ops-bar-row[role='button']:hover .ops-bar-fill { background: var(--cyan); }

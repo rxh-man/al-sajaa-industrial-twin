@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Info, Layers, LayoutGrid, PlayCircle } from 'lucide-react';
-import { useOpsStore } from '../../opsAgent/store';
+import { Info, PlayCircle } from 'lucide-react';
+import { MainNav } from '../../nav/MainNav';
 import { useTwinStore } from '../../store/useTwinStore';
 import { useDismiss } from '../../hooks/useDismiss';
 import { TwinMark } from '../ui/TwinMark';
@@ -60,17 +60,11 @@ function StatusPill() {
 }
 
 export function Header() {
-  const layerPanel = useTwinStore((s) => s.layerPanel);
-  const setLayerPanel = useTwinStore((s) => s.setLayerPanel);
   const scenarioMenu = useTwinStore((s) => s.scenarioMenu);
   const setScenarioMenu = useTwinStore((s) => s.setScenarioMenu);
-  const resetView = useTwinStore((s) => s.resetView);
-  const activePreset = useTwinStore((s) => s.activePreset);
   const infoOpen = useTwinStore((s) => s.infoOpen);
   const setInfoOpen = useTwinStore((s) => s.setInfoOpen);
   const infoRef = useRef<HTMLDivElement>(null);
-  const opsOpen = useOpsStore((s) => s.open);
-  const setOpsOpen = useOpsStore((s) => s.setOpen);
   const closeInfo = useCallback(() => setInfoOpen(false), [setInfoOpen]);
   useDismiss(infoRef, infoOpen, closeInfo, '[data-popover-toggle="info"]');
 
@@ -87,22 +81,11 @@ export function Header() {
       <StatusPill />
 
       <div className="hdr-right">
-        <nav className="seg" aria-label="Views">
-          <button className={`seg-btn ${activePreset === 'city' ? 'is-on' : ''}`} onClick={() => resetView()} title="Overview (0)">
-            <LayoutGrid size={14} />
-            Overview
-          </button>
-          <button className={`seg-btn ${layerPanel ? 'is-on' : ''}`} onClick={() => setLayerPanel(!layerPanel)} aria-pressed={layerPanel} title="Infrastructure layers (L)">
-            <Layers size={14} />
-            Layers
-          </button>
+        <nav className="seg" aria-label="Main navigation">
+          <MainNav />
           <button className={`seg-btn ${scenarioMenu ? 'is-on' : ''}`} onClick={() => setScenarioMenu(!scenarioMenu)} aria-pressed={scenarioMenu} title="Scenario" data-popover-toggle="scenario">
             <PlayCircle size={14} />
             Demo
-          </button>
-          <button className={`seg-btn ${opsOpen ? 'is-on' : ''}`} onClick={() => setOpsOpen(!opsOpen)} aria-pressed={opsOpen} title="AI Operations Agent (simulated)">
-            <Bot size={14} />
-            AI Agent
           </button>
         </nav>
         <Clock />

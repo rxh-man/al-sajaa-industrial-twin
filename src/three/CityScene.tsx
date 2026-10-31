@@ -37,6 +37,7 @@ import { PerfProbe } from './PerfProbe';
 import { DevHooks } from './DevHooks';
 import { G } from './shaders/globals';
 import { OpsOverlay } from '../opsAgent/OpsOverlay';
+import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
 import { useTwinStore } from '../store/useTwinStore';
 
 /** Everything above ground; lifts away as a single plate in the exploded view. */
@@ -157,6 +158,7 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <WarehouseRoofs />
         <SurfaceLabel />
         <OpsOverlay />
+        <SustainabilityOverlay />
       </SurfaceGroup>
       <Diorama />
       <TrenchVolume />

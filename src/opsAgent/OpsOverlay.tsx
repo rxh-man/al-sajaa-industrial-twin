@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Html, Line } from '@react-three/drei';
-import type { HighlightRole } from '../solutions/types';
+import type { Highlight, HighlightRole } from '../solutions/types';
 import { useOpsStore } from './store';
 
 /**
@@ -23,8 +23,13 @@ export function OpsOverlay() {
   const open = useOpsStore((s) => s.open);
   const h = useOpsStore((s) => s.highlight);
   const executed = useOpsStore((s) => s.executed);
+  if (!open || !h) return null;
+  return <HighlightView h={h} executed={executed} />;
+}
+
+/** draws one scenario highlight (also used by the Sustainability Command Centre) */
+export function HighlightView({ h, executed = false }: { h: Highlight; executed?: boolean }) {
   const lines = useMemo(() => {
-    if (!h) return [];
     const byRole = new Map<HighlightRole, [number, number, number][]>();
     for (const p of h.paths) {
       const arr = byRole.get(p.role) ?? [];
@@ -33,7 +38,6 @@ export function OpsOverlay() {
     }
     return [...byRole].filter(([, pts]) => pts.length >= 2);
   }, [h]);
-  if (!open || !h) return null;
   return (
     <group>
       {lines.map(([role, pts]) => (

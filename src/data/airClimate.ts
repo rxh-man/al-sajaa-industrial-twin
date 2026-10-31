@@ -1,5 +1,6 @@
 import { AD } from './abudhabi';
-import { placePlants } from '../three/Vegetation';
+import { FACILITIES } from '../sustainability/facilities';
+import { PLANTS as SCENE_PLANTS, O2_PER_CO2 } from '../sustainability/green';
 
 /**
  * Air, pollution and climate model for the twin. Everything here is SIMULATED:
@@ -13,12 +14,14 @@ import { placePlants } from '../three/Vegetation';
 export const POLLUTANTS = ['PM2.5 (dust)', 'NOx (exhaust)', 'SO2 (sulphur)', 'CO2 (greenhouse gas)'] as const;
 export type Pollutant = (typeof POLLUTANTS)[number];
 
-/** Simulated stack output per level (0 = none). CO2 in tonnes per year, simulated. */
-const CO2_T_PER_YEAR = [0, 900, 2200, 4200];
+/** CO2 per factory comes from the facility model (sustainability/facilities.ts): category, floor area,
+ * utilisation, hours, fuel and process emissions, so no two factories share a fixed value. */
+const FACILITY_CO2 = new Map(FACILITIES.map((f) => [f.id, f.co2T]));
 
-/** ASSUMPTION (verify): a mature shade tree produces about 118 kg O2 and absorbs about 22 kg CO2 per year. */
-export const O2_KG_PER_TREE_YEAR = 118;
+/** ASSUMPTION (verify): a mature shade tree absorbs about 22 kg CO2 per year. Oxygen follows by stoichiometry
+ * (32/44 of the CO2 fixed), so the two figures are consistent. */
 export const CO2_KG_ABSORBED_PER_TREE_YEAR = 22;
+export const O2_KG_PER_TREE_YEAR = Math.round(CO2_KG_ABSORBED_PER_TREE_YEAR * O2_PER_CO2);
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -54,7 +57,7 @@ export const FACTORIES: Factory[] = AD.buildings
     });
     // every factory emits CO2 at least at level 1, so the climate total covers all of them
     if (levels[3] === 0) levels[3] = 1;
-    const co2T = CO2_T_PER_YEAR[levels[3]];
+    const co2T = Math.round(FACILITY_CO2.get(b.id) ?? 0);
     return {
       id: b.id,
       x: (x0 + x1) / 2,
@@ -85,9 +88,9 @@ export const EMITTING_FACTORIES = FACTORIES.filter((f) => f.contributes > 0).len
 export const POLLUTANT_TYPES_COVERED = POLLUTANTS.length;
 export const FACTORY_CO2_T = FACTORIES.reduce((a, f) => a + f.co2T, 0);
 
-/** Shade trees (kind 0) in the scene. Palms and hedges are left out of the oxygen calculation. */
-const PLANTS = placePlants();
-export const SHADE_TREES = PLANTS.filter((p) => p.kind === 0);
+/** Shade trees actually placed in the 3D city (streetscape and lagoon trees). Palms are counted separately on the
+ * sustainability dashboard and left out of this figure. */
+export const SHADE_TREES = SCENE_PLANTS.filter((p) => p.type === 'shade');
 export const SHADE_TREE_COUNT = SHADE_TREES.length;
 export const TREE_O2_T_PER_YEAR = (SHADE_TREE_COUNT * O2_KG_PER_TREE_YEAR) / 1000;
 export const TREE_CO2_ABSORBED_T_PER_YEAR = (SHADE_TREE_COUNT * CO2_KG_ABSORBED_PER_TREE_YEAR) / 1000;

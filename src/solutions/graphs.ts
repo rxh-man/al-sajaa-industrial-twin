@@ -186,15 +186,15 @@ export function routeEdges(g: RoadGraph, r: Route): RoadEdge[] {
 const nkey = (x: number, z: number) => `${x.toFixed(2)},${z.toFixed(2)}`;
 
 /** segments still connected to the network source when the `isolated` segment ids are closed */
-export function connectedSegments(net: Network, isolated: ReadonlySet<string>): Set<string> {
+export function connectedSegments(net: Network, isolated: ReadonlySet<string>, sources: readonly string[] = [net.sourceKey]): Set<string> {
   const byNode = new Map<string, PipeSegment[]>();
   for (const s of net.segments) {
     if (isolated.has(s.id)) continue;
     for (const k of [nkey(s.a[0], s.a[1]), nkey(s.b[0], s.b[1])]) byNode.set(k, [...(byNode.get(k) ?? []), s]);
   }
   const seen = new Set<string>();
-  const nodes = new Set<string>([net.sourceKey]);
-  const stack = [net.sourceKey];
+  const nodes = new Set<string>(sources);
+  const stack = [...sources];
   while (stack.length) {
     const k = stack.pop()!;
     for (const s of byNode.get(k) ?? []) {
@@ -207,8 +207,8 @@ export function connectedSegments(net: Network, isolated: ReadonlySet<string>): 
 }
 
 /** segments that lose supply when `isolated` are closed (the isolated ones themselves included) */
-export function cutOff(net: Network, isolated: ReadonlySet<string>): PipeSegment[] {
-  const live = connectedSegments(net, isolated);
+export function cutOff(net: Network, isolated: ReadonlySet<string>, sources?: readonly string[]): PipeSegment[] {
+  const live = connectedSegments(net, isolated, sources);
   return net.segments.filter((s) => !live.has(s.id));
 }
 
@@ -237,4 +237,115 @@ export function buildingsAlong(segments: { a: XZ; b: XZ }[], reach: number) {
     out.push({ id: b.id, name: b.n, kind: b.k, x, z, floorM2: footprint * floors });
   }
   return out;
+}
+
+/**
+ * One feed point per connected piece of a network: the node nearest to any of the given facilities (e.g. the
+ * substations in the layout), or the network's own source for the piece that contains it.
+ */
+export function feedPoints(net: Network, facilities: readonly XZ[]): string[] {
+  const adj = new Map<string, string[]>();
+  for (const s of net.segments) {
+    const a = nkey(s.a[0], s.a[1]);
+    const b = nkey(s.b[0], s.b[1]);
+    adj.set(a, [...(adj.get(a) ?? []), b]);
+    adj.set(b, [...(adj.get(b) ?? []), a]);
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const comp: string[] = [];
+    const stack = [start];
+    seen.add(start);
+    while (stack.length) {
+      const k = stack.pop()!;
+      comp.push(k);
+      for (const n of adj.get(k)!) if (!seen.has(n)) (seen.add(n), stack.push(n));
+    }
+    if (comp.includes(net.sourceKey)) {
+      out.push(net.sourceKey);
+      continue;
+    }
+    let best = comp[0];
+    let bd = Infinity;
+    for (const k of comp) {
+      const [x, z] = k.split(',').map(Number);
+      for (const f of facilities) {
+        const d = (x - f[0]) ** 2 + (z - f[1]) ** 2;
+        if (d < bd) [bd, best] = [d, k];
+      }
+    }
+    out.push(best);
+  }
+  return out;
+}
+
+/** single-source Dijkstra: cost to every node and the predecessor edge, for distance matrices */
+export function shortestFrom(g: RoadGraph, from: number, cost: EdgeCost = timeCost) {
+  const n = g.nodes.length;
+  const dist = new Float64Array(n).fill(Infinity);
+  const prev = new Int32Array(n).fill(-1);
+  const prevE: (RoadEdge | null)[] = new Array(n).fill(null);
+  dist[from] = 0;
+  const heap: [number, number][] = [[0, from]];
+  const up = (i: number) => {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (heap[p][0] <= heap[i][0]) break;
+      [heap[p], heap[i]] = [heap[i], heap[p]];
+      i = p;
+    }
+  };
+  const down = (i: number) => {
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+      if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+      if (m === i) return;
+      [heap[m], heap[i]] = [heap[i], heap[m]];
+      i = m;
+    }
+  };
+  while (heap.length) {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      down(0);
+    }
+    const [d, v] = top;
+    if (d > dist[v]) continue;
+    for (const e of g.adj[v]) {
+      const c = cost(e, v);
+      if (!Number.isFinite(c)) continue;
+      if (d + c < dist[e.to]) {
+        dist[e.to] = d + c;
+        prev[e.to] = v;
+        prevE[e.to] = e;
+        heap.push([d + c, e.to]);
+        up(heap.length - 1);
+      }
+    }
+  }
+  /** the path to a node: points, km and minutes at class speeds */
+  const pathTo = (to: number) => {
+    if (!Number.isFinite(dist[to])) return null;
+    const nodes: number[] = [];
+    for (let v = to; v !== -1; v = prev[v]) nodes.push(v);
+    nodes.reverse();
+    let len = 0;
+    let minutes = 0;
+    for (const v of nodes) {
+      const e = prevE[v];
+      if (e) {
+        len += e.len;
+        minutes += timeCost(e);
+      }
+    }
+    return { points: nodes.map((i) => g.nodes[i]), km: (len * 10) / 1000, minutes };
+  };
+  return { dist, pathTo };
 }

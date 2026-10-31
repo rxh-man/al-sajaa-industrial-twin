@@ -4,7 +4,7 @@
  * scenario inputs. Whatever the parser does not understand is reported back rather than guessed.
  */
 
-export type WorkflowId = 'water' | 'traffic' | 'climate' | 'energy' | 'emergency' | 'maintenance' | 'freight';
+export type WorkflowId = 'water' | 'traffic' | 'climate' | 'energy' | 'emergency' | 'maintenance' | 'freight' | 'planning' | 'air' | 'flood' | 'sustainability';
 
 export interface WorkflowInfo {
   id: WorkflowId;
@@ -19,11 +19,15 @@ export interface WorkflowInfo {
 export const WORKFLOWS: WorkflowInfo[] = [
   { id: 'water', title: 'Water Incident', titleAr: 'حادث مياه', scenarioId: 'water-leak', keywords: /\b(leak\w*|water|pipe\w*|main|valve\w*|burst|pressure|supply)\b/gi },
   { id: 'traffic', title: 'Traffic Optimisation', titleAr: 'تحسين حركة المرور', scenarioId: 'traffic', keywords: /\b(traffic|congest\w*|bottleneck|lane\w*|road\s*works?|queue\w*|signal\w*|divert\w*|corridor|veh\/h|delays?|vehicle[- ]hours)\b/gi },
-  { id: 'climate', title: 'Climate Action', titleAr: 'العمل المناخي', scenarioId: 'climate', keywords: /\b(climate|co2|co₂|carbon|emission\w*|solar|heat|cool\w*|trees?|shade|reflective|net[- ]zero)\b/gi },
-  { id: 'energy', title: 'Energy Resilience', titleAr: 'مرونة الطاقة', scenarioId: null, keywords: /\b(outage|blackout|microgrid|feeder|substation|electricity outage)\b/gi },
-  { id: 'emergency', title: 'Emergency Response', titleAr: 'الاستجابة للطوارئ', scenarioId: null, keywords: /\b(emergency|ambulance|fire|evacuat\w*|police)\b/gi },
-  { id: 'maintenance', title: 'Infrastructure Maintenance', titleAr: 'صيانة البنية التحتية', scenarioId: null, keywords: /\b(maintenance|inspect\w*|asset health|ageing|aging|prioriti[sz]e repairs?)\b/gi },
-  { id: 'freight', title: 'Freight Optimisation', titleAr: 'تحسين الشحن', scenarioId: null, keywords: /\b(freight|trucks?|lorr\w*|deliver\w*|logistics|waste collection)\b/gi },
+  { id: 'climate', title: 'Climate Action', titleAr: 'العمل المناخي', scenarioId: 'climate', keywords: /\b(climate|co2|co₂|carbon|emission\w*|solar|heat|cool\w*|trees?|shade|reflective)\b/gi },
+  { id: 'energy', title: 'Energy Resilience', titleAr: 'مرونة الطاقة', scenarioId: 'energy', keywords: /\b(outage|blackout|power cut|microgrid|feeder|substation|cable fault|backup power|generators?)\b/gi },
+  { id: 'emergency', title: 'Emergency Response', titleAr: 'الاستجابة للطوارئ', scenarioId: 'emergency', keywords: /\b(emergency|ambulance|fire|evacuat\w*|police|crash|spill|chemical release|hazard|responders?)\b/gi },
+  { id: 'maintenance', title: 'Infrastructure Maintenance', titleAr: 'صيانة البنية التحتية', scenarioId: 'maintenance', keywords: /\b(maintenance|inspect\w*|asset health|ageing|aging|renew\w*|crew budget|crew-hours|predictive|prioriti[sz]e repairs?)\b/gi },
+  { id: 'freight', title: 'Freight Optimisation', titleAr: 'تحسين الشحن', scenarioId: 'freight', keywords: /\b(freight|trucks?|lorr\w*|deliver\w*|logistics|depot|rounds?)\b/gi },
+  { id: 'planning', title: 'Urban Planning', titleAr: 'التخطيط العمراني', scenarioId: 'planning', keywords: /\b(new\b[\w ]{0,40}?(?:factor\w*|facilit\w*|plants?|warehouses?)|develop\w*|zoning|proposed|planning|built|construct\w*|additional (?:factor\w*|facilit\w*))\b/gi },
+  { id: 'air', title: 'Air Quality', titleAr: 'جودة الهواء', scenarioId: 'air', keywords: /\b(air|pollution|smog|plumes?|wind|stacks?|smoke|nox|pm2\.5)\b/gi },
+  { id: 'flood', title: 'Flood and Drainage', titleAr: 'الفيضانات والتصريف', scenarioId: 'flood', keywords: /\b(flood\w*|storm\w*|rain\w*|drain\w*|runoff|cloudburst)\b/gi },
+  { id: 'sustainability', title: 'Sustainability Strategy', titleAr: 'استراتيجية الاستدامة', scenarioId: 'sustainability', keywords: /\b(city-wide|district-wide|programme|program|decarboni\w*|net[- ]zero|carbon balance|dust|abatement|strategy)\b/gi },
 ];
 
 export interface Target {
@@ -75,12 +79,12 @@ export function parseGoal(raw: unknown): ParsedGoal {
   }
   out.workflow = best;
   if (!best) {
-    out.problems.push('No workflow matched. Mention water/leak, traffic/congestion, or climate/CO₂/heat.');
+    out.problems.push('No workflow matched. Mention a leak, traffic, CO₂/heat, an outage, an emergency, maintenance, freight, a new development, air pollution, a storm, or a city-wide strategy.');
     return out;
   }
   out.understood.push(`Workflow: ${best.title} (${hits} keyword match${hits > 1 ? 'es' : ''})`);
   if (!best.scenarioId) {
-    out.problems.push(`The ${best.title} workflow is not implemented yet; only Water Incident, Traffic Optimisation and Climate Action are.`);
+    out.problems.push(`The ${best.title} workflow is not implemented yet.`);
     return out;
   }
   const t = text.toLowerCase();
@@ -140,6 +144,49 @@ export function parseGoal(raw: unknown): ParsedGoal {
     if (/\bheat\b|cool/.test(t) && !/co2|co₂|carbon|emission|solar/.test(t)) out.inputs.weightCo2 = 20;
     if (/co2|co₂|carbon|emission/.test(t) && !/\bheat\b|cool/.test(t)) out.inputs.weightCo2 = 90;
   }
+  if (best.id === 'energy') {
+    read(/repair\w*\s+(?:takes?\s+|of\s+)?(\d+(?:\.\d+)?)\s*(?:h|hours?)/, (m) => ((out.inputs.repairH = n(m[1])), out.understood.push(`Repair ${m[1]} h`)));
+    read(/(\d+(?:\.\d+)?)\s*mwh\s*(?:of\s+)?batter/, (m) => ((out.inputs.batteryMWh = n(m[1])), out.understood.push(`Battery ${m[1]} MWh`)));
+    if (/(hospital|school|critical)/.test(t)) {
+      out.targets.push({ kpi: 'criticalHours', kind: 'max', value: 2, text: 'critical sites back within ~2 site-hours' });
+      out.understood.push('Constraint: protect critical sites');
+    }
+  }
+  if (best.id === 'emergency') {
+    const inc = /chemical|spill|release/.test(t) ? 'chem-spill' : /camp|labou?r|accommodation/.test(t) ? 'camp-fire' : /cold|warehouse fire|store/.test(t) ? 'cold-fire' : /crash|e611|highway|collision/.test(t) ? 'e611-crash' : null;
+    if (inc) (out.inputs.incident = inc), out.understood.push(`Incident: ${inc}`);
+    read(/(al sajaa road \d+|al sajaa western road)\s+(?:is\s+)?(?:closed|blocked)/, (m) => {
+      const name = m[1].replace(/\b\w/g, (c) => c.toUpperCase());
+      out.inputs.closure = name;
+      out.understood.push(`Closure: ${name}`);
+    });
+    read(/within\s+(\d+(?:\.\d+)?)\s*min/, (m) => {
+      out.targets.push({ kpi: 'responseMin', kind: 'max', value: n(m[1]), text: `respond within ${m[1]} min` });
+      out.understood.push(`Constraint: respond within ${m[1]} min`);
+    });
+  }
+  if (best.id === 'maintenance') {
+    read(/(\d[\d,]*)\s*crew[- ]?hours/, (m) => ((out.inputs.crewHours = n(m[1])), out.understood.push(`Crew budget ${m[1]} h`)));
+  }
+  if (best.id === 'freight') {
+    read(/(\d+)\s*(?:sites|stops|warehouses|customers)/, (m) => ((out.inputs.stops = n(m[1])), out.understood.push(`${m[1]} stops`)));
+  }
+  if (best.id === 'planning') {
+    read(/(\d+)\s+(?:additional\s+|new\s+)?(?:[a-z ]+?\s)?(?:factor\w*|facilit\w*|plants?|warehouses?)/, (m) => ((out.inputs.count = n(m[1])), out.understood.push(`${m[1]} facilities`)));
+    const cats: [RegExp, string][] = [[/metal/, 'metal'], [/food/, 'food'], [/packag/, 'packaging'], [/chemical/, 'chemical'], [/building material|cement|concrete/, 'materials'], [/plastic|polymer/, 'plastics'], [/automotive|car assembly/, 'automotive'], [/recycl|waste/, 'recycling'], [/heavy/, 'heavy'], [/cold/, 'cold'], [/logistic|warehouse|distribution/, 'logistics'], [/workshop/, 'workshop']];
+    const c = cats.find(([re]) => re.test(t));
+    if (c) (out.inputs.category = c[1]), out.understood.push(`Category: ${c[1]}`);
+    const ds: [RegExp, string][] = [[/far northern/, 'far-north'], [/northern mixed/, 'north-mixed'], [/freight yard/, 'freight-yards'], [/western logistics/, 'west-logistics'], [/rahmaniya/, 'rahmaniya'], [/central/, 'central'], [/eastern/, 'east-res']];
+    const d = ds.find(([re]) => re.test(t));
+    if (d) (out.inputs.district = d[1]), out.understood.push(`District: ${d[1]}`);
+  }
+  if (best.id === 'air') {
+    read(/wind\s+from\s+(\d+)/, (m) => ((out.inputs.windDeg = n(m[1]) % 360), out.understood.push(`Wind from ${m[1]}°`)));
+  }
+  if (best.id === 'flood') {
+    read(/(\d+(?:\.\d+)?)\s*mm\s*(?:\/|per)\s*h/, (m) => ((out.inputs.rainMmH = n(m[1])), out.understood.push(`Rain ${m[1]} mm/h`)));
+    read(/for\s+(\d+(?:\.\d+)?)\s*(?:h|hours?)/, (m) => ((out.inputs.hours = n(m[1])), out.understood.push(`Duration ${m[1]} h`)));
+  }
   return out;
 }
 
@@ -157,6 +204,22 @@ function kpiFor(workflow: WorkflowId, what: string): string | null {
     if (/co2|co₂|carbon|emission/.test(w)) return 'co2T';
     if (/grid|electric/.test(w)) return 'gridMWh';
     if (/heat/.test(w)) return 'heatHot';
+  }
+  if (workflow === 'energy') {
+    if (/unserved|energy/.test(w)) return 'unservedMWh';
+    if (/outage|hours|customers?/.test(w)) return 'custHours';
+  }
+  if (workflow === 'emergency' && /response|time/.test(w)) return 'responseMin';
+  if (workflow === 'freight') {
+    if (/co2|co₂|emission/.test(w)) return 'co2Kg';
+    if (/distance|km/.test(w)) return 'km';
+  }
+  if (workflow === 'planning' && /co2|co₂|carbon|emission/.test(w)) return 'addCo2';
+  if (workflow === 'air' && /pollution|exposure|concentration/.test(w)) return 'worst';
+  if (workflow === 'flood' && /flood|runoff|excess/.test(w)) return 'excessM3';
+  if (workflow === 'sustainability') {
+    if (/co2|co₂|carbon|emission/.test(w)) return 'netT';
+    if (/dust|pm/.test(w)) return 'pm';
   }
   return null;
 }

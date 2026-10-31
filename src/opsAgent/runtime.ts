@@ -52,6 +52,8 @@ export interface AgentRun {
   /** terminal state of the run */
   state: 'failed' | 'awaiting-approval' | 'rejected' | 'executed' | 'verified';
   error: string | null;
+  /** who read the goal: the deterministic rules, or a server-side language model (validated) */
+  reader: { source: 'rules' | 'llm'; note: string; model?: string };
 }
 
 const blankSteps = () => Object.fromEntries(STEP_ORDER.map((s) => [s, { status: 'pending', note: '' }])) as AgentRun['steps'];
@@ -78,8 +80,8 @@ function fail(run: AgentRun, step: StepId, msg: string): AgentRun {
 }
 
 /** run the loop up to the approval gate. `overrides` are inputs the user set in the panel (they win over the goal). */
-export function plan(goalText: unknown, overrides: InputValues = {}): AgentRun {
-  const goal = parseGoal(goalText);
+export function plan(goalText: unknown, overrides: InputValues = {}, reading?: { parsed: ParsedGoal; source: 'rules' | 'llm'; note: string; model?: string }): AgentRun {
+  const goal = reading?.parsed ?? parseGoal(goalText);
   const run: AgentRun = {
     goal,
     scenarioId: goal.workflow?.scenarioId ?? null,
@@ -96,6 +98,7 @@ export function plan(goalText: unknown, overrides: InputValues = {}): AgentRun {
     verification: null,
     state: 'failed',
     error: null,
+    reader: reading ? { source: reading.source, note: reading.note, model: reading.model } : { source: 'rules', note: 'Goal read by deterministic rules (no language model involved).' },
   };
   // 1. understand
   if (goal.problems.length && (!goal.workflow || !goal.workflow.scenarioId)) return fail(run, 'understand', goal.problems.join(' '));
@@ -159,7 +162,7 @@ export function plan(goalText: unknown, overrides: InputValues = {}): AgentRun {
 }
 
 /** a copy of the run with fresh containers, so callers (React state) see a new object */
-const clone = (r: AgentRun): AgentRun => ({ ...r, steps: { ...r.steps }, log: [...r.log] });
+const clone = (r: AgentRun): AgentRun => ({ ...r, steps: { ...r.steps }, log: [...r.log], reader: { ...r.reader } });
 
 export function approve(prev: AgentRun, approval: { by: string; role: string }, optionId = prev.selected): AgentRun {
   const run = clone(prev);

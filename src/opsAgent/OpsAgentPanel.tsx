@@ -10,6 +10,8 @@ import { approve, DEMO_GOALS, plan, reject, STEP_ORDER, type AgentRun, type Step
 import { useOpsStore } from './store';
 import { opsText, type OpsText } from './i18n';
 import { ADOPTION } from './adoption';
+import { SPECIALISTS, TWIN_AGENTS, specialistIO } from './specialists';
+import { readGoal, STEPS_LLM_NOTE } from './llm';
 import '../styles/opsAgent.css';
 
 const fmt = (v: number | null | undefined, digits?: number) => {
@@ -133,13 +135,21 @@ function AgentTab({ t, ar }: { t: OpsText; ar: boolean }) {
   const [values, setValues] = useState<InputValues>({});
   const [who, setWho] = useState('');
   const [role, setRole] = useState<'operator' | 'viewer'>('operator');
+  const [useModel, setUseModel] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (run) setValues(run.inputs);
   }, [run]);
 
-  const doPlan = (g: string, overrides: InputValues = {}) => {
-    const r = plan(g, overrides);
+  const doPlan = async (g: string, overrides: InputValues = {}) => {
+    let reading;
+    if (useModel) {
+      setBusy(true);
+      reading = await readGoal(g);
+      setBusy(false);
+    }
+    const r = plan(g, overrides, reading);
     setRun(r);
     if (r.result) focusPlace(r.result.highlight.focus.x, r.result.highlight.focus.z, r.result.highlight.focus.r);
   };
@@ -168,14 +178,18 @@ function AgentTab({ t, ar }: { t: OpsText; ar: boolean }) {
       </label>
       <textarea id="ops-goal" className="ops-goal" rows={3} maxLength={400} value={goal} placeholder={t.goalPh} onChange={(e) => setGoal(e.target.value)} dir="auto" />
       <div className="ops-row">
-        <button className="ops-btn primary" onClick={() => doPlan(goal)}>
-          <Play size={14} aria-hidden /> {t.plan}
+        <button className="ops-btn primary" onClick={() => doPlan(goal)} disabled={busy}>
+          <Play size={14} aria-hidden /> {busy ? '…' : t.plan}
         </button>
+        <label className="ops-toggle ops-small">
+          <input type="checkbox" checked={useModel} onChange={(e) => setUseModel(e.target.checked)} /> {t.tryModel}
+        </label>
         <span className="ops-muted ops-small">{WORKFLOWS.map((w) => `${ar ? w.titleAr : w.title}${w.scenarioId ? '' : ar ? ' (لاحقاً)' : ' (not yet)'}`).join(' · ')}</span>
       </div>
 
       {run && (
         <>
+          <p className={`ops-small ${run.reader.source === 'llm' ? 'ops-ok' : 'ops-muted'}`}>{run.reader.note}</p>
           <section aria-labelledby="ops-steps-h" className="ops-sec">
             <h4 id="ops-steps-h">
               {t.steps} · <span className={`ops-state s-${run.state}`}>{t.state[run.state]}</span>
@@ -439,6 +453,180 @@ function CompareTab({ t }: { t: OpsText }) {
   );
 }
 
+function SpecialistsTab({ t, ar }: { t: OpsText; ar: boolean }) {
+  const setRun = useOpsStore((s) => s.setRun);
+  const setTab = useOpsStore((s) => s.setTab);
+  const focusPlace = useTwinStore((s) => s.focusPlace);
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <div className="ops-tab">
+      <p className="ops-small ops-muted">{t.specialistsIntro}</p>
+      {SPECIALISTS.map((sp) => {
+        const io = open === sp.id ? specialistIO(sp) : null;
+        return (
+          <section key={sp.id} className="ops-sec">
+            <h4>
+              {ar ? sp.nameAr : sp.name}
+              <span className="ops-muted ops-small">{sp.scenarios.map((id) => scenarioById(id)?.title).join(' · ')}</span>
+            </h4>
+            <p className="ops-small">{sp.responsibility}</p>
+            {sp.dependsOn.length > 0 && (
+              <p className="ops-small ops-muted">
+                {t.dependsOn}: {sp.dependsOn.map((d) => SPECIALISTS.find((x) => x.id === d)?.name).join(', ')}
+              </p>
+            )}
+            <div className="ops-row">
+              <button
+                className="ops-btn primary"
+                onClick={() => {
+                  const r = plan(sp.demoGoal);
+                  setRun(r);
+                  setTab('agent');
+                  if (r.result) focusPlace(r.result.highlight.focus.x, r.result.highlight.focus.z, r.result.highlight.focus.r);
+                }}
+              >
+                <Play size={13} aria-hidden /> {t.runSpecialist}
+              </button>
+              <button className="ops-btn ghost" aria-expanded={open === sp.id} onClick={() => setOpen(open === sp.id ? null : sp.id)}>
+                {t.contract}
+              </button>
+            </div>
+            <p className="ops-small ops-muted">“{sp.demoGoal}”</p>
+            {io && (
+              <div className="sus-grid2 ops-small">
+                <span>{t.inputs}</span>
+                <span>{io.inputs.join(' · ')}</span>
+                <span>{t.outputsLbl}</span>
+                <span>{io.outputs.join(' · ')}</span>
+                <span>{t.toolsLbl}</span>
+                <span>{io.tools.join(', ')}</span>
+                <span>{t.approval}</span>
+                <span>{t.approvalRule}</span>
+              </div>
+            )}
+          </section>
+        );
+      })}
+      <section className="ops-sec">
+        <h4>{t.twinAgents}</h4>
+        <ul className="ops-small">
+          {TWIN_AGENTS.map((a) => (
+            <li key={a.name}>
+              <b>{a.name}</b> → {t.step[a.step as keyof OpsText['step']]}: {a.does}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function AuditTab({ t }: { t: OpsText }) {
+  const run = useOpsStore((s) => s.run);
+  const audit = useOpsStore((s) => s.audit);
+  const download = () => {
+    const blob = new Blob([JSON.stringify({ note: 'Simulated twin; no real infrastructure. Generated in the browser.', current: run, session: audit }, (_, v) => (v === Infinity || v === -Infinity ? null : v), 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'al-sajaa-agent-audit.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  return (
+    <div className="ops-tab">
+      <p className="ops-note">{STEPS_LLM_NOTE}</p>
+      {!run ? (
+        <p className="ops-muted">{t.noRun}</p>
+      ) : (
+        <>
+          <section className="ops-sec">
+            <h4>{t.auditCurrent}</h4>
+            <div className="sus-grid2 ops-small">
+              <span>{t.goal}</span>
+              <span>{run.goal.text || '—'}</span>
+              <span>{t.understood}</span>
+              <span>{run.goal.understood.join(' · ') || '—'}</span>
+              {run.goal.problems.length > 0 && (
+                <>
+                  <span>{t.ignored}</span>
+                  <span className="ops-wait">{run.goal.problems.join(' ')}</span>
+                </>
+              )}
+              <span>{t.model}</span>
+              <span>{run.scenarioId ? `${scenarioById(run.scenarioId)?.title} (${run.scenarioId}) · deterministic` : '—'}</span>
+              <span>{t.inputData}</span>
+              <span>{run.result ? run.result.inputsKey : '—'}</span>
+              <span>{t.dataUsed}</span>
+              <span>{run.assets.map((a) => `${a.id}: ${a.detail}`).join(' · ') || '—'} {run.sensors ? `· ${run.sensors.note}` : ''}</span>
+              <span>{t.candidates}</span>
+              <span>{run.candidates.map((c) => `${c.name} (${Number.isFinite(c.score) ? c.score.toFixed(3) : t.infeasible}${c.meetsGoal ? ', ' + t.meets : ''})`).join(' · ') || '—'}</span>
+              <span>{t.selected}</span>
+              <span>{run.result?.options.find((o) => o.id === run.selected)?.name ?? '—'}</span>
+              <span>{t.approval}</span>
+              <span>{run.steps.approval.note || '—'}</span>
+              <span>{t.verification}</span>
+              <span>{run.steps.verify.note || '—'}</span>
+            </div>
+          </section>
+          <section className="ops-sec">
+            <h4>{t.tools}</h4>
+            <ol className="ops-log">
+              {run.log.map((l) => (
+                <li key={l.seq} className={l.ok ? '' : 'ops-bad'}>
+                  <code>{l.tool}</code> <span className="ops-muted">{l.args}</span> → {l.summary}
+                </li>
+              ))}
+            </ol>
+          </section>
+          {run.result && (
+            <section className="ops-sec">
+              <h4>{t.limitations}</h4>
+              <ul className="ops-small">
+                {[...run.result.limitations, ...run.result.unavailable.map((u) => `${u.metric} — ${u.needs}`)].map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+      <section className="ops-sec">
+        <h4>
+          {t.auditSession} ({audit.length})
+          <button className="ops-chip" onClick={download}>
+            {t.exportJson}
+          </button>
+        </h4>
+        <div className="ops-table-wrap">
+          <table className="ops-table">
+            <thead>
+              <tr>
+                <th scope="col">{t.time}</th>
+                <th scope="col">{t.goal}</th>
+                <th scope="col">{t.state.verified.split(' ')[0]}</th>
+                <th scope="col">{t.approver}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...audit].reverse().map((a, i) => (
+                <tr key={i}>
+                  <td>{a.at.slice(11, 19)}</td>
+                  <td>
+                    {a.workflow}: {a.goal.slice(0, 60)}
+                    {a.goal.length > 60 ? '…' : ''}
+                  </td>
+                  <td className={a.state === 'failed' ? 'ops-bad' : a.state === 'verified' ? 'ops-ok' : ''}>{t.state[a.state]}{a.error ? ` — ${a.error}` : ''}</td>
+                  <td>{a.approvedBy ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AdoptionTab() {
   return (
     <div className="ops-tab">
@@ -461,7 +649,8 @@ export function OpsAgentPanel() {
   const setOpen = useOpsStore((s) => s.setOpen);
   const { locale, setLocale } = useI18n();
   const t = useMemo(() => opsText(locale), [locale]);
-  const [tab, setTab] = useState<'agent' | 'compare' | 'adoption'>('agent');
+  const tab = useOpsStore((s) => s.tab);
+  const setTab = useOpsStore((s) => s.setTab);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
@@ -471,7 +660,9 @@ export function OpsAgentPanel() {
   if (!open) return null;
   const tabs = [
     ['agent', t.tabAgent],
+    ['specialists', t.tabSpecialists],
     ['compare', t.tabCompare],
+    ['audit', t.tabAudit],
     ['adoption', t.tabAdoption],
   ] as const;
   return (
@@ -503,7 +694,9 @@ export function OpsAgentPanel() {
         <div hidden={tab !== 'agent'}>
           <AgentTab t={t} ar={locale === 'ar'} />
         </div>
+        {tab === 'specialists' && <SpecialistsTab t={t} ar={locale === 'ar'} />}
         {tab === 'compare' && <CompareTab t={t} />}
+        {tab === 'audit' && <AuditTab t={t} />}
         {tab === 'adoption' && <AdoptionTab />}
       </div>
     </aside>
