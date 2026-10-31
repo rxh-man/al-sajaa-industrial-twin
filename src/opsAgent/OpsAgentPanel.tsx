@@ -139,7 +139,10 @@ function AgentTab({ t, ar }: { t: OpsText; ar: boolean }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (run) setValues(run.inputs);
+    if (!run) return;
+    setValues(run.inputs);
+    // keep the goal box in step with runs started elsewhere (specialists, judge tour)
+    if (run.goal.text) setGoal(run.goal.text);
   }, [run]);
 
   const doPlan = async (g: string, overrides: InputValues = {}) => {

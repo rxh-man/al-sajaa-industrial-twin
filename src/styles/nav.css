@@ -32,4 +32,4 @@
 .app .hdr .hdr-status { justify-self: center; max-width: 100%; overflow: hidden; }
 .app .hdr .hdr-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 1640px) { .app .hdr .hdr-status-text, .app .hdr .hdr-sep { display: none; } }
-@media (max-width: 1400px) { .app .hdr .hdr-tagline { display: none; } }
+@media (max-width: 1560px) { .app .hdr .hdr-tagline { display: none; } }

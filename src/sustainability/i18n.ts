@@ -86,6 +86,7 @@ const EN = {
   fuelOnSite: 'Fuel burned on site',
   solarFields: 'Solar fields',
   solarRoofs: 'Rooftop solar',
+  evBays: 'EV charging bays in the parking lots (layout proposal, green bays on the map)',
   waterUse: 'Water use (m³/day)',
   homes: 'Homes',
   residents: 'residents',

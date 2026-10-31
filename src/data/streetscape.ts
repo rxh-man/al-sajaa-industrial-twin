@@ -106,9 +106,12 @@ export interface Tree {
 
 export const PAINTS = ['#f1f2f4', '#f1f2f4', '#e6e7ea', '#c9ccd1', '#9aa0a8', '#2a2d32', '#121316', '#1d2f55', '#6e1a20', '#b5a68d', '#3b5878', '#8a2e27'];
 const CAR_MIX: [VehicleKind, number][] = [
-  ['sedan', 0.22],
+  ['sedan', 0.16],
   ['luxurySedan', 0.07],
-  ['coupe', 0.03],
+  ['evSedan', 0.04],
+  ['coupe', 0.02],
+  ['sportsGt', 0.02],
+  ['supercar', 0.01],
   ['suv', 0.14],
   ['largeSuv', 0.12],
   ['crossover', 0.1],
@@ -390,7 +393,9 @@ export function buildStreetscape() {
     if (!rectClearOfCity(cx, cz, yaw, len - 0.06, 0.36, 0.0) || obs.hit(cx, cz, 0.15)) continue;
     driveways.push({ x: cx, z: cz, yaw, len, wid: 0.4 });
     if (rnd() < 0.72 && len > carLen('suv') + 0.1) {
-      const kind = rnd() < 0.5 ? (rnd() < 0.6 ? 'largeSuv' : 'suv') : pick(rnd);
+      // villa driveways: mostly family SUVs, with a share of premium sports cars and EVs
+      const r = rnd();
+      const kind: VehicleKind = r < 0.45 ? (rnd() < 0.6 ? 'largeSuv' : 'suv') : r < 0.53 ? 'sportsGt' : r < 0.57 ? 'supercar' : r < 0.65 ? 'evSedan' : pick(rnd);
       const cl = carLen(kind);
       park(kind, s.mx + s.nx * (cl / 2 + 0.06), s.mz + s.nz * (cl / 2 + 0.06), yaw + (rnd() < 0.5 ? 0 : Math.PI));
     } else obs.addRect(cx, cz, yaw, len, 0.4);

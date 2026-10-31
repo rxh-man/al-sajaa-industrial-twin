@@ -32,7 +32,8 @@ export type VehicleKind = 'sedan' | 'hatch' | 'suv' | 'van' | 'taxi' | 'bus' | '
   | 'pickup' | 'minibus' | 'coach' | 'boxTruck' | 'flatbed' | 'tanker' | 'waterTanker' | 'reefer' | 'tractor'
   | 'semi' | 'container20' | 'carTransporter' | 'towTruck' | 'fireEngine' | 'ambulance' | 'garbage' | 'serviceVan'
   | 'forklift' | 'yardTractor' | 'reachStacker' | 'excavator' | 'wheelLoader' | 'bulldozer'
-  | 'luxurySedan' | 'coupe' | 'crossover' | 'largeSuv' | 'boxSuv';
+  | 'luxurySedan' | 'coupe' | 'crossover' | 'largeSuv' | 'boxSuv'
+  | 'supercar' | 'sportsGt' | 'evSedan';
 
 export function tag(g: BufferGeometry, part: number): BufferGeometry {
   const ng = g.index ? g.toNonIndexed() : g;
@@ -162,6 +163,53 @@ function coupe(): BufferGeometry[] {
     box(1.2, 0.05, 0.22, 0, 0.88, -2.14, PART.trim), // rear spoiler
     ...carDetails({ W, front: 2.28, rear: -2.3, headY: 0.54, tailY: 0.66, bumperY: 0.32, mirrorZ: 0.85, mirrorY: 0.9 }),
     ...wheels([1.4, -1.36], W / 2 - 0.13, 0.33, 0.26),
+  ];
+}
+
+/** Mid-engine supercar (4.6 m): very low wedge, cab-forward canopy, side intakes, wide rear wing. Generic, no brand. */
+function supercar(): BufferGeometry[] {
+  const W = 2.02;
+  return [
+    profile([[-2.3, 0.22], [2.3, 0.22], [2.36, 0.34], [2.0, 0.5], [0.6, 0.66], [-1.6, 0.8], [-2.28, 0.74], [-2.36, 0.46]], W, PART.paint),
+    profile([[0.62, 0.64], [-0.05, 1.08], [-0.85, 1.1], [-1.55, 0.8]], W - 0.5, PART.glass, 0.04),
+    box(W - 0.48, 0.04, 0.78, 0, 1.11, -0.46, PART.paint),
+    box(0.18, 0.22, 0.9, W / 2 - 0.02, 0.56, -0.8, PART.trim), // side intakes
+    box(0.18, 0.22, 0.9, -(W / 2 - 0.02), 0.56, -0.8, PART.trim),
+    box(1.7, 0.05, 0.3, 0, 0.98, -2.12, PART.trim), // rear wing
+    box(0.06, 0.18, 0.06, 0.62, 0.88, -2.1, PART.trim),
+    box(0.06, 0.18, 0.06, -0.62, 0.88, -2.1, PART.trim),
+    box(1.6, 0.06, 0.14, 0, 0.28, 2.3, PART.trim), // front splitter
+    ...carDetails({ W, front: 2.3, rear: -2.32, headY: 0.44, tailY: 0.6, bumperY: 0.27, mirrorZ: 0.5, mirrorY: 0.8 }),
+    ...wheels([1.42, -1.32], W / 2 - 0.14, 0.34, 0.3),
+  ];
+}
+
+/** Front-engine grand tourer (4.7 m): long bonnet, fastback, twin exhausts. Generic, no brand. */
+function sportsGt(): BufferGeometry[] {
+  const W = 1.95;
+  return [
+    profile([[-2.32, 0.26], [2.36, 0.26], [2.42, 0.42], [2.36, 0.58], [0.55, 0.74], [-1.85, 0.84], [-2.3, 0.78], [-2.4, 0.52]], W, PART.paint),
+    profile([[0.55, 0.72], [-0.3, 1.16], [-1.05, 1.16], [-2.1, 0.82]], W - 0.4, PART.glass, 0.04),
+    box(W - 0.38, 0.04, 0.72, 0, 1.17, -0.68, PART.paint),
+    box(0.1, 0.08, 0.14, 0.4, 0.3, -2.38, PART.chrome), // exhausts
+    box(0.1, 0.08, 0.14, -0.4, 0.3, -2.38, PART.chrome),
+    box(0.06, 0.06, 1.2, 0, 0.75, 1.3, PART.trim), // bonnet vent
+    ...carDetails({ W, front: 2.36, rear: -2.36, headY: 0.5, tailY: 0.64, bumperY: 0.3, mirrorZ: 0.4, mirrorY: 0.86 }),
+    ...wheels([1.48, -1.4], W / 2 - 0.13, 0.34, 0.28),
+  ];
+}
+
+/** Electric fastback saloon (4.7 m): smooth closed nose (no grille), glass roof, flush light bar. Generic, no brand. */
+function evSedan(): BufferGeometry[] {
+  const W = 1.88;
+  return [
+    profile([[-2.34, 0.3], [2.3, 0.3], [2.38, 0.48], [2.3, 0.64], [1.25, 0.8], [-1.6, 0.92], [-2.3, 0.86], [-2.38, 0.6]], W, PART.paint),
+    profile([[1.25, 0.78], [0.25, 1.36], [-0.9, 1.4], [-2.05, 0.9]], W - 0.28, PART.glass, 0.04),
+    box(W - 0.3, 0.03, 1.9, 0, 1.415, -0.4, PART.glass), // glass roof
+    box(W - 0.3, 0.06, 0.06, 0, 0.8, -2.34, PART.tail), // flush rear light bar
+    box(1.2, 0.04, 0.05, 0, 0.6, 2.36, PART.head), // light strip instead of a grille
+    ...carDetails({ W, front: 2.32, rear: -2.36, headY: 0.6, tailY: 0.74, bumperY: 0.36, mirrorZ: 1.0, mirrorY: 0.98 }),
+    ...wheels([1.45, -1.45], W / 2 - 0.12, 0.34, 0.24),
   ];
 }
 
@@ -605,6 +653,7 @@ const BUILDERS: Record<VehicleKind, () => BufferGeometry[]> = {
   carTransporter, towTruck, fireEngine, ambulance, garbage, serviceVan,
   forklift, yardTractor, reachStacker, excavator, wheelLoader, bulldozer,
   luxurySedan, coupe, crossover, largeSuv, boxSuv,
+  supercar, sportsGt, evSedan,
 };
 
 /** Length of each model in world units (bumper to bumper). */
@@ -621,6 +670,9 @@ export const VEHICLE_LENGTH: Record<VehicleKind, number> = {
   crossover: 4.54 * VEHICLE_SCALE,
   largeSuv: 4.96 * VEHICLE_SCALE,
   boxSuv: 4.86 * VEHICLE_SCALE,
+  supercar: 4.66 * VEHICLE_SCALE,
+  sportsGt: 4.78 * VEHICLE_SCALE,
+  evSedan: 4.76 * VEHICLE_SCALE,
   hatch: 4.15 * VEHICLE_SCALE,
   suv: 4.92 * VEHICLE_SCALE,
   van: 5.25 * VEHICLE_SCALE,
@@ -643,6 +695,9 @@ export const VEHICLE_CENTER: Record<VehicleKind, number> = {
   crossover: 0,
   largeSuv: 0,
   boxSuv: 0,
+  supercar: 0,
+  sportsGt: 0,
+  evSedan: 0,
   hatch: 0,
   suv: 0,
   van: 0,
@@ -657,7 +712,7 @@ export const VEHICLE_CENTER: Record<VehicleKind, number> = {
 const PROXY_BODY: Partial<Record<VehicleKind, [number, number]>> = {
   suv: [1.94, 1.75], largeSuv: [1.98, 1.9], boxSuv: [1.94, 1.86], crossover: [1.86, 1.62], pickup: [1.9, 1.8],
   van: [1.95, 2.2], serviceVan: [1.98, 2.3], boxTruck: [2.3, 3.2], reefer: [2.4, 3.3], flatbed: [2.3, 2.6],
-  coupe: [1.88, 1.25], luxurySedan: [1.9, 1.42], sedan: [1.82, 1.42], hatch: [1.78, 1.45], taxi: [1.82, 1.5],
+  coupe: [1.88, 1.25], supercar: [2.02, 1.1], sportsGt: [1.95, 1.18], evSedan: [1.88, 1.42], luxurySedan: [1.9, 1.42], sedan: [1.82, 1.42], hatch: [1.78, 1.45], taxi: [1.82, 1.5],
 };
 const proxyCache = new Map<VehicleKind, BufferGeometry>();
 

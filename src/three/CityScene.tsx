@@ -37,6 +37,8 @@ import { PerfProbe } from './PerfProbe';
 import { DevHooks } from './DevHooks';
 import { G } from './shaders/globals';
 import { OpsOverlay } from '../opsAgent/OpsOverlay';
+import { FactoryDetails } from './FactoryDetails';
+import { EvCharging } from './EvCharging';
 import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
 import { useTwinStore } from '../store/useTwinStore';
 
@@ -111,12 +113,12 @@ function Warmup() {
   return null;
 }
 
-function EffectsGate({ quality }: { quality: 'high' | 'low' }) {
+function EffectsGate({ quality }: { quality: 'high' | 'low' | 'off' }) {
   const ready = useTwinStore((s) => s.sceneReady);
-  return ready ? <Effects quality={quality} /> : null;
+  return ready && quality !== 'off' ? <Effects quality={quality} /> : null;
 }
 
-export function CityScene({ quality }: { quality: 'high' | 'low' }) {
+export function CityScene({ quality, effects = quality, details = true }: { quality: 'high' | 'low'; effects?: 'high' | 'low' | 'off'; details?: boolean }) {
   // Initialize performance renderer with dynamic quality adjustment
   usePerformanceRenderer();
 
@@ -132,8 +134,10 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
         <Ground />
         <Sea />
         <AbuDhabiBuildings />
+        {details && <FactoryDetails />}
         <YardEquipment />
         <Streetscape quality={quality} />
+        <EvCharging />
         <Lagoons quality={quality} />
         <Interchange />
         <Highway />
@@ -167,7 +171,7 @@ export function CityScene({ quality }: { quality: 'high' | 'low' }) {
       <Warmup />
       {import.meta.env.DEV && <PerfProbe />}
       {import.meta.env.DEV && <DevHooks />}
-      <EffectsGate quality={quality} />
+      <EffectsGate quality={effects} />
     </>
   );
 }

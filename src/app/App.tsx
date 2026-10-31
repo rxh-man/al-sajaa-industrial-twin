@@ -11,6 +11,7 @@ import { Header } from '../components/dashboard/Header';
 import { OpsAgentPanel } from '../opsAgent/OpsAgentPanel';
 import { SustainabilityPanel } from '../sustainability/SustainabilityPanel';
 import { JudgeTour } from '../tour/JudgeTour';
+import { tierSettings, useTier } from '../perf/qualityTier';
 import '../styles/nav.css';
 import { SignalRail } from '../components/dashboard/SignalRail';
 import { AgentsPanel } from '../components/agents/AgentsPanel';
@@ -73,6 +74,8 @@ export function App() {
   const phase = useTwinStore((s) => s.snap.phase);
   const [dpr, setDpr] = useState(() => Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5));
   const [quality, setQuality] = useState<'high' | 'low'>('high');
+  const tier = useTier((s) => s.tier);
+  const ts = tierSettings(tier, quality, dpr);
   const viewportRef = useRef<HTMLDivElement>(null);
   const compact = useMediaQuery('(max-width: 1100px)');
   const [drawer, setDrawer] = useState<null | 'left' | 'right'>(null);
@@ -88,8 +91,8 @@ export function App() {
     <div className={`app boot-${boot} ${compact ? 'is-compact' : ''} ${drawer ? `drawer-${drawer}` : ''} ${railsCollapsed ? 'rails-collapsed' : ''} phase-${phase.toLowerCase()}`}>
       <div className="stage" role="application" aria-label="Interactive 3D twin of the Al Sajaa industrial district: yards, labor camps, Etihad Rail and five underground utility networks">
         <Canvas
-          shadows
-          dpr={dpr}
+          shadows={ts.shadows}
+          dpr={ts.dpr}
           camera={{ fov: 34, near: 0.4, far: 2400, position: POSES.intro.pos }}
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
           onCreated={({ gl }) => {
@@ -108,7 +111,7 @@ export function App() {
             }}
             onIncline={() => setDpr(Math.min(window.devicePixelRatio || 1, 1.75))}
           />
-          <CityScene quality={quality} />
+          <CityScene quality={ts.scene} effects={ts.effects} details={ts.details} />
         </Canvas>
       </div>
 

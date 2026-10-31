@@ -6,6 +6,8 @@ import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { useTourStore } from '../tour/store';
 import type { LayerId } from '../data/networks';
+import { useTier, type Tier } from '../perf/qualityTier';
+import { useI18n } from '../i18n/i18nContext';
 
 /**
  * The grouped main navigation: City, Infrastructure, Sustainability, AI Operations and Planning. Every item calls
@@ -35,6 +37,9 @@ function useGroups(): Group[] {
   );
   const s = { ...useTwinStore.getState(), ...v };
   const ops = useOpsStore(useShallow((q) => ({ open: q.open, tab: q.tab })));
+  const tier = useTier((q) => q.tier);
+  const setTier = useTier((q) => q.setTier);
+  const tierItem = (t: Tier, label: string): Item => ({ label: `Quality: ${label}`, run: () => setTier(t), on: tier === t });
   const sus = useSusStore(useShallow((q) => ({ open: q.open, tab: q.tab })));
   const focusLayer = (l: LayerId) => {
     if (!s.xray) s.toggleXray();
@@ -53,6 +58,10 @@ function useGroups(): Group[] {
         { label: 'Far Northern Industrial Zone', run: () => s.focusPlace(-60, -190, 90) },
         { label: 'Exploded view', hint: 'E', run: () => s.toggleExploded(), on: s.exploded },
         { label: 'Sharjah location map', run: () => s.setSharjahMap(!s.sharjahMap), on: s.sharjahMap },
+        tierItem('auto', 'auto (adapts to this device)'),
+        tierItem('high', 'high'),
+        tierItem('medium', 'medium'),
+        tierItem('low', 'low (fast)'),
       ],
     },
     {
@@ -110,8 +119,25 @@ function useGroups(): Group[] {
   ];
 }
 
+/** Arabic labels for the menus (English is the source text above) */
+const AR: Record<string, string> = {
+  City: 'المدينة', Infrastructure: 'البنية التحتية', Sustainability: 'الاستدامة', 'AI Operations': 'العمليات الذكية', Planning: 'التخطيط',
+  'City overview': 'نظرة عامة على المدينة', 'Al Sajaa street level': 'مستوى شوارع السجعة', 'Etihad Rail and E611 interchange': 'قطار الاتحاد وتقاطع E611',
+  'Al Sajaa Lagoons': 'بحيرات السجعة', 'Far Northern Industrial Zone': 'المنطقة الصناعية الشمالية', 'Exploded view': 'العرض المفصّل', 'Sharjah location map': 'خريطة موقع الشارقة',
+  'Quality: auto (adapts to this device)': 'الجودة: تلقائية', 'Quality: high': 'الجودة: عالية', 'Quality: medium': 'الجودة: متوسطة', 'Quality: low (fast)': 'الجودة: منخفضة (سريعة)',
+  'Infrastructure layers': 'طبقات البنية التحتية', 'X-ray (see underground)': 'الأشعة (رؤية ما تحت الأرض)', 'Underground view': 'العرض تحت الأرض',
+  'Water network': 'شبكة المياه', Electricity: 'الكهرباء', Telecom: 'الاتصالات', 'District cooling': 'تبريد المناطق', Sewage: 'الصرف الصحي',
+  'Sustainability Command Centre': 'مركز قيادة الاستدامة', 'Industrial emissions': 'الانبعاثات الصناعية', 'Trees and green spaces': 'الأشجار والمساحات الخضراء',
+  'Energy and water': 'الطاقة والمياه', 'Air quality panel': 'لوحة جودة الهواء', 'Climate panel (heat, solar, freight)': 'لوحة المناخ (الحرارة، الشمس، الشحن)',
+  'AI Operations Agent': 'وكيل العمليات الذكي', 'Specialist agents': 'الوكلاء المتخصصون', 'Compare interventions': 'مقارنة التدخلات', 'Audit and explainability': 'التدقيق والشفافية',
+  'Twin agents rail (Watch … Verify)': 'شريط وكلاء التوأم', 'New factory / development simulation': 'محاكاة مصنع / تطوير جديد', 'Scenario levers (what-if)': 'أدوات السيناريو (ماذا لو)',
+  '48-hour forecast': 'توقعات 48 ساعة', 'Leak incident demo': 'عرض حادث التسرب', 'Adoption and roadmap': 'التبني وخارطة الطريق', 'Judge tour': 'جولة الحكام',
+};
+
 export function MainNav() {
   const groups = useGroups();
+  const { locale } = useI18n();
+  const L = (s: string) => (locale === 'ar' ? (AR[s] ?? s) : s);
   const [open, setOpen] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const startTour = useTourStore((s) => s.start);
@@ -132,11 +158,11 @@ export function MainNav() {
         <div key={g.id} className="mnav-group">
           <button className={`seg-btn mnav-trigger ${open === g.id ? 'is-on' : ''} ${g.items.some((i) => i.on) ? 'has-on' : ''}`} aria-haspopup="menu" aria-expanded={open === g.id} onClick={() => setOpen(open === g.id ? null : g.id)}>
             {g.icon}
-            <span className="mnav-label">{g.label}</span>
+            <span className="mnav-label">{L(g.label)}</span>
             <ChevronDown size={12} aria-hidden />
           </button>
           {open === g.id && (
-            <div className="mnav-menu popover" role="menu" aria-label={g.label}>
+            <div className="mnav-menu popover" role="menu" aria-label={L(g.label)} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
               {g.items.map((it) => (
                 <button
                   key={it.label}
@@ -149,7 +175,7 @@ export function MainNav() {
                   }}
                 >
                   <span className="mnav-dot" aria-hidden />
-                  <span>{it.label}</span>
+                  <span>{L(it.label)}</span>
                   {it.hint && <kbd>{it.hint}</kbd>}
                 </button>
               ))}
@@ -159,7 +185,7 @@ export function MainNav() {
       ))}
       <button className="seg-btn mnav-tour" onClick={() => startTour()} title="Guided judge demonstration">
         <Compass size={14} />
-        <span className="mnav-label">Judge tour</span>
+        <span className="mnav-label">{L('Judge tour')}</span>
       </button>
     </div>
   );
