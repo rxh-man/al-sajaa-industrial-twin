@@ -279,6 +279,7 @@ function SignalHeads({ links, sig }: { links: Link[]; sig: Map<string, number> }
   const heads = useMemo(() => signalHeadPlacements(links, sig), [links, sig]);
   const poles = useRef<InstancedMesh>(null);
   const lamps = useRef<InstancedMesh>(null);
+  const lines = useRef<InstancedMesh>(null);
   const last = useRef<string[]>([]);
   const group = useRef<Group>(null);
   useFrame(({ camera }) => {
@@ -296,7 +297,13 @@ function SignalHeads({ links, sig }: { links: Link[]; sig: Map<string, number> }
         q.setFromEuler(new Euler(0, h.yaw, 0));
         p.setMatrixAt(i, m.compose(new Vector3(h.x, 0.35, h.z), q, new Vector3(0.05, 0.7, 0.05)));
         l.setMatrixAt(i, m.compose(new Vector3(h.x, 0.66, h.z), q, new Vector3(0.11, 0.11, 0.11)));
+        // stop line across the approach lane, between the head and the carriageway centre
+        // the head stands on the right verge; the lane is 0.6 to its left: (dz, -dx) with dx = -sin(yaw), dz = -cos(yaw)
+        const cx = h.x - Math.cos(h.yaw) * 0.6;
+        const cz = h.z + Math.sin(h.yaw) * 0.6;
+        lines.current?.setMatrixAt(i, m.compose(new Vector3(cx, 0.012, cz), q, new Vector3(0.95, 0.01, 0.06)));
       });
+      if (lines.current) (lines.current.instanceMatrix.needsUpdate = true), lines.current.computeBoundingSphere();
       p.instanceMatrix.needsUpdate = true;
       l.instanceMatrix.needsUpdate = true;
       p.computeBoundingSphere();
@@ -319,6 +326,10 @@ function SignalHeads({ links, sig }: { links: Link[]; sig: Map<string, number> }
       <instancedMesh ref={poles} args={[undefined, undefined, heads.length]} raycast={noRaycast}>
         <boxGeometry />
         <meshStandardMaterial color="#3a3f45" roughness={0.6} metalness={0.4} />
+      </instancedMesh>
+      <instancedMesh ref={lines} args={[undefined, undefined, heads.length]} raycast={noRaycast} receiveShadow>
+        <boxGeometry />
+        <meshStandardMaterial color="#f2f2ee" roughness={0.9} polygonOffset polygonOffsetFactor={-2} />
       </instancedMesh>
       <instancedMesh ref={lamps} args={[undefined, undefined, heads.length]} raycast={noRaycast}>
         <sphereGeometry args={[1, 6, 4]} />

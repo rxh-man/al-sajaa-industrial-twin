@@ -32,3 +32,11 @@ button.sus-kpi:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2
 .air-filters { margin: 8px 0; }
 .air-search { width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.3); color: var(--text-0); border: 1px solid var(--line-2); border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; }
 .layer-tools { display: grid; gap: 6px; padding: 6px 2px 8px; }
+
+/* Unified panel look (Command Centre reference) for the older overlay panels */
+.ov-panel.air-panel, .ov-panel.layer-panel, .ov-panel.climate-panel { background: rgba(9, 14, 21, 0.94); border-radius: 12px; font-size: 13px; line-height: 1.45; color: var(--text-0); }
+.ov-panel.air-panel .ov-head, .ov-panel.layer-panel .ov-head { border-bottom: 1px solid var(--line-2); padding-bottom: 6px; margin-bottom: 6px; }
+.ov-panel.air-panel .air-h, .ov-panel.climate-panel h3, .ov-panel.climate-panel h4 { font-size: 13px; font-weight: 600; margin: 10px 0 4px; color: var(--text-0); letter-spacing: 0; text-transform: none; }
+.ov-panel.air-panel .air-note, .ov-panel.climate-panel .climate-meta { padding: 6px 8px; border-radius: 8px; background: rgba(79, 209, 232, 0.08); color: var(--text-1); font-size: 12px; }
+.ov-panel.climate-panel input[type='range'], .ov-panel.air-panel input[type='range'] { accent-color: var(--cyan); }
+.ov-panel.climate-panel select, .ov-panel.layer-panel select { background: rgba(0, 0, 0, 0.3); color: var(--text-0); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 6px; }

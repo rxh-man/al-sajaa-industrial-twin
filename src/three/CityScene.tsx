@@ -40,6 +40,7 @@ import { OpsOverlay } from '../opsAgent/OpsOverlay';
 import { FactoryDetails } from './FactoryDetails';
 import { EvCharging } from './EvCharging';
 import { ParkingFurniture } from './ParkingFurniture';
+import { InfillBuildings } from './InfillBuildings';
 import { AssetHealthOverlay } from '../env/AssetHealthOverlay';
 import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
 import { useTwinStore } from '../store/useTwinStore';
@@ -136,6 +137,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
         <Ground />
         <Sea />
         <AbuDhabiBuildings />
+        <InfillBuildings />
         {details && <FactoryDetails />}
         <YardEquipment />
         <Streetscape quality={quality} />

@@ -147,3 +147,20 @@ test('real signal heads on the city road graph: one per signalled approach, none
     assert.equal(M.spatial.inBuilding(h.x, h.z, 0.05), false, 'not in a building');
   }
 });
+
+test('infill buildings: eight distinct types on clear land, never overlapping each other or new-development sites', async () => {
+  const I = await server.ssrLoadModule('/src/data/infill.ts');
+  const B = await server.ssrLoadModule('/src/three/InfillBuildings.tsx');
+  const D = await server.ssrLoadModule('/src/sustainability/development.ts');
+  assert.equal(new Set(I.INFILL.map((s: { kind: string }) => s.kind)).size, 8);
+  for (const s of I.INFILL) {
+    for (const [fx, fz] of [[0, 0], [-0.45, -0.45], [0.45, 0.45]]) {
+      assert.ok(M.spatial.kerbDistance(s.x + fx * s.w, s.z + fz * s.d, 2) > 0, 'off the carriageway');
+      assert.equal(M.spatial.inBuilding(s.x + fx * s.w, s.z + fz * s.d, 0), false, 'not on a building');
+    }
+    const p = B.partsFor(s);
+    for (const q of [...p.solid, ...p.glass, ...p.green]) assert.ok(Math.abs(q.x - s.x) <= s.w / 2 + 0.6 && Math.abs(q.z - s.z) <= s.d / 2 + 0.6, `${s.kind} part stays on its plot`);
+  }
+  const dev = D.runDevelopment({ ...D.DEV_DEFAULTS, district: 'central' });
+  for (const a of dev.sites) for (const b of I.INFILL) assert.ok(Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.z - b.z) >= (a.d + b.d) / 2, 'development avoids infill');
+});

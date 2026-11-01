@@ -46,6 +46,12 @@ export interface Site {
 }
 
 const siteCache = new Map<string, Site[]>();
+/** land already used by other layout additions (e.g. the commercial and residential infill), kept clear */
+const reserved: Site[] = [];
+export function reserveSites(sites: Site[]) {
+  reserved.push(...sites);
+  siteCache.clear();
+}
 
 /** candidate sites in a district, scanned on a 1-unit grid in a fixed order (deterministic; cached) */
 export function findSites(districtId: string, size: SizeId, count: number): Site[] {
@@ -83,7 +89,7 @@ function searchSites(districtId: string, size: SizeId, count: number): Site[] {
       }
     for (const v of STREETSCAPE.villas) if (x + w / 2 > v.b[0] - 0.5 && x - w / 2 < v.b[2] + 0.5 && z + dd / 2 > v.b[1] - 0.5 && z - dd / 2 < v.b[3] + 0.5) return false;
     for (const l of lots) if (x + w / 2 > l.x0 - 0.3 && x - w / 2 < l.x1 + 0.3 && z + dd / 2 > l.z0 - 0.3 && z - dd / 2 < l.z1 + 0.3) return false;
-    for (const t of taken) if (Math.abs(t.x - x) < (t.w + w) / 2 + 1 && Math.abs(t.z - z) < (t.d + dd) / 2 + 1) return false;
+    for (const t of [...reserved, ...taken]) if (Math.abs(t.x - x) < (t.w + w) / 2 + 1 && Math.abs(t.z - z) < (t.d + dd) / 2 + 1) return false;
     return true;
   };
   for (let z = z0 + dd / 2 + 1; z <= z1 - dd / 2 - 1 && taken.length < count; z += 1)
