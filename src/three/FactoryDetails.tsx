@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { Color, Object3D, type InstancedMesh } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { Color, Object3D, type Group, type InstancedMesh } from 'three';
 import { FACILITIES, hash01, type Facility } from '../sustainability/facilities';
 import { kerbDistance } from '../data/spatial';
 
@@ -129,15 +130,28 @@ function Instanced({ items, geom, castShadow = false }: { items: Inst[]; geom: '
   );
 }
 
+/** above this camera height (scene units) the small parts are below a pixel or two and are not drawn */
+export const SMALL_PARTS_MAX_HEIGHT = 45;
+
 export function FactoryDetails() {
   const d = useMemo(() => build(FACILITIES), []);
+  const small = useRef<Group>(null);
+  // camera-aware detail: stacks always; tanks, HVAC, vents and dock doors only when the camera is low enough to see them
+  useFrame(({ camera }) => {
+    const g = small.current;
+    if (!g) return;
+    const show = camera.position.y < SMALL_PARTS_MAX_HEIGHT;
+    if (g.visible !== show) g.visible = show;
+  });
   return (
     <group>
       <Instanced items={d.stacks} geom="cyl" castShadow />
-      <Instanced items={d.tanks} geom="cyl" />
-      <Instanced items={d.hvac} geom="box" />
-      <Instanced items={d.vents} geom="box" />
-      <Instanced items={d.doors} geom="box" />
+      <group ref={small}>
+        <Instanced items={d.tanks} geom="cyl" />
+        <Instanced items={d.hvac} geom="box" />
+        <Instanced items={d.vents} geom="box" />
+        <Instanced items={d.doors} geom="box" />
+      </group>
     </group>
   );
 }

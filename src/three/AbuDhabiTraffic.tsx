@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { AdditiveBlending, BufferGeometry, Color, Euler, InstancedBufferAttribute, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3, type Intersection, type Raycaster } from 'three';
+import { AdditiveBlending, BufferGeometry, Color, Euler, type Group, InstancedBufferAttribute, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3, type Intersection, type Raycaster } from 'three';
 import { AD, type XZ } from '../data/abudhabi';
 import { TRENCH } from '../data/incident';
 import { mulberry32 } from '../data/rng';
@@ -10,6 +10,7 @@ import { motionScale, useTwinStore } from '../store/useTwinStore';
 import { VEHICLE_LENGTH, vehicleGeometry, type VehicleKind } from './vehicles/vehicleModels';
 import { createVehicleMaterial } from './vehicles/vehicleMaterial';
 import { G } from './shaders/globals';
+import { inBuilding, kerbDistance } from '../data/spatial';
 
 /** Headlight cones ahead of each car and a red tail glow behind it (brighter when braking), on the asphalt. */
 function createBeamMaterial() {
@@ -153,7 +154,7 @@ function offsetLine(pts: XZ[], off: number): XZ[] {
   });
 }
 
-function buildLinks() {
+export function buildLinks() {
   const uses = new Map<string, number>();
   for (const r of AD.roads) for (const id of r.k) uses.set(id, (uses.get(id) ?? 0) + 1);
   const links: Link[] = [];
@@ -223,7 +224,7 @@ const SIGNAL_CYCLE = 36;   // seconds for one full cycle (green + amber both way
 const GREEN = 15;          // seconds of green per axis
 const AMBER = 3;
 const simClock = { t: 0 };
-function junctionNodes(links: Link[]) {
+export function junctionNodes(links: Link[]) {
   const arms = new Map<string, number>();
   for (const l of links) arms.set(l.b, (arms.get(l.b) ?? 0) + 1);
   const sig = new Map<string, number>();
@@ -240,8 +241,95 @@ function signalState(offset: number, axis: 0 | 1, now: number, dist: number) {
   return 'stop';
 }
 
+/** the lamp a driver on this approach sees: green, amber, or red (same phases the cars obey) */
+export function signalLamp(offset: number, axis: 0 | 1, now: number): 'green' | 'amber' | 'red' {
+  const t = (now + offset * GREEN) % SIGNAL_CYCLE;
+  const phase = axis === 0 ? t : (t + SIGNAL_CYCLE / 2) % SIGNAL_CYCLE;
+  return phase < GREEN ? 'green' : phase < GREEN + AMBER ? 'amber' : 'red';
+}
+
+/**
+ * Signal heads: one per signalled approach on the main roads (secondary and above; local junctions are
+ * unsignalled in practice), on the right-hand verge just before the junction. A head is dropped if that spot is
+ * on a carriageway or inside a building (`check` can be turned off for synthetic tests).
+ */
+export function signalHeadPlacements(links: Pick<Link, 'b' | 'pts' | 'hwy' | 'elev' | 'speed'>[], sig: Map<string, number>, check = true) {
+  const out: { x: number; z: number; yaw: number; offset: number; axis: 0 | 1 }[] = [];
+  for (const l of links) {
+    if (l.hwy || l.elev || !sig.has(l.b) || l.pts.length < 2 || l.speed < SPEED.secondary) continue;
+    const [ex, ez] = l.pts[l.pts.length - 1];
+    const [px, pz] = l.pts[l.pts.length - 2];
+    const L = Math.hypot(ex - px, ez - pz);
+    if (L < 2) continue;
+    const dx = (ex - px) / L;
+    const dz = (ez - pz) / L;
+    const axis: 0 | 1 = Math.abs(l.pts[l.pts.length - 1][0] - l.pts[0][0]) > Math.abs(l.pts[l.pts.length - 1][1] - l.pts[0][1]) ? 0 : 1;
+    // right-hand side for traffic heading (dx, dz) in x-east / z-south: (-dz, dx)
+    const x = ex - dx * 1.3 - dz * 1.25;
+    const z = ez - dz * 1.3 + dx * 1.25;
+    if (check && (kerbDistance(x, z, 2) < 0.02 || inBuilding(x, z, 0.05))) continue;
+    out.push({ x, z, yaw: Math.atan2(-dx, -dz), offset: sig.get(l.b)!, axis });
+  }
+  return out;
+}
+
+const LAMP = { green: new Color('#2bd96b'), amber: new Color('#ffb21f'), red: new Color('#ff3b30') };
+
+function SignalHeads({ links, sig }: { links: Link[]; sig: Map<string, number> }) {
+  const heads = useMemo(() => signalHeadPlacements(links, sig), [links, sig]);
+  const poles = useRef<InstancedMesh>(null);
+  const lamps = useRef<InstancedMesh>(null);
+  const last = useRef<string[]>([]);
+  const group = useRef<Group>(null);
+  useFrame(({ camera }) => {
+    const p = poles.current;
+    const l = lamps.current;
+    if (!p || !l) return;
+    // a few pixels at most from high up: drawn only when the camera is low enough to see them
+    const show = camera.position.y < 45;
+    if (group.current && group.current.visible !== show) group.current.visible = show;
+    if (!show && last.current.length) return;
+    if (!last.current.length) {
+      const m = new Matrix4();
+      const q = new Quaternion();
+      heads.forEach((h, i) => {
+        q.setFromEuler(new Euler(0, h.yaw, 0));
+        p.setMatrixAt(i, m.compose(new Vector3(h.x, 0.35, h.z), q, new Vector3(0.05, 0.7, 0.05)));
+        l.setMatrixAt(i, m.compose(new Vector3(h.x, 0.66, h.z), q, new Vector3(0.11, 0.11, 0.11)));
+      });
+      p.instanceMatrix.needsUpdate = true;
+      l.instanceMatrix.needsUpdate = true;
+      p.computeBoundingSphere();
+      l.computeBoundingSphere();
+    }
+    let changed = false;
+    heads.forEach((h, i) => {
+      const s = signalLamp(h.offset, h.axis, simClock.t);
+      if (last.current[i] !== s) {
+        last.current[i] = s;
+        l.setColorAt(i, LAMP[s]);
+        changed = true;
+      }
+    });
+    if (changed && l.instanceColor) l.instanceColor.needsUpdate = true;
+  });
+  if (!heads.length) return null;
+  return (
+    <group ref={group}>
+      <instancedMesh ref={poles} args={[undefined, undefined, heads.length]} raycast={noRaycast}>
+        <boxGeometry />
+        <meshStandardMaterial color="#3a3f45" roughness={0.6} metalness={0.4} />
+      </instancedMesh>
+      <instancedMesh ref={lamps} args={[undefined, undefined, heads.length]} raycast={noRaycast}>
+        <sphereGeometry args={[1, 6, 4]} />
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+    </group>
+  );
+}
+
 export function AbuDhabiTraffic() {
-  const { links, out, cars, kindOf } = useMemo(() => {
+  const { links, out, cars, kindOf, sigNodes } = useMemo(() => {
     const { links, out } = buildLinks();
     const rnd = mulberry32(2026);
     const total = links.reduce((s, l) => s + l.weight * l.len, 0);
@@ -266,7 +354,7 @@ export function AbuDhabiTraffic() {
         kindOf.push(fi);
       }
     });
-    return { links, out, cars, kindOf };
+    return { links, out, cars, kindOf, sigNodes };
   }, []);
 
   const groups = useMemo(() => FLEET.map((_, fi) => cars.map((_, ci) => ci).filter((ci) => kindOf[ci] === fi)), [cars, kindOf]);
@@ -437,6 +525,7 @@ export function AbuDhabiTraffic() {
 
   return (
     <group>
+      <SignalHeads links={links} sig={sigNodes} />
       {FLEET.map((f, i) => (
         <instancedMesh
           key={f.kind}

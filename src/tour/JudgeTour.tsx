@@ -7,6 +7,7 @@ import { approve, DEMO_GOALS, plan } from '../opsAgent/runtime';
 import { runDevelopment, DEV_DEFAULTS } from '../sustainability/development';
 import { openAgent, openCentre } from '../nav/MainNav';
 import { useTourStore } from './store';
+import { useI18n } from '../i18n/i18nContext';
 import { FACILITIES } from '../sustainability/facilities';
 
 /**
@@ -18,6 +19,8 @@ import { FACILITIES } from '../sustainability/facilities';
 interface Step {
   title: string;
   body: string;
+  titleAr: string;
+  bodyAr: string;
   enter: () => void;
   /** an optional action the judge can trigger from the card */
   act?: { label: string; run: () => void; done?: () => boolean };
@@ -29,7 +32,7 @@ const sus = () => useSusStore.getState();
 
 export const STEPS: Step[] = [
   {
-    title: 'Explore Al Sajaa',
+    title: 'Explore Al Sajaa', titleAr: 'استكشف السجعة', bodyAr: `توأم رقمي إجرائي لمنطقة السجعة الصناعية في الشارقة: ${FACILITIES.length} منشأة صناعية مُنمذجة، ومنازل وفلل البحيرات، وقطار الاتحاد، وتقاطع E611، وخمس شبكات مرافق تحت الأرض. اسحب للدوران ومرّر للتكبير.`,
     body: `A procedural twin of the Al Sajaa industrial district, Sharjah: ${FACILITIES.length} modelled industrial facilities, homes and lagoon villas, Etihad Rail, the E611 interchange and five underground utility networks. Drag to orbit, scroll to zoom.`,
     enter: () => {
       ops().setOpen(false);
@@ -38,14 +41,14 @@ export const STEPS: Step[] = [
     },
   },
   {
-    title: 'Discover an issue',
+    title: 'Discover an issue', titleAr: 'اكتشف مشكلة', bodyAr: 'تُبلغ مستشعرات محاكاة قرب الطريق الرئيسي عن انخفاض في الضغط وتربة رطبة: حادث خط المياه المُعدّ مسبقاً في التوأم. انظر تحت الطريق بوضع الأشعة.',
     body: 'Simulated sensors near the main road report a pressure drop and wet ground: the twin\'s scripted water-main incident. Look under the road in X-ray.',
     enter: () => {
       twin().skipToIncident();
     },
   },
   {
-    title: 'Ask the AI Operations Agent',
+    title: 'Ask the AI Operations Agent', titleAr: 'اسأل وكيل العمليات الذكي', bodyAr: 'يُكتب الهدف بكلمات بسيطة. يقرؤه الوكيل بقواعد ثابتة (لا يوجد نموذج لغوي متصل)، ويحدد سير عمل حادث المياه، ويستدعي أدواته.',
     body: 'The goal is typed in plain words. The agent reads it with deterministic rules (no language model is connected), finds the Water Incident workflow, and calls its tools.',
     enter: () => {
       openAgent('agent');
@@ -55,17 +58,17 @@ export const STEPS: Step[] = [
     },
   },
   {
-    title: 'Watch it analyse',
+    title: 'Watch it analyse', titleAr: 'تابع التحليل', bodyAr: 'تعرض حالة المهمة كل خطوة: فحص الأصول والمستشعرات المحاكاة، وتشغيل نموذج التسرب، وتسجيل كل استدعاء أداة. تُظهر الخريطة الخط المتسرب وصمامات العزل ومسار الفريق من المستودع.',
     body: 'Task status shows each step: assets and simulated sensors inspected, the leak model run, every tool call logged. The map shows the leaking main, the isolation valves and the crew route from the depot.',
     enter: () => openAgent('agent'),
   },
   {
-    title: 'Compare alternatives',
+    title: 'Compare alternatives', titleAr: 'قارن البدائل', bodyAr: 'ثلاثة تدخلات مقابل الاستجابة التقليدية، مع التغير المطلق والنسبي لكل مؤشر، والأوزان التي بُني عليها الاختيار، وما لا يستطيع النموذج تقديره.',
     body: 'Three interventions against the reactive baseline, with absolute and percentage change for every KPI, the weights behind the choice, and what the model cannot estimate.',
     enter: () => openAgent('compare'),
   },
   {
-    title: 'Approve the intervention',
+    title: 'Approve the intervention', titleAr: 'وافق على التدخل', bodyAr: 'لا يحدث شيء دون إنسان. يُمنع المشاهد؛ ويوافق المشغّل. وافق في اللوحة أو استخدم الزر أدناه (المشغّل «الحَكَم»).',
     body: 'Nothing happens without a human. A viewer is blocked; an operator approves. Approve in the panel, or use the button below (operator "Judge").',
     enter: () => openAgent('agent'),
     act: {
@@ -78,7 +81,7 @@ export const STEPS: Step[] = [
     },
   },
   {
-    title: 'Watch the city change',
+    title: 'Watch the city change', titleAr: 'شاهد المدينة تتغير', bodyAr: 'يُطبَّق الإجراء المعتمد على التوأم المحاكى: يُرسم العزل على الشبكة ويعيد الوكيل تشغيل النموذج بشكل مستقل للتحقق منه.',
     body: 'The approved action is applied to the simulated twin: the isolation is drawn on the network and the agent re-runs the model independently to verify it.',
     enter: () => {
       openAgent('agent');
@@ -87,12 +90,12 @@ export const STEPS: Step[] = [
     },
   },
   {
-    title: 'Inspect the measured-in-model impact',
+    title: 'Inspect the measured-in-model impact', titleAr: 'افحص الأثر المُقدَّر في النموذج', bodyAr: 'يعرض التحقق الأهداف التي تحققت وما تغيّر والمخاطر المتبقية، بما في ذلك ما يحتاج إلى بيانات حقيقية. كل الأرقام محاكاة.',
     body: 'Verification lists which targets were met, what changed, and the remaining risks — including what would need real data. All figures are simulated.',
     enter: () => openAgent('audit'),
   },
   {
-    title: 'Sustainability Command Centre',
+    title: 'Sustainability Command Centre', titleAr: 'مركز قيادة الاستدامة', bodyAr: 'ميزان الكربون المُنمذج للمدينة: لكل منشأة صناعية فئتها وحجمها وساعات عملها ووقودها ومعدات الحد من التلوث. اضغط على بطاقة لعرضها على الخريطة، وحرّك الأدوات لاختبار السياسات.',
     body: 'City-wide modelled carbon balance: every industrial facility has its own category, size, hours, fuel and abatement. Click a card to see it on the map; move the levers to test policies.',
     enter: () => {
       openCentre('overview');
@@ -101,7 +104,7 @@ export const STEPS: Step[] = [
     },
   },
   {
-    title: 'Plan a new development',
+    title: 'Plan a new development', titleAr: 'خطّط لتطوير جديد', bodyAr: 'ماذا لو بُني 15 مصنعاً لتشكيل المعادن في المنطقة الصناعية الشمالية البعيدة؟ تُوضع على أراضٍ شاغرة يمكن الوصول إليها بالطرق، وتُقارن مع حزمة التخفيف وبدونها.',
     body: 'What if 15 metal-fabrication plants are built in the Far Northern Industrial Zone? They are sited on vacant, road-accessible land and compared with and without a mitigation package.',
     enter: () => {
       openCentre('development');
@@ -121,6 +124,8 @@ export function JudgeTour() {
   const stop = useTourStore((s) => s.stop);
   const runState = useOpsStore((s) => s.run?.state);
   const entered = useRef(-1);
+  const { locale } = useI18n();
+  const ar = locale === 'ar';
   useEffect(() => {
     if (!active) {
       entered.current = -1;
@@ -134,26 +139,26 @@ export function JudgeTour() {
   const s = STEPS[step];
   const done = s.act?.done?.() ?? false;
   return (
-    <div className="tour-card" role="dialog" aria-labelledby="tour-title" aria-live="polite">
+    <div className="tour-card" role="dialog" aria-labelledby="tour-title" aria-live="polite" dir={ar ? 'rtl' : 'ltr'} lang={locale}>
       <div className="tour-head">
         <Compass size={15} aria-hidden />
         <span className="ops-small ops-muted">
-          Judge tour · {step + 1} / {STEPS.length}
+          {ar ? 'جولة الحكام' : 'Judge tour'} · {step + 1} / {STEPS.length}
         </span>
-        <button className="icon-btn sm" aria-label="Exit tour" onClick={stop}>
+        <button className="icon-btn sm" aria-label={ar ? 'إنهاء الجولة' : 'Exit tour'} onClick={stop}>
           <X size={13} />
         </button>
       </div>
-      <h4 id="tour-title">{s.title}</h4>
-      <p>{s.body}</p>
+      <h4 id="tour-title">{ar ? s.titleAr : s.title}</h4>
+      <p>{ar ? s.bodyAr : s.body}</p>
       {s.act && (
         <button className="ops-btn primary" disabled={done} onClick={s.act.run} data-state={runState}>
-          {done ? 'Approved ✓' : s.act.label}
+          {done ? (ar ? 'تمت الموافقة ✓' : 'Approved ✓') : ar ? 'وافق بصفة مشغّل' : s.act.label}
         </button>
       )}
       <div className="tour-nav">
         <button className="ops-btn" disabled={step === 0} onClick={() => go(step - 1)}>
-          <ChevronLeft size={14} /> Back
+          <ChevronLeft size={14} /> {ar ? 'السابق' : 'Back'}
         </button>
         <div className="tour-dots" aria-hidden>
           {STEPS.map((_, i) => (
@@ -162,11 +167,11 @@ export function JudgeTour() {
         </div>
         {step < STEPS.length - 1 ? (
           <button className="ops-btn primary" onClick={() => go(step + 1)}>
-            Next <ChevronRight size={14} />
+            {ar ? 'التالي' : 'Next'} <ChevronRight size={14} />
           </button>
         ) : (
           <button className="ops-btn primary" onClick={stop}>
-            Finish
+            {ar ? 'إنهاء' : 'Finish'}
           </button>
         )}
       </div>

@@ -20,8 +20,9 @@ export const EV_BAYS: EvBay[] = STREETSCAPE.lots.flatMap((l, li) => {
   const [a, b] = l.rows[0];
   const out: EvBay[] = [];
   for (let i = 0; i < 3; i++) {
-    const along = (l.alongX ? l.x0 : l.z0) + 0.2 + i * l.pitch;
-    if (along > (l.alongX ? l.x1 : l.z1) - 0.2) break;
+    // the same bay grid the streetscape parks cars on: first bay centre 0.25 + pitch/2 from the lot edge
+    const along = (l.alongX ? l.x0 : l.z0) + 0.25 + l.pitch / 2 + i * l.pitch;
+    if (along + l.pitch / 2 > (l.alongX ? l.x1 : l.z1) - 0.25) break;
     const mid = (a + b) / 2;
     if (l.alongX) out.push({ x: along, z: mid, px: along, pz: a + 0.05, alongX: true });
     else out.push({ x: mid, z: along, px: a + 0.05, pz: along, alongX: false });

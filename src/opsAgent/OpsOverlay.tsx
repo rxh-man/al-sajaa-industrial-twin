@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Html, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { LabelSprite } from '../three/LabelSprite';
 import type { Highlight, HighlightRole } from '../solutions/types';
 import { useOpsStore } from './store';
 
@@ -54,9 +55,7 @@ export function HighlightView({ h, executed = false }: { h: Highlight; executed?
             <meshBasicMaterial color={COLOR[p.role]} depthTest={false} transparent opacity={0.95} />
           </mesh>
           {(p.role === 'problem' || p.role === 'facility' || (h.points.length <= 8 && p.role === 'action')) && (
-            <Html position={[0, 1.5, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`ops-pin ops-pin-${p.role}`}>{p.label}</div>
-            </Html>
+            <LabelSprite text={p.label} position={[0, 1.7, 0]} border={COLOR[p.role]} />
           )}
         </group>
       ))}

@@ -335,9 +335,13 @@ export function buildStreetscape() {
     }
   }
 
-  // 3. loading bays at the baseline warehouses and factory halls: an apron and trucks backed up to the wall
+  // 3. loading bays at warehouses and factory halls (baseline and expansion; at most MAX_DOCKS): an apron, trucks
+  //    or delivery vans backed up to the wall, and a forklift working beside them
+  const MAX_DOCKS = 90;
   for (const b of AD.buildings) {
-    if (b.procedural || !DOCKS.test(b.n) || b.b.length !== 1) continue;
+    if (!DOCKS.test(b.n) || b.b.length !== 1 || aprons.length >= MAX_DOCKS) continue;
+    // expansion halls: every third one has an active dock (deterministic by id) to keep the yards readable
+    if (b.procedural && b.id % 3 !== 0) continue;
     const [x0, z0, x1, z1] = b.b[0];
     const sides = [
       { mx: (x0 + x1) / 2, mz: z0, nx: 0, nz: -1, span: x1 - x0 },
@@ -361,12 +365,20 @@ export function buildStreetscape() {
     const tx = -s.nz;
     const tz = s.nx;
     const n = s.span > 2.6 ? 2 : 1;
+    let docked = 0;
     for (let i = 0; i < n; i++) {
-      const kind: VehicleKind = rnd() < 0.5 ? 'boxTruck' : rnd() < 0.6 ? 'reefer' : 'flatbed';
+      const r = rnd();
+      const kind: VehicleKind = r < 0.35 ? 'boxTruck' : r < 0.55 ? 'reefer' : r < 0.7 ? 'flatbed' : 'serviceVan';
       const off = n === 1 ? 0 : (i - 0.5) * 0.9;
       const len = carLen(kind);
       if (len > depth) continue;
-      park(kind, s.mx + tx * off + s.nx * (len / 2 + 0.04), s.mz + tz * off + s.nz * (len / 2 + 0.04), yaw + Math.PI);
+      if (park(kind, s.mx + tx * off + s.nx * (len / 2 + 0.04), s.mz + tz * off + s.nz * (len / 2 + 0.04), yaw + Math.PI)) docked++;
+    }
+    // a forklift at the side of the apron, facing the doors
+    if (docked) {
+      const fl = carLen('forklift');
+      const side = Math.min(s.span, 3.2) / 2 - 0.25;
+      park('forklift', s.mx + tx * side + s.nx * (fl / 2 + 0.12), s.mz + tz * side + s.nz * (fl / 2 + 0.12), yaw + Math.PI);
     }
   }
 
@@ -468,8 +480,12 @@ export function buildStreetscape() {
           const head = ri % 2 === 0 ? 1 : -1; // nose toward the aisle
           const from = (alongX ? x0 : z0) + 0.25;
           const to = (alongX ? x1 : z1) - 0.25;
+          let bay = -1;
           for (let q = from; q + lot.pitch <= to; q += lot.pitch) {
+            bay++;
             if (rnd() > occ) continue;
+            // odd lots keep bay 1 of the first row clear: the hatched access aisle between two accessible bays
+            if (lots.length % 2 === 0 && ri === 0 && bay === 1) continue;
             const kind = pick(rnd);
             const c = q + lot.pitch / 2;
             const yaw = alongX ? (head > 0 ? 0 : Math.PI) : head > 0 ? Math.PI / 2 : -Math.PI / 2;

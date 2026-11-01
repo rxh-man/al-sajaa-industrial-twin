@@ -39,6 +39,8 @@ import { G } from './shaders/globals';
 import { OpsOverlay } from '../opsAgent/OpsOverlay';
 import { FactoryDetails } from './FactoryDetails';
 import { EvCharging } from './EvCharging';
+import { ParkingFurniture } from './ParkingFurniture';
+import { AssetHealthOverlay } from '../env/AssetHealthOverlay';
 import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
 import { useTwinStore } from '../store/useTwinStore';
 
@@ -138,6 +140,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
         <YardEquipment />
         <Streetscape quality={quality} />
         <EvCharging />
+        {details && <ParkingFurniture />}
         <Lagoons quality={quality} />
         <Interchange />
         <Highway />
@@ -163,6 +166,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
         <SurfaceLabel />
         <OpsOverlay />
         <SustainabilityOverlay />
+        <AssetHealthOverlay />
       </SurfaceGroup>
       <Diorama />
       <TrenchVolume />

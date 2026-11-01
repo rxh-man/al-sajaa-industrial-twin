@@ -7,6 +7,7 @@ import { DISTRICTS } from './districts';
 import { BASE_LEVERS, MODEL_ASSUMPTIONS, snapshot, type Levers, type Snapshot } from './model';
 import { PLANT_TYPES } from './green';
 import { EV_BAYS } from '../data/evCharging';
+import { WeatherCard } from '../env/WeatherCard';
 import { runDevelopment, SIZES, type SizeId } from './development';
 import { applyFilters, NO_FILTERS, useSusStore, type MapLayer } from './store';
 import { susText, type SusText } from './i18n';
@@ -419,6 +420,7 @@ function EnergyWater({ t, cur }: { t: SusText; cur: Snapshot }) {
           {t.evBays}: <b>{EV_BAYS.length}</b> <Basis b="Layout" />
         </p>
       </section>
+      <WeatherCard />
       <section className="ops-sec">
         <h4>{t.waterUse}</h4>
         <Bars

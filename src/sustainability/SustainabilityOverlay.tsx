@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { Color, Object3D, type InstancedMesh } from 'three';
-import { Html, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { LabelSprite } from '../three/LabelSprite';
 import { WAREHOUSE_ROOF_RECORDS } from '../data/climateAgents';
 import { snapshot } from './model';
 import { PLANTS } from './green';
@@ -135,11 +136,7 @@ export function SustainabilityOverlay() {
             />
           )}
           {dev.sites.slice(0, 1).map((s) => (
-            <Html key="lbl" position={[s.x, 2.2, s.z]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-              <div className="ops-pin ops-pin-action">
-                Proposed · {dev.sites.length} × {dev.category.label} ({SIZES[dev.inputs.size].label})
-              </div>
-            </Html>
+            <LabelSprite key="lbl" text={`Proposed · ${dev.sites.length} × ${dev.category.label} (${SIZES[dev.inputs.size].label})`} position={[s.x, 2.4, s.z]} border="#22c55e" />
           ))}
         </>
       )}

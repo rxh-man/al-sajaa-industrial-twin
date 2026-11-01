@@ -29,3 +29,6 @@ button.sus-kpi:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2
 .sus-detail { background: rgba(79, 209, 232, 0.05); border-radius: 8px; padding: 8px; }
 .ops-bar-row[role='button'] { cursor: pointer; }
 .ops-bar-row[role='button']:hover .ops-bar-fill { background: var(--cyan); }
+.air-filters { margin: 8px 0; }
+.air-search { width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.3); color: var(--text-0); border: 1px solid var(--line-2); border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; }
+.layer-tools { display: grid; gap: 6px; padding: 6px 2px 8px; }

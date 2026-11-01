@@ -19,6 +19,7 @@ import {
   type MicrogridScenario,
 } from '../../data/microgridDispatch';
 import { AgentExecutionPanel } from './AgentExecutionPanel';
+import { useEnv } from '../../env/store';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 /**
@@ -121,8 +122,12 @@ function HeatExposureSection() {
 }
 
 function AirQualitySection() {
-  const [windDir, setWindDir] = useState(45);
-  const [windSpeed, setWindSpeed] = useState(5);
+  // wind is shared with the smoke plumes and the external weather feed (env/store)
+  const windDir = useEnv((e) => e.wind.dirDeg);
+  const windSpeed = useEnv((e) => e.wind.speedMs);
+  const setWind = useEnv((e) => e.setWind);
+  const setWindDir = (d: number) => setWind({ dirDeg: d, source: 'user' });
+  const setWindSpeed = (v: number) => setWind({ speedMs: v, source: 'user' });
   const [selectedLocation] = useState<[number, number]>([0, 0]);
   const [baselineResult, setBaselineResult] = useState<any>(null);
   const [mitigationEnabled, setMitigationEnabled] = useState(false);
@@ -153,7 +158,7 @@ function AirQualitySection() {
         <div className="climate-control">
           <label>Wind Speed (m/s)</label>
           <input type="range" min="1" max="20" value={windSpeed} onChange={(e) => setWindSpeed(parseInt(e.target.value))} />
-          <span>{(windSpeed / 10).toFixed(1)} m/s</span>
+          <span>{windSpeed} m/s</span>
         </div>
       </div>
 
