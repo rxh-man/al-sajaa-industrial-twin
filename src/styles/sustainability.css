@@ -40,3 +40,20 @@ button.sus-kpi:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2
 .ov-panel.air-panel .air-note, .ov-panel.climate-panel .climate-meta { padding: 6px 8px; border-radius: 8px; background: rgba(79, 209, 232, 0.08); color: var(--text-1); font-size: 12px; }
 .ov-panel.climate-panel input[type='range'], .ov-panel.air-panel input[type='range'] { accent-color: var(--cyan); }
 .ov-panel.climate-panel select, .ov-panel.layer-panel select { background: rgba(0, 0, 0, 0.3); color: var(--text-0); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 6px; }
+
+/* left rail live views */
+.lv-tabs { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px 10px 0; }
+.lv-tabs button { font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-2); background: none; color: var(--text-1); cursor: pointer; }
+.lv-tabs button.is-on { background: rgba(79, 209, 232, 0.16); color: var(--text-0); border-color: rgba(79, 209, 232, 0.45); }
+.lv-spark { width: 90px; height: 28px; color: var(--cyan); }
+.lv-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+.lv-time { font-size: 11px; color: var(--text-1); }
+.lv-row { display: grid; grid-template-columns: 1fr 60px 34px; gap: 6px; align-items: center; font-size: 11.5px; color: var(--text-1); background: none; border: 0; padding: 3px 2px; cursor: pointer; text-align: start; }
+.lv-row:hover { color: var(--text-0); }
+.lv-meter { height: 6px; border-radius: 3px; background: rgba(148, 172, 204, 0.12); overflow: hidden; }
+.lv-meter span { display: block; height: 100%; }
+.lv-link { font-size: 11.5px; color: var(--cyan); background: none; border: 0; cursor: pointer; text-align: start; padding: 4px 2px; }
+.lv-table { display: grid; gap: 4px; font-size: 12px; }
+.lv-table div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line-2); padding: 3px 0; color: var(--text-1); }
+.lv-table b { color: var(--text-0); font-variant-numeric: tabular-nums; }
+.lv-note { font-size: 10.5px; color: var(--text-2); padding: 4px 2px 0; }

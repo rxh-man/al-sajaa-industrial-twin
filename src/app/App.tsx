@@ -14,7 +14,9 @@ import { JudgeTour } from '../tour/JudgeTour';
 import { ParknexPanel } from '../parknex/ParknexPanel';
 import { tierSettings, useTier } from '../perf/qualityTier';
 import '../styles/nav.css';
-import { SignalRail } from '../components/dashboard/SignalRail';
+import '../styles/opsAgent.css';
+import '../styles/sustainability.css';
+import { LiveRail } from '../components/dashboard/LiveViews';
 import { AgentsPanel } from '../components/agents/AgentsPanel';
 import { LayerPanel } from '../components/overlay/LayerPanel';
 import { AirPanel } from '../components/overlay/AirPanel';
@@ -124,7 +126,7 @@ export function App() {
 
       <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
         <SidebarHeader />
-        <SignalRail />
+        <LiveRail />
       </aside>
       <aside className="rail rail-r panel-enter" style={{ ['--enter-delay' as string]: '160ms' }} aria-label="Twin agents">
         {!compact && <CameraPresets />}
