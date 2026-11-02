@@ -41,6 +41,7 @@ import { FactoryDetails } from './FactoryDetails';
 import { EvCharging } from './EvCharging';
 import { ParkingFurniture } from './ParkingFurniture';
 import { InfillBuildings } from './InfillBuildings';
+import { ParknexScene } from '../parknex/ParknexScene';
 import { AssetHealthOverlay } from '../env/AssetHealthOverlay';
 import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
 import { useTwinStore } from '../store/useTwinStore';
@@ -138,6 +139,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
         <Sea />
         <AbuDhabiBuildings />
         <InfillBuildings />
+        <ParknexScene />
         {details && <FactoryDetails />}
         <YardEquipment />
         <Streetscape quality={quality} />

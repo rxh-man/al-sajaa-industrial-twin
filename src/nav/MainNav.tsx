@@ -5,6 +5,7 @@ import { useTwinStore } from '../store/useTwinStore';
 import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { useTourStore } from '../tour/store';
+import { usePark } from '../parknex/store';
 import type { LayerId } from '../data/networks';
 import { useTier, type Tier } from '../perf/qualityTier';
 import { useI18n } from '../i18n/i18nContext';
@@ -21,11 +22,13 @@ type Group = { id: string; label: string; icon: React.ReactNode; items: Item[] }
 
 export function openAgent(tab?: ReturnType<typeof useOpsStore.getState>['tab']) {
   useSusStore.getState().setOpen(false);
+  usePark.getState().setOpen(false);
   useOpsStore.getState().setOpen(true);
   if (tab) useOpsStore.getState().setTab(tab);
 }
 export function openCentre(tab?: string) {
   useOpsStore.getState().setOpen(false);
+  usePark.getState().setOpen(false);
   useSusStore.getState().setOpen(true);
   if (tab) useSusStore.getState().setTab(tab);
 }
@@ -37,6 +40,7 @@ function useGroups(): Group[] {
   );
   const s = { ...useTwinStore.getState(), ...v };
   const ops = useOpsStore(useShallow((q) => ({ open: q.open, tab: q.tab })));
+  const park = usePark(useShallow((q) => ({ open: q.open })));
   const tier = useTier((q) => q.tier);
   const setTier = useTier((q) => q.setTier);
   const tierItem = (t: Tier, label: string): Item => ({ label: `Quality: ${label}`, run: () => setTier(t), on: tier === t });
@@ -102,6 +106,17 @@ function useGroups(): Group[] {
         { label: 'Compare interventions', run: () => openAgent('compare'), on: ops.open && ops.tab === 'compare' },
         { label: 'Audit and explainability', run: () => openAgent('audit'), on: ops.open && ops.tab === 'audit' },
         { label: 'Twin agents rail (Watch … Verify)', run: () => s.setRailsCollapsed(!s.railsCollapsed), on: !s.railsCollapsed },
+      ],
+    },
+    {
+      id: 'park',
+      label: 'Parking',
+      icon: <Building2 size={14} />,
+      items: [
+        { label: 'PARKNEX Command Centre', run: () => (usePark.getState().setOpen(true), usePark.getState().setTab('overview')), on: park.open },
+        { label: 'PARKNEX events', run: () => (usePark.getState().setOpen(true), usePark.getState().setTab('events')) },
+        { label: 'PARKNEX development & expansion', run: () => (usePark.getState().setOpen(true), usePark.getState().setTab('development')) },
+        { label: 'PARKNEX demo', run: () => useTourStore.getState().start('parknex') },
       ],
     },
     {

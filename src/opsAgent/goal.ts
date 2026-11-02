@@ -4,7 +4,7 @@
  * scenario inputs. Whatever the parser does not understand is reported back rather than guessed.
  */
 
-export type WorkflowId = 'water' | 'traffic' | 'climate' | 'energy' | 'emergency' | 'maintenance' | 'freight' | 'planning' | 'air' | 'flood' | 'sustainability';
+export type WorkflowId = 'water' | 'traffic' | 'climate' | 'energy' | 'emergency' | 'maintenance' | 'freight' | 'planning' | 'air' | 'flood' | 'sustainability' | 'parking';
 
 export interface WorkflowInfo {
   id: WorkflowId;
@@ -27,6 +27,7 @@ export const WORKFLOWS: WorkflowInfo[] = [
   { id: 'planning', title: 'Urban Planning', titleAr: 'التخطيط العمراني', scenarioId: 'planning', keywords: /\b(new\b[\w ]{0,40}?(?:factor\w*|facilit\w*|plants?|warehouses?)|develop\w*|zoning|proposed|planning|built|construct\w*|additional (?:factor\w*|facilit\w*))\b/gi },
   { id: 'air', title: 'Air Quality', titleAr: 'جودة الهواء', scenarioId: 'air', keywords: /\b(air|pollution|smog|plumes?|wind|stacks?|smoke|nox|pm2\.5)\b/gi },
   { id: 'flood', title: 'Flood and Drainage', titleAr: 'الفيضانات والتصريف', scenarioId: 'flood', keywords: /\b(flood\w*|storm\w*|rain\w*|drain\w*|runoff|cloudburst)\b/gi },
+  { id: 'parking', title: 'Parking Intelligence', titleAr: 'ذكاء المواقف', scenarioId: 'parking', keywords: /\b(parking|parknex|car ?park|bays?|tariffs?|pricing|tenants?|visitors?)\b/gi },
   { id: 'sustainability', title: 'Sustainability Strategy', titleAr: 'استراتيجية الاستدامة', scenarioId: 'sustainability', keywords: /\b(city-wide|district-wide|programme|program|decarboni\w*|net[- ]zero|carbon balance|dust|abatement|strategy)\b/gi },
 ];
 
@@ -183,6 +184,12 @@ export function parseGoal(raw: unknown): ParsedGoal {
   if (best.id === 'air') {
     read(/wind\s+from\s+(\d+)/, (m) => ((out.inputs.windDeg = n(m[1]) % 360), out.understood.push(`Wind from ${m[1]}°`)));
   }
+  if (best.id === 'parking') {
+    const fac: [RegExp, string][] = [[/central/, 'central'], [/business/, 'business'], [/residential/, 'residential'], [/event|arena/, 'event'], [/commercial/, 'commercial'], [/premium|ev\b/, 'premium']];
+    const fm = fac.find(([re]) => re.test(t));
+    if (fm) (out.inputs.facility = fm[1]), out.understood.push(`Facility: ${fm[1]}`);
+    read(/(\d+)\s*%\s*(?:more|higher|increase)/, (m) => ((out.inputs.priceUp = n(m[1])), out.understood.push(`Tariff test +${m[1]} %`)));
+  }
   if (best.id === 'flood') {
     read(/(\d+(?:\.\d+)?)\s*mm\s*(?:\/|per)\s*h/, (m) => ((out.inputs.rainMmH = n(m[1])), out.understood.push(`Rain ${m[1]} mm/h`)));
     read(/for\s+(\d+(?:\.\d+)?)\s*(?:h|hours?)/, (m) => ((out.inputs.hours = n(m[1])), out.understood.push(`Duration ${m[1]} h`)));
@@ -217,6 +224,10 @@ function kpiFor(workflow: WorkflowId, what: string): string | null {
   if (workflow === 'planning' && /co2|co₂|carbon|emission/.test(w)) return 'addCo2';
   if (workflow === 'air' && /pollution|exposure|concentration/.test(w)) return 'worst';
   if (workflow === 'flood' && /flood|runoff|excess/.test(w)) return 'excessM3';
+  if (workflow === 'parking') {
+    if (/revenue|income/.test(w)) return 'revenueDay';
+    if (/turned away|unserved|queue/.test(w)) return 'turnedAway';
+  }
   if (workflow === 'sustainability') {
     if (/co2|co₂|carbon|emission/.test(w)) return 'netT';
     if (/dust|pm/.test(w)) return 'pm';

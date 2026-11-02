@@ -9,6 +9,7 @@ import { openAgent, openCentre } from '../nav/MainNav';
 import { useTourStore } from './store';
 import { useI18n } from '../i18n/i18nContext';
 import { FACILITIES } from '../sustainability/facilities';
+import { PARKNEX_STEPS } from '../parknex/tour';
 
 /**
  * The judge demonstration: ten steps that tell one story through the real application. Each step calls the same
@@ -19,8 +20,8 @@ import { FACILITIES } from '../sustainability/facilities';
 interface Step {
   title: string;
   body: string;
-  titleAr: string;
-  bodyAr: string;
+  titleAr?: string;
+  bodyAr?: string;
   enter: () => void;
   /** an optional action the judge can trigger from the card */
   act?: { label: string; run: () => void; done?: () => boolean };
@@ -120,6 +121,8 @@ export const STEPS: Step[] = [
 export function JudgeTour() {
   const active = useTourStore((s) => s.active);
   const step = useTourStore((s) => s.step);
+  const which = useTourStore((s) => s.which);
+  const STEPS_ = (which === 'parknex' ? PARKNEX_STEPS : STEPS) as Step[];
   const go = useTourStore((s) => s.go);
   const stop = useTourStore((s) => s.stop);
   const runState = useOpsStore((s) => s.run?.state);
@@ -133,24 +136,24 @@ export function JudgeTour() {
     }
     if (entered.current === step) return;
     entered.current = step;
-    STEPS[step].enter();
-  }, [active, step]);
+    STEPS_[step].enter();
+  }, [active, step, which]);
   if (!active) return null;
-  const s = STEPS[step];
+  const s = STEPS_[step];
   const done = s.act?.done?.() ?? false;
   return (
     <div className="tour-card" role="dialog" aria-labelledby="tour-title" aria-live="polite" dir={ar ? 'rtl' : 'ltr'} lang={locale}>
       <div className="tour-head">
         <Compass size={15} aria-hidden />
         <span className="ops-small ops-muted">
-          {ar ? 'جولة الحكام' : 'Judge tour'} · {step + 1} / {STEPS.length}
+          {which === 'parknex' ? 'PARKNEX demo' : ar ? 'جولة الحكام' : 'Judge tour'} · {step + 1} / {STEPS_.length}
         </span>
         <button className="icon-btn sm" aria-label={ar ? 'إنهاء الجولة' : 'Exit tour'} onClick={stop}>
           <X size={13} />
         </button>
       </div>
-      <h4 id="tour-title">{ar ? s.titleAr : s.title}</h4>
-      <p>{ar ? s.bodyAr : s.body}</p>
+      <h4 id="tour-title">{ar && s.titleAr ? s.titleAr : s.title}</h4>
+      <p>{ar && s.bodyAr ? s.bodyAr : s.body}</p>
       {s.act && (
         <button className="ops-btn primary" disabled={done} onClick={s.act.run} data-state={runState}>
           {done ? (ar ? 'تمت الموافقة ✓' : 'Approved ✓') : ar ? 'وافق بصفة مشغّل' : s.act.label}
@@ -161,11 +164,11 @@ export function JudgeTour() {
           <ChevronLeft size={14} /> {ar ? 'السابق' : 'Back'}
         </button>
         <div className="tour-dots" aria-hidden>
-          {STEPS.map((_, i) => (
+          {STEPS_.map((_, i) => (
             <span key={i} className={i === step ? 'is-on' : i < step ? 'is-done' : ''} />
           ))}
         </div>
-        {step < STEPS.length - 1 ? (
+        {step < STEPS_.length - 1 ? (
           <button className="ops-btn primary" onClick={() => go(step + 1)}>
             {ar ? 'التالي' : 'Next'} <ChevronRight size={14} />
           </button>

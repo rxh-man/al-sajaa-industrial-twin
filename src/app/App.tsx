@@ -11,6 +11,7 @@ import { Header } from '../components/dashboard/Header';
 import { OpsAgentPanel } from '../opsAgent/OpsAgentPanel';
 import { SustainabilityPanel } from '../sustainability/SustainabilityPanel';
 import { JudgeTour } from '../tour/JudgeTour';
+import { ParknexPanel } from '../parknex/ParknexPanel';
 import { tierSettings, useTier } from '../perf/qualityTier';
 import '../styles/nav.css';
 import { SignalRail } from '../components/dashboard/SignalRail';
@@ -119,6 +120,7 @@ export function App() {
       <OpsAgentPanel />
       <SustainabilityPanel />
       <JudgeTour />
+      <ParknexPanel />
 
       <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
         <SidebarHeader />
