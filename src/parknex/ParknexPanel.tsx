@@ -6,7 +6,7 @@ import { useSusStore } from '../sustainability/store';
 import { plan, approve } from '../opsAgent/runtime';
 import {
   ALL_BAYS, authorityDecision, bayStatus, cityKpis, constructionCost, COST_DEFAULTS, EVENT_TYPES, eventPlan, facilityById, facilityKpis, FACILITIES, hourlyOccupancy,
-  maintenanceImpact, opportunities, pricingScenario, roi, scenarioRoi, stageAt, STATUSES, tenantRelease, type MaintScope,
+  maintenanceImpact, opportunities, insights, pricingScenario, roi, scenarioRoi, stageAt, STATUSES, tenantRelease, type MaintScope,
 } from './model';
 import { opsFrom, usePark, type Proposal } from './store';
 import { STATUS_COLOR } from './ParknexScene';
@@ -138,6 +138,65 @@ function Overview() {
         <h4>Revenue by facility (today, AED)</h4>
         <Bars rows={k.per.map((p) => ({ k: p.name.replace('PARKNEX ', ''), v: p.revenueToday }))} />
       </section>
+    </div>
+  );
+}
+
+function Insights() {
+  const o = useOps();
+  const { fin, out, totCap, totNoi } = insights(o);
+  return (
+    <div className="ops-tab">
+      <p className="ops-note">Estimated returns: investment from the cost model (each facility's bays, floors, land and equipment), income from the simulated daily forecast × 365 plus tenant permits (AED 350 per bay per month). Not audited financials.</p>
+      <div className="sus-kpis">
+        <Kpi l="Portfolio investment" v={`AED ${n(totCap / 1e6, 1)} M`} />
+        <Kpi l="Net operating income" v={`AED ${n(totNoi / 1e6, 1)} M/yr`} />
+        <Kpi l="Portfolio ROI" v={`${n((totNoi / totCap) * 100, 1)} %`} />
+        <Kpi l="Payback" v={`${n(totCap / totNoi, 1)} years`} />
+      </div>
+      <section className="ops-sec">
+        <h4>What the numbers say</h4>
+        {out.map((x) => (
+          <div key={x.title} className={`pk-insight tone-${x.tone}`}>
+            <b>{x.title}</b>
+            <span>{x.detail}</span>
+          </div>
+        ))}
+      </section>
+      <section className="ops-sec">
+        <h4>ROI by facility</h4>
+        <Bars rows={[...fin].sort((a, b) => b.roiPct - a.roiPct).map((x) => ({ k: x.name.replace('PARKNEX ', ''), v: x.roiPct }))} unit=" %" />
+      </section>
+      <div className="ops-table-wrap">
+        <table className="ops-table">
+          <thead>
+            <tr>
+              <th>Facility</th>
+              <th>Investment</th>
+              <th>Revenue/yr</th>
+              <th>NOI/yr</th>
+              <th>ROI</th>
+              <th>Payback</th>
+              <th>AED/bay/day</th>
+              <th>Utilisation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fin.map((x) => (
+              <tr key={x.id} onClick={() => focusOn(x.id)}>
+                <th>{x.name.replace('PARKNEX ', '')}</th>
+                <td>{n(x.capex / 1e6, 1)} M</td>
+                <td>{n(x.annual / 1e6, 2)} M</td>
+                <td>{n(x.noi / 1e6, 2)} M</td>
+                <td>{n(x.roiPct, 1)} %</td>
+                <td>{x.payback === null ? '—' : `${n(x.payback, 1)} y`}</td>
+                <td>{n(x.revPerBayDay, 1)}</td>
+                <td>{pct(x.utilisation)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -810,6 +869,7 @@ function Intelligence() {
 
 const TABS: [string, string][] = [
   ['overview', 'Overview'],
+  ['insights', 'ROI Insights'],
   ['facilities', 'Facilities'],
   ['occupancy', 'Occupancy'],
   ['sensors', 'Sensors & Infrastructure'],
@@ -885,6 +945,7 @@ export function ParknexPanel() {
       </div>
       <div role="tabpanel" className="ops-body">
         {tab === 'overview' && <Overview />}
+        {tab === 'insights' && <Insights />}
         {tab === 'facilities' && <Facilities />}
         {tab === 'occupancy' && <Occupancy />}
         {tab === 'sensors' && <Sensors />}

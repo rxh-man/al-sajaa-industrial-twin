@@ -3,6 +3,7 @@ import { INFILL } from '../data/infill';
 import { findSites, reserveSites, type Site } from '../sustainability/development';
 import { DISTRICTS, districtAt } from '../sustainability/districts';
 import { hash01 } from '../sustainability/facilities';
+import { kerbDistance } from '../data/spatial';
 
 /**
  * PARKNEX — the parking network model shared by the 3D scene, the dashboard and the agent.
@@ -44,6 +45,30 @@ export interface Facility {
   evChargers: number;
   /** tenant bays registered to tenants */
   tenants: number;
+  /** the entrance on the side facing the nearest road, and the kerb point the access drive joins */
+  entrance: { x: number; z: number; roadX: number; roadZ: number; nx: number; nz: number };
+}
+
+/** the side of the site nearest a carriageway, and the driveway from the site edge to that kerb */
+export function entranceFor(s: Site) {
+  const sides = [
+    { nx: 0, nz: -1, x: s.x, z: s.z - s.d / 2 },
+    { nx: 0, nz: 1, x: s.x, z: s.z + s.d / 2 },
+    { nx: -1, nz: 0, x: s.x - s.w / 2, z: s.z },
+    { nx: 1, nz: 0, x: s.x + s.w / 2, z: s.z },
+  ];
+  let best = sides[0];
+  let bk = Infinity;
+  for (const sd of sides) {
+    for (let t = 0.1; t <= 4; t += 0.1) {
+      if (kerbDistance(sd.x + sd.nx * t, sd.z + sd.nz * t, 1.5) <= 0.05) {
+        if (t < bk) [bk, best] = [t, sd];
+        break;
+      }
+    }
+  }
+  const t = Number.isFinite(bk) ? bk : 0.5;
+  return { x: best.x, z: best.z, roadX: best.x + best.nx * t, roadZ: best.z + best.nz * t, nx: best.nx, nz: best.nz };
 }
 
 /** hourly demand profiles (share of bays wanted), 24 values, by facility type — illustrative */
@@ -110,7 +135,7 @@ function build(): Facility[] {
     if (!site) continue;
     used.push(site);
     const bays = layBays(d.id, site, d.tenants, d.type);
-    out.push({ ...d, site, tariffDay: d.tariffHour * 6, bays, barriers: 2, anpr: 2 + d.floors, evChargers: bays.filter((b) => b.category === 'ev').length, tenants: d.tenants });
+    out.push({ ...d, site, entrance: entranceFor(site), tariffDay: d.tariffHour * 6, bays, barriers: 2, anpr: 2 + d.floors, evChargers: bays.filter((b) => b.category === 'ev').length, tenants: d.tenants });
   }
   reserveSites(used);
   return out;
@@ -561,3 +586,52 @@ export const STAGES = [
   { at: 1, label: 'Operational' },
 ] as const;
 export const stageAt = (p: number) => [...STAGES].reverse().find((s) => p >= s.at)!.label;
+
+/* ------------------------------------------------------------------ portfolio financials (estimated) */
+
+/** monthly tenant permit, AED per allocated bay (assumption) */
+export const TENANT_PERMIT_MONTH = 350;
+
+/** each operating facility's estimated investment and returns, from its own capacity, floors, site and forecast */
+export function facilityFinancials(f: Facility, ops: OpsState, c: CostInputs = COST_DEFAULTS) {
+  const k = facilityKpis(f, ops);
+  const cost = constructionCost({ ...c, bays: k.capacity, structure: f.floors > 1 ? 'multistorey' : 'surface', floors: f.floors, siteM2: f.site.w * f.site.d * 100, evChargers: f.evChargers, anpr: f.anpr, barriers: f.barriers });
+  // tenant permits: monthly fee per allocated bay (assumption, editable here)
+  const permits = f.bays.filter((b) => b.category === 'tenant').length * f.floors * TENANT_PERMIT_MONTH * 12;
+  const annual = k.forecastDay * 365 + permits;
+  const noi = annual - cost.opexYear;
+  return {
+    permits,
+    id: f.id,
+    name: f.name,
+    capex: cost.capex,
+    annual,
+    opex: cost.opexYear,
+    noi,
+    roiPct: (noi / cost.capex) * 100,
+    payback: noi > 0 ? cost.capex / noi : null,
+    revPerBayDay: k.forecastDay / k.capacity,
+    utilisation: hourlyOccupancy(ops, f).reduce((a, b) => a + b, 0) / 24,
+    peak: Math.max(...hourlyOccupancy(ops, f)),
+  };
+}
+
+/** plain recommendations derived from the portfolio numbers (each says which figures it used) */
+export function insights(ops: OpsState) {
+  const fin = FACILITIES.map((f) => facilityFinancials(f, ops));
+  const by = <K extends keyof (typeof fin)[number]>(k: K, dir = -1) => [...fin].sort((a, b) => dir * ((a[k] as number) - (b[k] as number)));
+  const best = by('roiPct')[0];
+  const worst = by('roiPct', 1)[0];
+  const hot = fin.filter((x) => x.peak > 0.9);
+  const cold = fin.filter((x) => x.utilisation < 0.35);
+  const out: { title: string; detail: string; tone: 'ok' | 'warn' | 'info' }[] = [
+    { title: `${best.name} is the best performer`, detail: `ROI ${best.roiPct.toFixed(1)} %, payback ${best.payback?.toFixed(1) ?? '—'} years, AED ${Math.round(best.revPerBayDay)} per bay per day.`, tone: 'ok' },
+    { title: `${worst.name} has the weakest return`, detail: `ROI ${worst.roiPct.toFixed(1)} %, average utilisation ${Math.round(worst.utilisation * 100)} %. Consider off-peak discounts, tenant contracts or event bookings.`, tone: 'warn' },
+  ];
+  for (const h of hot) out.push({ title: `${h.name} peaks above 90 %`, detail: `Peak ${Math.round(h.peak * 100)} %: test peak-hour pricing (AI Intelligence) or add capacity nearby (Development).`, tone: 'warn' });
+  for (const c of cold) out.push({ title: `${c.name} is under-used`, detail: `Average utilisation ${Math.round(c.utilisation * 100)} %: the cheapest growth is filling existing bays before building new ones.`, tone: 'info' });
+  const totCap = fin.reduce((a, x) => a + x.capex, 0);
+  const totNoi = fin.reduce((a, x) => a + x.noi, 0);
+  out.push({ title: 'Portfolio', detail: `Estimated investment AED ${Math.round(totCap / 1e6)} M, net operating income AED ${(totNoi / 1e6).toFixed(1)} M a year → ROI ${((totNoi / totCap) * 100).toFixed(1)} %, payback ${(totCap / totNoi).toFixed(1)} years.`, tone: 'info' });
+  return { fin, out, totCap, totNoi };
+}

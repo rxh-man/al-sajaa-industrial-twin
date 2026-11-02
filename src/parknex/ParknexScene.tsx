@@ -5,6 +5,7 @@ import { LabelSprite } from '../three/LabelSprite';
 import { bayStatus, cityKpis, facilityKpis, FACILITIES, opportunities, stageAt, type BayStatus, type Facility } from './model';
 import { opsFrom, usePark } from './store';
 import { announce } from './audio';
+import { ParknexCars } from './ParknexCars';
 
 /**
  * PARKNEX in the 3D city: every bay coloured by its simulated status, barriers, ANPR posts, availability boards,
@@ -83,7 +84,7 @@ function Bays() {
       }}
     >
       <boxGeometry />
-      <meshStandardMaterial roughness={0.7} emissiveIntensity={0.25} toneMapped />
+      <meshBasicMaterial toneMapped={false} transparent opacity={0.85} />
     </instancedMesh>
   );
 }
@@ -96,15 +97,17 @@ function Equipment() {
     const p: { x: number; z: number; h: number; s: number }[] = [];
     const a: { x: number; z: number; ry: number }[] = [];
     for (const f of FACILITIES) {
-      const { site: s } = f;
-      const alongX = s.w >= s.d;
-      const end = (alongX ? s.w : s.d) / 2 - 0.35;
-      for (const [k, off] of [[1, -0.6], [1, 0.6]] as const) {
-        const [x, z] = alongX ? [s.x - end * k, s.z + off] : [s.x + off, s.z - end * k];
-        p.push({ x, z, h: 0.12, s: 0.06 }); // barrier cabinet
-        a.push({ x: alongX ? x : x + 0.25, z: alongX ? z + 0.25 : z, ry: alongX ? Math.PI / 2 : 0 });
-        p.push({ x: alongX ? x - 0.2 : x + 0.45, z: alongX ? z + 0.45 : z - 0.2, h: 0.55, s: 0.03 }); // ANPR pole
-        p.push({ x: alongX ? x + 0.25 : x - 0.3, z: alongX ? z - 0.3 : z + 0.25, h: 0.16, s: 0.07 }); // pay station
+      const e = f.entrance;
+      // tangent along the entrance edge; entry lane on one side, exit lane on the other
+      const tx = -e.nz;
+      const tz = e.nx;
+      for (const side of [-1, 1]) {
+        const lx = e.x + tx * side * 0.35 - e.nx * 0.15;
+        const lz = e.z + tz * side * 0.35 - e.nz * 0.15;
+        p.push({ x: lx + tx * side * 0.32, z: lz + tz * side * 0.32, h: 0.12, s: 0.07 }); // barrier cabinet
+        a.push({ x: lx, z: lz, ry: Math.atan2(tx, tz) });
+        p.push({ x: lx + tx * side * 0.42 + e.nx * 0.2, z: lz + tz * side * 0.42 + e.nz * 0.2, h: 0.6, s: 0.03 }); // ANPR pole
+        p.push({ x: lx + tx * side * 0.32 - e.nx * 0.35, z: lz + tz * side * 0.32 - e.nz * 0.35, h: 0.16, s: 0.07 }); // pay station
       }
     }
     return { p, a };
@@ -120,7 +123,7 @@ function Equipment() {
     items.a.forEach((q, i) => {
       tmp.position.set(q.x, 0.11, q.z);
       tmp.rotation.set(0, q.ry, 0);
-      tmp.scale.set(0.5, 0.02, 0.02);
+      tmp.scale.set(0.02, 0.02, 0.6);
       tmp.updateMatrix();
       arms.current?.setMatrixAt(i, tmp.matrix);
     });
@@ -154,15 +157,15 @@ function Board({ f }: { f: Facility }) {
     old?.dispose();
   }, [mat, k.available, k.occupancy, isCentral, f.name]);
   useEffect(() => () => (mat.map?.dispose(), mat.dispose()), [mat]);
-  const s = f.site;
-  const alongX = s.w >= s.d;
-  const x = alongX ? s.x - s.w / 2 - 0.2 : s.x + s.w / 2 + 0.2;
-  const z = alongX ? s.z - s.d / 2 - 0.2 : s.z - s.d / 2 - 0.2;
-  const W = isCentral ? 3 : 1.6;
+  const e = f.entrance;
+  const x = e.x + e.nz * 1.6 + e.nx * 0.3;
+  const z = e.z - e.nx * 1.6 + e.nz * 0.3;
+  const W = isCentral ? 3.4 : 2.2;
   const selectFacility = usePark((st) => st.selectFacility);
   return (
     <group
       position={[x, 0, z]}
+      rotation={[0, Math.atan2(e.nx, e.nz), 0]}
       onClick={(e) => {
         e.stopPropagation();
         selectFacility(f.id);
@@ -181,46 +184,8 @@ function Board({ f }: { f: Facility }) {
       <mesh position={[0, isCentral ? 1.6 : 0.9, 0]} material={mat}>
         <boxGeometry args={[W, W / 2, 0.06]} />
       </mesh>
+      <LabelSprite text={`${f.name} · ${k.available} free`} position={[0, (isCentral ? 1.6 : 0.9) + W / 4 + 0.5, 0]} border={k.available > 0 ? '#22c55e' : '#ef4444'} scale={1.2} />
     </group>
-  );
-}
-
-/** a few cars per facility looping entrance → bay → entrance, so the lots read as in use */
-function Movers() {
-  const ref = useRef<InstancedMesh>(null);
-  const paths = useMemo(
-    () =>
-      FACILITIES.flatMap((f) => {
-        const s = f.site;
-        const alongX = s.w >= s.d;
-        const e: [number, number] = alongX ? [s.x - s.w / 2 + 0.3, s.z] : [s.x, s.z - s.d / 2 + 0.3];
-        return f.bays.filter((_, i) => i % 37 === 5).slice(0, 4).map((b, i) => ({ e, b: [b.x, b.z] as [number, number], ph: i * 0.27 + f.id.length * 0.1 }));
-      }),
-    [],
-  );
-  const playing = usePark((s) => s.playing);
-  useFrame(({ clock }) => {
-    const m = ref.current;
-    if (!m) return;
-    const t = clock.elapsedTime * (playing ? 0.08 : 0.03);
-    paths.forEach((p, i) => {
-      const u = (t + p.ph) % 1;
-      const k = u < 0.5 ? u * 2 : 2 - u * 2; // in then out
-      const x = p.e[0] + (p.b[0] - p.e[0]) * k;
-      const z = p.e[1] + (p.b[1] - p.e[1]) * k;
-      tmp.position.set(x, 0.07, z);
-      tmp.rotation.set(0, Math.atan2(p.b[0] - p.e[0], p.b[1] - p.e[1]), 0);
-      tmp.scale.set(0.18, 0.12, 0.4);
-      tmp.updateMatrix();
-      m.setMatrixAt(i, tmp.matrix);
-    });
-    m.instanceMatrix.needsUpdate = true;
-  });
-  return (
-    <instancedMesh ref={ref} args={[undefined, undefined, paths.length]} frustumCulled={false} raycast={() => {}}>
-      <boxGeometry />
-      <meshStandardMaterial color="#e2e8f0" metalness={0.5} roughness={0.35} />
-    </instancedMesh>
   );
 }
 
@@ -329,6 +294,33 @@ function Decks() {
   );
 }
 
+/** asphalt access drive from each entrance to the kerb, with a lane divider */
+function Drives() {
+  return (
+    <group>
+      {FACILITIES.map((f) => {
+        const e = f.entrance;
+        const len = Math.hypot(e.roadX - e.x, e.roadZ - e.z) + 0.3;
+        const cx = (e.x + e.roadX) / 2;
+        const cz = (e.z + e.roadZ) / 2;
+        const ry = Math.atan2(e.nx, e.nz);
+        return (
+          <group key={f.id} position={[cx, 0, cz]} rotation={[0, ry, 0]}>
+            <mesh position={[0, 0.012, 0]} receiveShadow raycast={() => {}}>
+              <boxGeometry args={[1.2, 0.02, len]} />
+              <meshStandardMaterial color="#2f3338" roughness={0.95} />
+            </mesh>
+            <mesh position={[0, 0.024, 0]} raycast={() => {}}>
+              <boxGeometry args={[0.03, 0.005, len * 0.9]} />
+              <meshBasicMaterial color="#f5d90a" />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 export function ParknexScene() {
   const open = usePark((s) => s.open);
   return (
@@ -338,7 +330,8 @@ export function ParknexScene() {
       {FACILITIES.map((f) => (
         <Board key={f.id} f={f} />
       ))}
-      <Movers />
+      <ParknexCars />
+      <Drives />
       <Decks />
       {open && <Development />}
       <Clock />

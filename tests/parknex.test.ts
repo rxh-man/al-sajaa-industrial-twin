@@ -159,3 +159,21 @@ test('operator questions are answered from state; the Parking agent runs the app
   const done = M.runtime.approve(run, { by: 'op', role: 'operator' });
   assert.equal(done.state, 'verified');
 });
+
+test('entrances face a road with an access drive that reaches the kerb', () => {
+  for (const f of M.model.FACILITIES) {
+    const e = f.entrance;
+    assert.ok(M.spatial.kerbDistance(e.roadX, e.roadZ, 2) <= 0.1, `${f.id} drive reaches the carriageway`);
+    assert.ok(Math.hypot(e.roadX - e.x, e.roadZ - e.z) <= 4, 'short drive');
+    assert.ok(Math.abs(e.x - f.site.x) <= f.site.w / 2 + 1e-6 && Math.abs(e.z - f.site.z) <= f.site.d / 2 + 1e-6, 'entrance on the site edge');
+  }
+});
+
+test('portfolio insights: financials per facility add up and recommendations cite the numbers', () => {
+  const r = M.model.insights(ops());
+  assert.equal(r.fin.length, M.model.FACILITIES.length);
+  assert.ok(Math.abs(r.totNoi - r.fin.reduce((a: number, x: { noi: number }) => a + x.noi, 0)) < 1e-6);
+  for (const x of r.fin) assert.ok(Math.abs(x.roiPct - (x.noi / x.capex) * 100) < 1e-9);
+  assert.ok(r.out.some((x: { title: string }) => /best performer/.test(x.title)));
+  assert.ok(r.out.every((x: { detail: string }) => /\d/.test(x.detail)));
+});
