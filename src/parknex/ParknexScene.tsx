@@ -295,6 +295,40 @@ function Clock() {
   return null;
 }
 
+/** upper decks of multistorey facilities: a slab per floor on columns, so capacity × floors is visible */
+function Decks() {
+  const ref = useRef<InstancedMesh>(null);
+  const parts = useMemo(() => {
+    const out: { x: number; y: number; z: number; sx: number; sy: number; sz: number }[] = [];
+    for (const f of FACILITIES) {
+      if (f.floors < 2) continue;
+      const s = f.site;
+      for (let k = 1; k < f.floors; k++) {
+        out.push({ x: s.x, y: k * 0.32, z: s.z, sx: s.w - 0.2, sy: 0.04, sz: s.d - 0.2 });
+        for (const cx of [-0.42, 0, 0.42]) for (const cz of [-0.42, 0.42]) out.push({ x: s.x + cx * s.w, y: k * 0.32 - 0.16, z: s.z + cz * s.d, sx: 0.08, sy: 0.32, sz: 0.08 });
+      }
+    }
+    return out;
+  }, []);
+  useLayoutEffect(() => {
+    parts.forEach((p, i) => {
+      tmp.position.set(p.x, p.y, p.z);
+      tmp.rotation.set(0, 0, 0);
+      tmp.scale.set(p.sx, p.sy, p.sz);
+      tmp.updateMatrix();
+      ref.current?.setMatrixAt(i, tmp.matrix);
+    });
+    if (ref.current) (ref.current.instanceMatrix.needsUpdate = true), ref.current.computeBoundingSphere();
+  }, [parts]);
+  if (!parts.length) return null;
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, parts.length]} castShadow receiveShadow raycast={() => {}}>
+      <boxGeometry />
+      <meshStandardMaterial color="#c9c4b8" roughness={0.85} transparent opacity={0.55} />
+    </instancedMesh>
+  );
+}
+
 export function ParknexScene() {
   const open = usePark((s) => s.open);
   return (
@@ -305,6 +339,7 @@ export function ParknexScene() {
         <Board key={f.id} f={f} />
       ))}
       <Movers />
+      <Decks />
       {open && <Development />}
       <Clock />
     </group>
