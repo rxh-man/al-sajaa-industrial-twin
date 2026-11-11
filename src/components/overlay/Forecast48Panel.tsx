@@ -27,11 +27,8 @@ export function Forecast48Panel() {
 /** Emergency numbers, always on screen. */
 export function EmergencyBar() {
   return (
-    <div className="emergency-bar" role="note" aria-label="Emergency numbers">
-      <span>Emergency:</span>
-      <b>999</b> police
-      <b>998</b> ambulance
-      <span className="eb-sim">Data on this map is simulated.</span>
+    <div className="emergency-bar" role="note" aria-label="Local model status">
+      <span>Accessing local model on Rahman's RTX</span>
     </div>
   );
 }
