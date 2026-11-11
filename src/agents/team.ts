@@ -1,6 +1,6 @@
 import type { OrbState } from 'thinking-orbs';
 
-/** The six Al Sajaa Twin agents. Each owns one job and hands off to the next. */
+/** The six Sharjah Smart Districts agents. Each owns one job and hands off to the next. */
 export type AgentId = 'watch' | 'diagnose' | 'plan' | 'patch' | 'dispatch' | 'verify';
 
 export interface AgentDef {

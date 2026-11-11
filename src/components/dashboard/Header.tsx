@@ -3,7 +3,7 @@ import { Info, PlayCircle } from 'lucide-react';
 import { MainNav } from '../../nav/MainNav';
 import { useTwinStore } from '../../store/useTwinStore';
 import { useDismiss } from '../../hooks/useDismiss';
-import { TwinMark } from '../ui/TwinMark';
+import { BrandLogo } from '../ui/BrandLogo';
 import { MAP_CREDIT } from '../../data/abudhabi';
 import { PLACE } from '../../data/geo';
 
@@ -70,10 +70,10 @@ export function Header() {
 
   return (
     <header className="hdr panel-enter" style={{ ['--enter-delay' as string]: '0ms' }}>
-      <a className="hdr-brand" href="#" aria-label="Al Sajaa twin home">
-        <TwinMark size={30} className="twin-mark" />
+      <a className="hdr-brand" href="#" aria-label="Sharjah Smart Districts home">
+        <BrandLogo height={34} />
         <div>
-          <div className="hdr-title">Al Sajaa Twin</div>
+          <div className="hdr-title">Sharjah Smart Districts</div>
           <div className="hdr-tagline">The city that fixes itself first</div>
         </div>
       </a>

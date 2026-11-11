@@ -2,7 +2,7 @@
   "name": "al-sajaa-twin",
   "private": true,
   "version": "1.0.0",
-  "description": "Al Sajaa Twin — an interactive, predictive digital twin of a city's hidden infrastructure.",
+  "description": "Sharjah Smart Districts — an interactive, predictive digital twin of a city's hidden infrastructure.",
   "type": "module",
   "scripts": {
     "dev": "vite",

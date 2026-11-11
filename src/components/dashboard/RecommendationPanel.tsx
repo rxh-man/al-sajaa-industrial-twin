@@ -158,7 +158,7 @@ export function RecommendationPanel() {
   return (
     <div className="rail-inner">
       <header className="rail-head">
-        <span className="rail-title">What Al Sajaa Twin suggests</span>
+        <span className="rail-title">What Sharjah Smart Districts suggests</span>
       </header>
       <div className="rec-scroll">
         {key === 'monitor' && <Monitoring />}

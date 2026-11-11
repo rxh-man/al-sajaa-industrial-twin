@@ -53,7 +53,7 @@ export function AskTwin({ facts, chips = true }: { facts: () => ReturnType<typeo
           ))}
         </div>
       )}
-      {busy && <ThinkingLine text="Al Sajaa Twin is thinking…" live />}
+      {busy && <ThinkingLine text="Sharjah Smart Districts is thinking…" live />}
       {reply && !busy && (
         <div className="ask-reply" aria-live="polite">
           <p className="ask-q">{reply.q}</p>

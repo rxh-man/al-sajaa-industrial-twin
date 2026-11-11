@@ -1,4 +1,4 @@
-# Al Sajaa Industrial Twin
+# Sharjah Smart Districts
 
 A 3D digital twin of an industrial district in Al Sajaa, Sharjah: yards, labor camps, the Etihad Rail line, the Emirates Road interchange, and five underground utility networks.
 

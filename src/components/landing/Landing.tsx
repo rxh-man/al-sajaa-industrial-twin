@@ -2,7 +2,7 @@ import { AD } from '@/data/abudhabi';
 import { COVERAGE } from '@/data/coverage';
 import { countCatalogue } from '@/three/buildingVariants';
 import { VEHICLE_LENGTH } from '@/three/vehicles/vehicleModels';
-import { TwinMark } from '@/components/ui/TwinMark';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { TwinPreview } from './TwinPreview';
 import './landing.css';
 
@@ -62,9 +62,9 @@ export function Landing() {
   return (
     <div className="al">
       <header className="al-mast">
-        <a className="al-brand" href="#" aria-label="Al Sajaa Industrial Twin home">
-          <TwinMark size={26} className="al-mark" />
-          <span>Al Sajaa <em>Industrial Twin</em></span>
+        <a className="al-brand" href="#" aria-label="Sharjah Smart Districts home">
+          <BrandLogo height={34} />
+          <span>Sharjah Smart <em>Districts</em></span>
         </a>
         <nav aria-label="Sections">
           <a href="#districts">Districts</a>

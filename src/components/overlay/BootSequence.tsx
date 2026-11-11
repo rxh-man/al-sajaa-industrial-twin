@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTwinStore } from '../../store/useTwinStore';
-import { TwinMark } from '../ui/TwinMark';
+import { BrandLogo } from '../ui/BrandLogo';
 import { PLACE } from '../../data/geo';
 import { MapIntro } from './MapIntro';
 
@@ -85,7 +85,7 @@ export function BootSequence() {
         <div className={`loader ${boot !== 'loading' ? 'is-out' : ''} ${zooming ? 'is-zooming' : ''}`} aria-busy={boot === 'loading'}>
           <MapIntro play={zooming} onDone={handOver} />
           <div className="loader-card">
-            <TwinMark size={46} className="loader-mark" />
+            <BrandLogo height={56} />
             <div className="loader-title">Getting the city ready</div>
             <div className="loader-place">
               {PLACE.district} · {PLACE.city} · {PLACE.country}
@@ -106,7 +106,7 @@ export function BootSequence() {
         </div>
       )}
       <div className={`intro-title ${boot === 'intro' ? 'is-on' : ''}`} aria-hidden={boot !== 'intro'}>
-        <div className="intro-name">Al Sajaa Twin</div>
+        <div className="intro-name">Sharjah Smart Districts</div>
         <div className="intro-tag">Spots trouble under the city before it breaks.</div>
         <div className="intro-place">
           {PLACE.district} · {PLACE.city}

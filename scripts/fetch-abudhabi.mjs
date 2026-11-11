@@ -22,7 +22,7 @@ for (const [name, q] of queries) {
     try {
       const res = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Al Sajaa Twin-hackathon-demo/1.0 (one-off map extract)' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Sharjah Smart Districts-hackathon-demo/1.0 (one-off map extract)' },
         body: 'data=' + encodeURIComponent(`[out:json][timeout:90];${q}out geom;`),
         signal: AbortSignal.timeout(120_000),
       });

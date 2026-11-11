@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Procedural three-side expansion of the Al Sajaa twin.
+"""Procedural three-side expansion of the Sharjah Smart Districts.
 
 Reads the original baseline (src/data/alsajaa.json) read-only and writes
 src/data/alsajaa-expansion.json. Every record here is generated procedurally

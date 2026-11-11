@@ -17,7 +17,7 @@ export function CompareOverlay() {
   return (
     <div className="compare" role="dialog" aria-label="Compare outcomes">
       <header className="compare-head">
-        <span>With and without Al Sajaa Twin</span>
+        <span>With and without Sharjah Smart Districts</span>
         <span className="tag-demo">Demo</span>
         <button className="icon-btn sm" onClick={() => setCompare(null)} aria-label="Close comparison">
           <X size={14} />

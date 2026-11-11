@@ -37,7 +37,7 @@ export type Messages = typeof MESSAGES_EN;
 
 export const MESSAGES_EN = {
   common: {
-    title: 'Al Sajaa Digital Twin',
+    title: 'Sharjah Smart Districts',
     subtitle: 'Climate Intelligence & Urban Resilience',
     description: 'Modelled scenarios for sustainable city planning',
     loading: 'Loading...',

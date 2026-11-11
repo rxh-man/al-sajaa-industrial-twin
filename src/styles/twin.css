@@ -1,6 +1,6 @@
-/* Al Sajaa Twin on the twin: the brand link and mark, the real-map landmark labels and the map credit.
+/* Sharjah Smart Districts on the twin: the brand link and mark, the real-map landmark labels and the map credit.
  * The twin keeps its dark design (tokens.css, panels.css, overlays.css, world.css); only the
- * elements Al Sajaa Twin added are styled here, in the same language. */
+ * elements Sharjah Smart Districts added are styled here, in the same language. */
 
 /* the brand doubles as the link back to the landing page */
 a.hdr-brand {
@@ -99,10 +99,28 @@ a.hdr-brand {
   }
 }
 
-/* names and big moments in the display face (Al Sajaa Twin's type: Geist, Instrument Sans, Fragment Mono) */
+/* names and big moments in the display face (Sharjah Smart Districts's type: Geist, Instrument Sans, Fragment Mono) */
 .hdr-title,
 .intro-name,
 .run-title,
 .future-title {
   font-family: var(--font-display);
+}
+
+/* Sharjah Smart City logo: white plate so the gold mark and dark wordmark show on dark pages */
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 4px 10px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(79, 209, 232, 0.25);
+}
+
+.brand-logo img {
+  width: auto;
+  display: block;
+  max-width: 100%;
 }

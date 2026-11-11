@@ -184,7 +184,7 @@ function Outcome({ run, answers }: { run: AgentRun; answers: Answers }) {
       <div className="outcome-actions">
         <button className={`btn-primary ${compare ? 'is-on' : ''}`} onClick={() => setCompare(compare ? null : 'none')}>
           <GitCompare size={15} />
-          {compare ? 'Close' : 'With and without Al Sajaa Twin'}
+          {compare ? 'Close' : 'With and without Sharjah Smart Districts'}
         </button>
         <button className="btn-ghost" onClick={replay} aria-label="Run again">
           <RotateCcw size={14} />

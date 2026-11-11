@@ -1,4 +1,4 @@
-"""Generate Al Sajaa (Sharjah industrial district) in the AD JSON schema used by Al Sajaa Twin's renderer.
+"""Generate Al Sajaa (Sharjah industrial district) in the AD JSON schema used by Sharjah Smart Districts's renderer.
 
 Scene units: 1 = 10 m (same as abudhabi.json). Roads run along x and z; the Gulf lies on the +z side.
 Output: src/data/alsajaa.json. Everything here is procedural, not survey data.

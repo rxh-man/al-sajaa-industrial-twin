@@ -40,7 +40,7 @@ export function SavingsChart({ fixCost }: { fixCost: number }) {
 
 const RISK_CONFIG = {
   nobody: { label: 'If nobody acted', colors: { light: [RED] } },
-  twin: { label: 'With Al Sajaa Twin', colors: { light: [CYAN] } },
+  twin: { label: 'With Sharjah Smart Districts', colors: { light: [CYAN] } },
 } satisfies ChartConfig;
 
 /** Burst risk over the next 72 hours: the main bursts at about 44 h untouched; the 6-hour repair brings it down. */
