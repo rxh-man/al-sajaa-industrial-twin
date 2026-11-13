@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Bot, Building2, ChevronDown, Leaf, Map as MapIcon, Network, Compass } from 'lucide-react';
+import { Bot, Plane, Building2, ChevronDown, Leaf, Map as MapIcon, Network, Compass } from 'lucide-react';
 import { useTwinStore } from '../store/useTwinStore';
 import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { useTourStore } from '../tour/store';
 import { usePark } from '../parknex/store';
+import { openAviation } from '../aviation/AviationPanel';
 import type { LayerId } from '../data/networks';
 import { useTier, type Tier } from '../perf/qualityTier';
 import { useI18n } from '../i18n/i18nContext';
@@ -107,6 +108,12 @@ function useGroups(): Group[] {
         { label: 'Audit and explainability', run: () => openAgent('audit'), on: ops.open && ops.tab === 'audit' },
         { label: 'Twin agents rail (Watch … Verify)', run: () => s.setRailsCollapsed(!s.railsCollapsed), on: !s.railsCollapsed },
       ],
+    },
+    {
+      id: 'aviation',
+      label: 'Sahra Aviation',
+      icon: <Plane size={16} />,
+      items: [{ label: 'Open Sahra Aviation', hint: '', run: () => openAviation() }],
     },
     {
       id: 'park',

@@ -1,3 +1,4 @@
+import { AviationPanel } from '../aviation/AviationPanel';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
@@ -123,6 +124,7 @@ export function App() {
       <SustainabilityPanel />
       <JudgeTour />
       <ParknexPanel />
+      <AviationPanel />
 
       <aside className="rail rail-l panel panel-enter" style={{ ['--enter-delay' as string]: '80ms' }} aria-label="Simulated signals">
         <SidebarHeader />
