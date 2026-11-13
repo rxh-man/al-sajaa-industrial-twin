@@ -17,3 +17,12 @@
 .av-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .av-slider { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .av-slider input { width: 100%; }
+/* Turnaround timeline (bars were never styled in Phase 1) */
+.av-gantt { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.av-row { display: grid; grid-template-columns: minmax(120px, 170px) 1fr 92px; align-items: center; gap: 8px; font-size: 12px; }
+.av-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av-track { position: relative; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.av-bar { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: #1aa3a3; }
+.av-bar.is-alert { background: #e5484d; }
+.av-now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ffffff; border-radius: 1px; }
+.av-time { text-align: right; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.72); }

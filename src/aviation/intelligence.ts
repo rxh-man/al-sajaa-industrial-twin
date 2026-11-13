@@ -2,7 +2,7 @@
  * MRR AVIATION intelligence layer (Phase 3). Specialist agents RECOMMEND only. Every recommendation waits for a human decision.
  * All figures are simulated and every financial or emissions factor is a labelled assumption, not a measured value.
  */
-import { FLEET, FLIGHTS, SIM_NOW, hm } from './model';
+import { FLEET, FLIGHTS, SIM_NOW, hm, scenarioDelayMin } from './model';
 import { AIRCRAFT, baggageTracking, gseHealth, INCIDENTS, runwayConflicts, standStatus, WEATHER_DELAY_MIN, type Weather, opsKpis } from './ops';
 
 export type AgentId = 'turnaround' | 'baggage' | 'maintenance' | 'stand' | 'weather' | 'safety';
@@ -89,20 +89,20 @@ export function recommendations(s: { baggageTractorFailed: boolean; replacementA
 // ---------- Forecasts and what-if ----------
 
 /** Disruption forecast for the next 2 hours: flights at risk of a delay above 15 minutes. */
-export function disruptionForecast(s: WhatIf, baggageTractorFailed: boolean) {
-  const at = FLIGHTS.filter((f) => f.arrMin >= SIM_NOW && f.arrMin <= SIM_NOW + 120);
+export function disruptionForecast(s: WhatIf, baggageTractorFailed: boolean, now = SIM_NOW) {
+  const at = FLIGHTS.filter((f) => f.arrMin >= now && f.arrMin <= now + 120);
   const extra = WEATHER_DELAY_MIN[s.weather] + s.extraDelay;
-  const atRisk = at.filter((f) => extra + (f.id === 'SH204' && baggageTractorFailed ? 8 : 0) > 15).map((f) => f.id);
+  const atRisk = at.filter((f) => extra + (f.id === 'SH204' ? scenarioDelayMin({ baggageTractorFailed, replacementAssigned: false }) : 0) > 15).map((f) => f.id);
   return { horizonMin: 120, atRisk, probability: Math.min(0.95, 0.12 + extra / 60) };
 }
 
 /** Full what-if run: KPIs for the chosen weather, extra delay and baggage load. */
-export function whatIfResult(s: WhatIf & { baggageTractorFailed: boolean; replacementAssigned: boolean }) {
+export function whatIfResult(s: WhatIf & { baggageTractorFailed: boolean; replacementAssigned: boolean }, now = SIM_NOW) {
   const scen = s.bagsScale;
-  const base = opsKpis('Clear', 0, 0, false, false);
-  const run = opsKpis(s.weather, s.extraDelay, s.baggageTractorFailed && !s.replacementAssigned ? 8 : 0, s.baggageTractorFailed, s.replacementAssigned);
+  const base = opsKpis('Clear', 0, 0, false, false, now);
+  const run = opsKpis(s.weather, s.extraDelay, scenarioDelayMin({ baggageTractorFailed: s.baggageTractorFailed, replacementAssigned: s.replacementAssigned }), s.baggageTractorFailed, s.replacementAssigned, now);
   const bagsLoad = Math.round(FLIGHTS.reduce((a, f) => a + f.bags, 0) * scen);
-  return { base, run, bagsLoad, forecast: disruptionForecast(s, s.baggageTractorFailed) };
+  return { base, run, bagsLoad, forecast: disruptionForecast(s, s.baggageTractorFailed, now) };
 }
 
 // ---------- Cost, revenue, emissions (labelled assumptions) ----------
@@ -134,18 +134,18 @@ export function emissions() {
 
 // ---------- Executive summary ----------
 
-export function executiveSummary(s: { baggageTractorFailed: boolean; replacementAssigned: boolean; weather: Weather; extraDelay: number }) {
-  const kp = opsKpis(s.weather, s.extraDelay, s.baggageTractorFailed && !s.replacementAssigned ? 8 : 0, s.baggageTractorFailed, s.replacementAssigned);
+export function executiveSummary(s: { baggageTractorFailed: boolean; replacementAssigned: boolean; weather: Weather; extraDelay: number }, now = SIM_NOW) {
+  const kp = opsKpis(s.weather, s.extraDelay, scenarioDelayMin({ baggageTractorFailed: s.baggageTractorFailed, replacementAssigned: s.replacementAssigned }), s.baggageTractorFailed, s.replacementAssigned, now);
   const recs = recommendations(s);
-  const stands = standStatus();
+  const stands = standStatus(now);
   return {
     otp: kp.otp,
     openIncidents: kp.openIncidents,
     pendingRecs: recs.length,
     freeStands: stands.filter((x) => x.free).length,
     standsTotal: stands.length,
-    clock: hm(SIM_NOW),
-    baggageMishandled: baggageTracking(s.baggageTractorFailed, s.replacementAssigned).reduce((a, b) => a + b.mishandled, 0),
+    clock: hm(now),
+    baggageMishandled: baggageTracking(s.baggageTractorFailed, s.replacementAssigned, now).reduce((a, b) => a + b.mishandled, 0),
   };
 }
 

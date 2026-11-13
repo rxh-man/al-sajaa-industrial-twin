@@ -148,3 +148,49 @@ test('every aviation tab renders without errors in each scenario state (server r
   }
   s.getState().reset();
 });
+
+test('tractor failure delays SH204 departure only until a replacement is assigned', () => {
+  const m = M.model;
+  assert.equal(m.scenarioDelayMin({ baggageTractorFailed: false, replacementAssigned: false }), 0);
+  const failed = m.scenarioDelayMin({ baggageTractorFailed: true, replacementAssigned: false });
+  const fixed = m.scenarioDelayMin({ baggageTractorFailed: true, replacementAssigned: true });
+  assert.ok(failed > 0, `failure delay ${failed} min`);
+  assert.equal(fixed, 0, 'replacement restores the plan');
+});
+
+test('board and turnaround agree on SH204 departure (scenario delay is one source of truth)', () => {
+  const m = M.model;
+  const sh204 = m.FLIGHTS.find((f: { id: string }) => f.id === 'SH204');
+  const scen = { baggageTractorFailed: true, replacementAssigned: false };
+  const d = m.scenarioDelayMin(scen);
+  const row = M.ops.flightBoard('Clear', 0, d).find((r: { id: string }) => r.id === 'SH204');
+  assert.equal(row.depEst - sh204.depMin, d);
+  const tr = m.turnaround(sh204.arrMin, scen);
+  assert.equal(tr.departAt - sh204.depMin, d);
+});
+
+test('every stand has a distinct airport position and the nine stands match the model', async () => {
+  const scene = await server.ssrLoadModule('/src/aviation/AviationScene.tsx');
+  const keys = Object.keys(scene.STAND_OFFSET).sort();
+  assert.deepEqual(keys, [...M.model.STANDS].sort());
+  const pos = keys.map((k: string) => `${scene.STAND_OFFSET[k].x},${scene.STAND_OFFSET[k].z}`);
+  assert.equal(new Set(pos).size, keys.length, 'no two stands share a position');
+});
+
+test('airport scene server-renders in each scenario state without errors', async () => {
+  const { createElement } = await import('react');
+  const { renderToString } = await import('react-dom/server');
+  const scene = await server.ssrLoadModule('/src/aviation/AviationScene.tsx');
+  const s = M.store.useAviationStore;
+  for (const st of [
+    { baggageTractorFailed: false, replacementAssigned: false, clock: 9 * 60 + 58 },
+    { baggageTractorFailed: true, replacementAssigned: false, clock: 10 * 60 + 5 },
+    { baggageTractorFailed: true, replacementAssigned: true, clock: 10 * 60 + 5 },
+  ]) {
+    s.getState().reset();
+    s.setState(st);
+    const html = renderToString(createElement(scene.AviationScene));
+    assert.ok(html.length > 500);
+  }
+  s.getState().reset();
+});

@@ -12,6 +12,9 @@ export function PerfProbe() {
   const total = useRef<number[]>([]);
   const gl = useThree((s) => s.gl);
   useFrame(() => {
+    // the post-processing composer resets renderer counters per pass; accumulate across the whole frame instead
+    gl.info.autoReset = false;
+    gl.info.reset();
     t0.current = performance.now();
     const w = window as unknown as { __perfReset?: () => void };
     if (!w.__perfReset)

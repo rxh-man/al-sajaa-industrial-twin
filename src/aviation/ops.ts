@@ -68,23 +68,23 @@ export function standConflicts() {
 export interface BoardRow extends Flight { arrEst: number; depEst: number; state: 'Scheduled' | 'Approaching' | 'On stand' | 'Departed' | 'Delayed' }
 
 /** Board with estimated times. Weather adds arrival delay. The scenario flight adds its own delay when the tractor fails. */
-export function flightBoard(weather: Weather, extraDelay: number, scenarioDelay: number): BoardRow[] {
+export function flightBoard(weather: Weather, extraDelay: number, scenarioDelay: number, now = SIM_NOW): BoardRow[] {
   return FLIGHTS.map((f) => {
     const arrDelay = WEATHER_DELAY_MIN[weather] + extraDelay + (f.id === 'SH204' ? scenarioDelay : 0);
     const arrEst = f.arrMin + arrDelay;
     const depEst = f.depMin + arrDelay;
     let state: BoardRow['state'] = 'Scheduled';
-    if (depEst <= SIM_NOW) state = 'Departed';
-    else if (arrEst <= SIM_NOW) state = 'On stand';
-    else if (arrEst - 20 <= SIM_NOW) state = 'Approaching';
+    if (depEst <= now) state = 'Departed';
+    else if (arrEst <= now) state = 'On stand';
+    else if (arrEst - 20 <= now) state = 'Approaching';
     if (arrDelay > 0 && depEst > f.depMin && state !== 'Departed') state = 'Delayed';
     return { ...f, arrEst, depEst, state };
   });
 }
 
 /** On-time performance: share of movements leaving within 15 min of schedule (simulated). */
-export function onTimePerformance(weather: Weather, extraDelay: number, scenarioDelay: number) {
-  const b = flightBoard(weather, extraDelay, scenarioDelay);
+export function onTimePerformance(weather: Weather, extraDelay: number, scenarioDelay: number, now = SIM_NOW) {
+  const b = flightBoard(weather, extraDelay, scenarioDelay, now);
   const ontime = b.filter((r) => r.depEst - r.depMin <= 15).length;
   return ontime / b.length;
 }
@@ -124,13 +124,13 @@ export function securityPeak() {
 export interface BagRow { flightId: string; bags: number; loaded: number; mishandled: number; status: string }
 
 /** Baggage per flight. Mishandling is simulated at 2.1 per 1,000 bags, plus the failed-tractor effect on SH204 when it applies. */
-export function baggageTracking(tractorFailed: boolean, replacementAssigned: boolean): BagRow[] {
+export function baggageTracking(tractorFailed: boolean, replacementAssigned: boolean, now = SIM_NOW): BagRow[] {
   return FLIGHTS.map((f) => {
     const base = Math.round(f.bags * 0.0021);
     const fault = f.id === 'SH204' && tractorFailed && !replacementAssigned ? Math.ceil(f.bags * 0.02) : 0;
     const mishandled = base + fault;
-    const loaded = f.depMin <= SIM_NOW ? f.bags : f.id === 'SH204' && tractorFailed && !replacementAssigned ? Math.round(f.bags * 0.6) : Math.round(f.bags * 0.3);
-    const status = f.depMin <= SIM_NOW ? 'Loaded and departed' : fault > 0 ? 'Delayed: tractor shortage' : 'In handling';
+    const loaded = f.depMin <= now ? f.bags : f.id === 'SH204' && tractorFailed && !replacementAssigned ? Math.round(f.bags * 0.6) : Math.round(f.bags * 0.3);
+    const status = f.depMin <= now ? 'Loaded and departed' : fault > 0 ? 'Delayed: tractor shortage' : 'In handling';
     return { flightId: f.id, bags: f.bags, loaded, mishandled, status };
   });
 }
@@ -208,9 +208,9 @@ export const SAFETY_CHECKS = [
 
 // ---------- Operational KPIs ----------
 
-export function opsKpis(weather: Weather, extraDelay: number, scenarioDelay: number, tractorFailed: boolean, replacementAssigned: boolean) {
-  const otp = onTimePerformance(weather, extraDelay, scenarioDelay);
-  const bags = baggageTracking(tractorFailed, replacementAssigned);
+export function opsKpis(weather: Weather, extraDelay: number, scenarioDelay: number, tractorFailed: boolean, replacementAssigned: boolean, now = SIM_NOW) {
+  const otp = onTimePerformance(weather, extraDelay, scenarioDelay, now);
+  const bags = baggageTracking(tractorFailed, replacementAssigned, now);
   const totalBags = bags.reduce((a, b) => a + b.bags, 0);
   const mishandled = bags.reduce((a, b) => a + b.mishandled, 0);
   const availableGse = FLEET.filter((g) => g.status === 'Available' || g.status === 'Busy' || g.status === 'Charging').length;

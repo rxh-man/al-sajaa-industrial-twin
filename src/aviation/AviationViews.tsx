@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAviationStore, type AviationTab } from './store';
 import { AIRCRAFT, baggageTracking, cargoSummary, DATA_NOTE, flightBoard, gseHealth, INCIDENTS, opsKpis, passengerFlow, runwayConflicts, runwayUtilisation, SAFETY_CHECKS, SECURITY_CAPACITY_PER_HOUR, SEPARATION_MIN, standConflicts, standStatus, securityPeak, WEATHER_DELAY_MIN, type Weather } from './ops';
 import { AGENTS, ASSUMPTIONS, emissions, executiveSummary, financials, recommendations, whatIfResult } from './intelligence';
-import { FLEET, FLIGHTS, hm, SIM_NOW, turnaround, TASKS, type Flight } from './model';
+import { FLEET, FLIGHTS, hm, scenarioDelayMin, turnaround, TASKS, type Flight } from './model';
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const n = (v: number, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d });
@@ -41,8 +41,9 @@ export interface Scen { baggageTractorFailed: boolean; replacementAssigned: bool
 
 // ---------- Command centre ----------
 export function Command({ scen, weather, extraDelay, go }: { scen: Scen; weather: Weather; extraDelay: number; go: (t: AviationTab) => void }) {
-  const ex = executiveSummary({ ...scen, weather, extraDelay });
-  const kp = opsKpis(weather, extraDelay, scen.baggageTractorFailed && !scen.replacementAssigned ? 8 : 0, scen.baggageTractorFailed, scen.replacementAssigned);
+  const now = useAviationStore((s) => s.clock);
+  const ex = executiveSummary({ ...scen, weather, extraDelay }, now);
+  const kp = opsKpis(weather, extraDelay, scenarioDelayMin(scen), scen.baggageTractorFailed, scen.replacementAssigned, now);
   const recs = recommendations({ ...scen, weather, extraDelay }).slice(0, 3);
   const fin = financials(Math.round(kp.otp < 1 ? (1 - kp.otp) * 600 : 0));
   return (
@@ -79,8 +80,9 @@ export function Command({ scen, weather, extraDelay, go }: { scen: Scen; weather
 
 // ---------- Flight board ----------
 function BoardTable({ weather, extraDelay, scen, compact, onPick }: { weather: Weather; extraDelay: number; scen: Scen; compact?: boolean; onPick?: (f: Flight) => void }) {
-  const rows = flightBoard(weather, extraDelay, scen.baggageTractorFailed && !scen.replacementAssigned ? 8 : 0);
-  const list = compact ? rows.filter((r) => r.depEst > SIM_NOW).slice(0, 5) : rows;
+  const now = useAviationStore((s) => s.clock);
+  const rows = flightBoard(weather, extraDelay, scenarioDelayMin(scen), now);
+  const list = compact ? rows.filter((r) => r.depEst > now).slice(0, 5) : rows;
   const select = useAviationStore((s) => s.select);
   return (
     <div className="ops-table-wrap">
@@ -104,14 +106,19 @@ function BoardTable({ weather, extraDelay, scen, compact, onPick }: { weather: W
 // ---------- Control centre ----------
 export function Control({ weather, extraDelay, scen }: { weather: Weather; extraDelay: number; scen: Scen }) {
   const setWeather = useAviationStore((s) => s.setWeather);
-  const stands = standStatus();
+  const now = useAviationStore((s) => s.clock);
+  const setClock = useAviationStore((s) => s.setClock);
+  const stands = standStatus(now);
   const conf = runwayConflicts(weather, extraDelay);
   const util = runwayUtilisation(weather);
   const sc = standConflicts();
   return (
     <div className="ops-tab">
       <section className="ops-sec">
-        <h4>Scenario</h4>
+        <h4>Scenario and clock</h4>
+        <label className="ops-small av-slider">Simulated clock: {hm(now)}
+          <input type="range" min={6 * 60} max={22 * 60} step={5} value={now} onChange={(e) => setClock(Number(e.target.value))} />
+        </label>
         <div className="av-row-btns">
           {(Object.keys(SEPARATION_MIN) as Weather[]).map((w) => (
             <button key={w} className={`ops-chip ${weather === w ? 'is-on' : ''}`} onClick={() => setWeather(w)}>{w}</button>
@@ -120,7 +127,7 @@ export function Control({ weather, extraDelay, scen }: { weather: Weather; extra
         <Note>{weather === 'Clear' ? 'Clear weather: standard separation.' : `${weather}: separation ${SEPARATION_MIN[weather]} min, arrivals +${WEATHER_DELAY_MIN[weather]} min (simulated).`}</Note>
       </section>
       <section className="ops-sec">
-        <h4>Stand allocation at {hm(SIM_NOW)}</h4>
+        <h4>Stand allocation at {hm(now)}</h4>
         <div className="av-stands">
           {stands.map((s) => (
             <div key={s.stand} className={`av-stand ${s.free ? 'is-free' : 'is-busy'}`}>
@@ -151,7 +158,8 @@ export function Control({ weather, extraDelay, scen }: { weather: Weather; extra
 
 // ---------- Flights ----------
 export function Flights({ weather, extraDelay, scen, go }: { weather: Weather; extraDelay: number; scen: Scen; go: (t: AviationTab) => void }) {
-  const states = flightBoard(weather, extraDelay, 0).reduce<Record<string, number>>((a, r) => ((a[r.state] = (a[r.state] ?? 0) + 1), a), {});
+  const now = useAviationStore((s) => s.clock);
+  const states = flightBoard(weather, extraDelay, 0, now).reduce<Record<string, number>>((a, r) => ((a[r.state] = (a[r.state] ?? 0) + 1), a), {});
   return (
     <div className="ops-tab">
       <div className="sus-kpis">
@@ -169,22 +177,25 @@ export function Flights({ weather, extraDelay, scen, go }: { weather: Weather; e
 // ---------- Turnaround ----------
 export function Turnaround({ flightId, scen }: { flightId: string; scen: Scen }) {
   const f = FLIGHTS.find((x) => x.id === flightId) ?? FLIGHTS[1];
-  const tr = turnaround(f.arrMin, scen);
+  const now = useAviationStore((s) => s.clock);
+  const tr = turnaround(f.arrMin, f.id === 'SH204' ? scen : { baggageTractorFailed: false, replacementAssigned: false });
   const span = Math.max(1, tr.departAt - f.arrMin);
+  const nowPct = Math.max(0, Math.min(100, ((now - f.arrMin) / span) * 100));
   return (
     <div className="ops-tab">
       <section className="ops-sec">
         <h4>{f.id} · {f.reg} · stand {f.stand}</h4>
         <p className="ops-small">Arrival {hm(f.arrMin)}. Estimated departure {hm(tr.departAt)} ({tr.delayMin > 0 ? `+${tr.delayMin} min vs plan` : 'on plan'}).</p>
         {scen.baggageTractorFailed && (
-          <p className="ops-note">{scen.replacementAssigned ? 'Replacement tractor assigned. Baggage loading is back on plan.' : `Baggage loading delayed by 8 minutes. Current estimated departure delay: ${tr.delayMin} minutes.`}</p>
+          <p className="ops-note">{scen.replacementAssigned ? 'Replacement tractor assigned. Baggage loading is back on plan.' : `Baggage loading held for a charged tractor. Current estimated departure delay: ${tr.delayMin} minutes.`}</p>
         )}
         <div className="av-gantt" role="img" aria-label={`Turnaround timeline for ${f.id}`}>
           {tr.rows.map((r) => (
             <div key={r.id} className="av-row">
               <span className="av-label">{r.label}</span>
               <div className="av-track">
-                <div className={`av-bar ${r.note ? 'is-alert' : ''}`} style={{ left: `${((r.start - f.arrMin) / span) * 100}%`, width: `${Math.max(1.5, (r.dur / span) * 100)}%` }} title={`${hm(r.start)} to ${hm(r.finish)}${r.note ? ` · ${r.note}` : ''}`} />
+                <div className={`av-bar ${r.alert ? 'is-alert' : ''}`} style={{ left: `${((r.start - f.arrMin) / span) * 100}%`, width: `${Math.max(1.5, (r.dur / span) * 100)}%` }} title={`${hm(r.start)} to ${hm(r.finish)}${r.note ? ` · ${r.note}` : ''}`} />
+                <div className="av-now" style={{ left: `${nowPct}%` }} />
               </div>
               <span className="av-time">{hm(r.start)}–{hm(r.finish)}</span>
             </div>
@@ -198,9 +209,10 @@ export function Turnaround({ flightId, scen }: { flightId: string; scen: Scen })
 
 // ---------- Passengers and bags ----------
 export function Passengers({ scen }: { scen: Scen }) {
+  const now = useAviationStore((s) => s.clock);
   const flow = passengerFlow().filter((r) => r.checkIn + r.security + r.boarding > 0);
   const peak = securityPeak();
-  const bags = baggageTracking(scen.baggageTractorFailed, scen.replacementAssigned);
+  const bags = baggageTracking(scen.baggageTractorFailed, scen.replacementAssigned, now);
   return (
     <div className="ops-tab">
       <div className="sus-kpis">
@@ -332,7 +344,8 @@ export function Safety({ scen }: { scen: Scen }) {
 
 // ---------- Analytics ----------
 export function Analytics({ scen, weather, extraDelay }: { scen: Scen; weather: Weather; extraDelay: number }) {
-  const kp = opsKpis(weather, extraDelay, scen.baggageTractorFailed && !scen.replacementAssigned ? 8 : 0, scen.baggageTractorFailed, scen.replacementAssigned);
+  const now = useAviationStore((s) => s.clock);
+  const kp = opsKpis(weather, extraDelay, scenarioDelayMin(scen), scen.baggageTractorFailed, scen.replacementAssigned, now);
   const delay = Math.round((1 - kp.otp) * 600);
   const fin = financials(delay);
   const em = emissions();
@@ -356,7 +369,7 @@ export function Analytics({ scen, weather, extraDelay }: { scen: Scen; weather: 
       </section>
       <section className="ops-sec">
         <h4>Delay minutes by flight (estimated)</h4>
-        <Bars rows={flightBoard(weather, extraDelay, scen.baggageTractorFailed && !scen.replacementAssigned ? 8 : 0).map((r) => ({ k: r.id, v: r.depEst - r.depMin }))} unit=" min" />
+        <Bars rows={flightBoard(weather, extraDelay, scenarioDelayMin(scen), now).map((r) => ({ k: r.id, v: r.depEst - r.depMin }))} unit=" min" />
       </section>
       <Note>{DATA_NOTE} Revenue, cost and emissions use the labelled assumptions above.</Note>
     </div>
@@ -371,7 +384,8 @@ export function WhatIf({ scen }: { scen: Scen }) {
   const setExtraDelay = useAviationStore((s) => s.setExtraDelay);
   const setBagsScale = useAviationStore((s) => s.setBagsScale);
   const setWeather = useAviationStore((s) => s.setWeather);
-  const r = useMemo(() => whatIfResult({ weather, extraDelay, bagsScale, ...scen }), [weather, extraDelay, bagsScale, scen]);
+  const now = useAviationStore((s) => s.clock);
+  const r = useMemo(() => whatIfResult({ weather, extraDelay, bagsScale, ...scen }, now), [weather, extraDelay, bagsScale, scen, now]);
   return (
     <div className="ops-tab">
       <section className="ops-sec">

@@ -13,15 +13,15 @@ import './aviation.css';
 interface DemoStep { title: string; run: () => void }
 
 const DEMO: DemoStep[] = [
-  { title: 'Command view: MRR AVIATION and Al Sajaa', run: () => useAviationStore.setState({ tab: 'command', selectedFlight: 'SH204' }) },
-  { title: 'Select the arriving aircraft SH204', run: () => useAviationStore.setState({ tab: 'turnaround', selectedFlight: 'SH204' }) },
-  { title: 'Review the turnaround timeline', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
-  { title: 'Baggage tractor BT-01 fails', run: () => useAviationStore.getState().failBaggageTractor() },
-  { title: 'Agents recommend a replacement tractor', run: () => useAviationStore.setState({ tab: 'ai' }) },
-  { title: 'Operator approves the replacement', run: () => useAviationStore.getState().assignReplacement() },
-  { title: 'Revised departure forecast', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
-  { title: 'Passengers and bags: impact on handling', run: () => useAviationStore.setState({ tab: 'passengers' }) },
-  { title: 'Audit trail records every decision', run: () => useAviationStore.setState({ tab: 'audit' }) },
+  { title: 'Command view: SH204 is on stand A5 with ground crews working', run: () => useAviationStore.setState({ tab: 'command', selectedFlight: 'SH204', clock: 9 * 60 + 58 }) },
+  { title: 'Select SH204 and open its turnaround timeline', run: () => useAviationStore.setState({ tab: 'turnaround', selectedFlight: 'SH204' }) },
+  { title: 'Baggage tractor BT-01 fails during loading', run: () => useAviationStore.getState().failBaggageTractor() },
+  { title: 'Agents recommend a replacement tractor and show the delay', run: () => useAviationStore.setState({ tab: 'ai' }) },
+  { title: 'Operator approves the replacement (human decision)', run: () => useAviationStore.getState().assignReplacement() },
+  { title: 'Turnaround recovers: the 3D tractor is replaced', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
+  { title: 'Flights: revised departure for SH204 and stand A5 status', run: () => useAviationStore.setState({ tab: 'flights' }) },
+  { title: 'Passengers and bags: handling impact', run: () => useAviationStore.setState({ tab: 'passengers' }) },
+  { title: 'Audit trail records the failure and the approval', run: () => useAviationStore.setState({ tab: 'audit' }) },
 ];
 
 export function openAviation() {

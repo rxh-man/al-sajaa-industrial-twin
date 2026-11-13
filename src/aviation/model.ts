@@ -8,7 +8,7 @@ export const AIRPORT = 'Sahra Gateway International Airport (fictional)';
 export type FlightStatus = 'Scheduled' | 'Approaching' | 'On stand' | 'Turnaround' | 'Ready for departure' | 'Departed' | 'Delayed';
 
 /** Simulated operations clock (minutes from 00:00). Fixed so every view shows the same picture. */
-export const SIM_NOW = 10 * 60 + 20;
+export const SIM_NOW = 9 * 60 + 58;
 
 export interface Flight {
   id: string;            // fictional flight number
@@ -28,7 +28,7 @@ export interface Flight {
 export const FLIGHTS: Flight[] = [
   { id: 'SH112', reg: 'SH-112', type: 'Narrow-body', route: 'Muscat (fictional) → Al Sajaa', direction: 'Arrival+Departure', stand: 'A1', arrMin: 7 * 60 + 30, depMin: 8 * 60 + 5, pax: 150, bags: 160, cargoT: 1.8 },
   { id: 'SH201', reg: 'SH-201', type: 'Narrow-body', route: 'Al Sajaa → Muscat (fictional)', direction: 'Arrival+Departure', stand: 'A3', arrMin: 6 * 60 + 10, depMin: 7 * 60 + 15, pax: 164, bags: 180, cargoT: 2.1 },
-  { id: 'SH204', reg: 'SH-204', type: 'Narrow-body', route: 'Doha (fictional) → Al Sajaa', direction: 'Arrival+Departure', stand: 'A5', arrMin: 9 * 60 + 40, depMin: 10 * 60 + 55, pax: 172, bags: 196, cargoT: 2.4 },
+  { id: 'SH204', reg: 'SH-204', type: 'Narrow-body', route: 'Doha (fictional) → Al Sajaa', direction: 'Arrival+Departure', stand: 'A5', arrMin: 9 * 60 + 40, depMin: 10 * 60 + 37, pax: 172, bags: 196, cargoT: 2.4 },
   { id: 'SH310', reg: 'SH-310', type: 'Wide-body', route: 'Al Sajaa → London (fictional)', direction: 'Arrival+Departure', stand: 'B1', arrMin: 11 * 60 + 5, depMin: 13 * 60 + 30, pax: 286, bags: 330, cargoT: 9.6 },
   { id: 'SH118', reg: 'SH-118', type: 'Regional', route: 'Al Sajaa → Salalah (fictional)', direction: 'Arrival+Departure', stand: 'R2', arrMin: 12 * 60 + 20, depMin: 13 * 60 + 10, pax: 78, bags: 84, cargoT: 0.7 },
   { id: 'SH330', reg: 'SH-330', type: 'Narrow-body', route: 'Riyadh (fictional) → Al Sajaa', direction: 'Arrival+Departure', stand: 'A4', arrMin: 12 * 60 + 50, depMin: 13 * 60 + 45, pax: 168, bags: 182, cargoT: 1.9 },
@@ -89,7 +89,7 @@ export const TASKS: Task[] = [
 
 export interface Scenario { baggageTractorFailed: boolean; replacementAssigned: boolean }
 
-/** Schedule every activity from the aircraft's arrival. A failed tractor adds 8 min to baggage loading until a replacement arrives (2 min handover). */
+/** Schedule every activity from the aircraft's arrival. A failed tractor holds baggage loading for 30 min (a charged or repaired unit) until a replacement arrives (2 min handover). */
 export function turnaround(arrMin: number, s: Scenario) {
   const end: Record<string, number> = {};
   const rows = TASKS.map((t) => {
@@ -97,12 +97,13 @@ export function turnaround(arrMin: number, s: Scenario) {
     let dur = t.dur;
     let note = '';
     if (t.id === 'load' && s.baggageTractorFailed) {
-      const extra = s.replacementAssigned ? 2 : 8;
+      const extra = s.replacementAssigned ? 2 : 30;
       dur += extra;
-      note = s.replacementAssigned ? 'Replacement tractor assigned (2 min handover)' : 'Tractor BT-01 failed: waiting for a tractor';
+      note = s.replacementAssigned ? 'Replacement tractor assigned (2 min handover)' : 'Tractor BT-01 failed: loading held until a tractor is charged';
     }
     end[t.id] = start + dur;
-    return { ...t, start, finish: start + dur, dur, note };
+    const alert = t.id === 'load' && s.baggageTractorFailed && !s.replacementAssigned;
+    return { ...t, start, finish: start + dur, dur, note, alert };
   });
   const baseline = scheduleBaseline(arrMin);
   const ready = end.checks;
@@ -113,6 +114,11 @@ function scheduleBaseline(arrMin: number) {
   const end: Record<string, number> = {};
   for (const t of TASKS) end[t.id] = Math.max(arrMin, ...t.deps.map((d) => end[d])) + t.dur;
   return end.push;
+}
+
+/** Departure delay (min) that the scenario causes for SH204, taken from the turnaround timeline itself. */
+export function scenarioDelayMin(s: Scenario): number {
+  return turnaround(FLIGHTS[1].arrMin, s).delayMin;
 }
 
 export const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
