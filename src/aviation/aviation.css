@@ -1,0 +1,19 @@
+/* MRR AVIATION panel additions. Scoped to the aviation panel so Smart City and PARKNEX styles are unchanged. */
+.av-tabs { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+.av-tabs .ops-tabbtn { flex: 0 0 auto; }
+.av-kpi.is-ok .sus-kpi-v { color: #7ee2c0; }
+.av-kpi.is-warn .sus-kpi-v { color: #f5c46b; }
+.av-kpi.is-bad .sus-kpi-v { color: #ff8a8a; }
+.av-card { border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: rgba(255, 255, 255, 0.03); }
+.av-row-inline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.av-row-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+.av-note { margin-top: 10px; }
+.av-alert { color: #ff8a8a; font-weight: 600; }
+.av-alert-row td { color: #ffb3b3; }
+.av-stands { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.av-stand { border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; border: 1px solid rgba(255, 255, 255, 0.12); }
+.av-stand.is-free { background: rgba(126, 226, 192, 0.10); }
+.av-stand.is-busy { background: rgba(245, 196, 107, 0.14); }
+.av-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.av-slider { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.av-slider input { width: 100%; }

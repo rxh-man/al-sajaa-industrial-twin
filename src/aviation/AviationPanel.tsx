@@ -1,31 +1,27 @@
 import { useEffect, useMemo } from 'react';
 import { Plane, X } from 'lucide-react';
-import { useAviationStore, type AviationTab } from './store';
-import { AIRPORT, FLEET, FLIGHTS, hm, kpis, recommendReplacement, turnaround, type Flight } from './model';
+import { useAviationStore, TAB_LABELS, type AviationTab } from './store';
+import { AIRPORT } from './model';
+import { Analytics, Audit, Cargo, Command, Control, Ai, Fleet, Flights, Passengers, Safety, Turnaround, WhatIf } from './AviationViews';
 import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { usePark } from '../parknex/store';
 import { useTwinStore } from '../store/useTwinStore';
 import { AIRPORT_CENTRE } from './AviationScene';
-
-const TABS: [AviationTab, string][] = [
-  ['overview', 'Overview'],
-  ['turnaround', 'Turnaround'],
-  ['fleet', 'Ground fleet'],
-  ['ai', 'AI recommendation'],
-];
+import './aviation.css';
 
 interface DemoStep { title: string; run: () => void }
 
 const DEMO: DemoStep[] = [
-  { title: 'Regional view: MRR AVIATION and Al Sajaa', run: () => useAviationStore.setState({ tab: 'overview', selectedFlight: 'SH204' }) },
+  { title: 'Command view: MRR AVIATION and Al Sajaa', run: () => useAviationStore.setState({ tab: 'command', selectedFlight: 'SH204' }) },
   { title: 'Select the arriving aircraft SH204', run: () => useAviationStore.setState({ tab: 'turnaround', selectedFlight: 'SH204' }) },
   { title: 'Review the turnaround timeline', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
   { title: 'Baggage tractor BT-01 fails', run: () => useAviationStore.getState().failBaggageTractor() },
-  { title: 'AI recommends a replacement tractor', run: () => useAviationStore.setState({ tab: 'ai' }) },
+  { title: 'Agents recommend a replacement tractor', run: () => useAviationStore.setState({ tab: 'ai' }) },
   { title: 'Operator approves the replacement', run: () => useAviationStore.getState().assignReplacement() },
   { title: 'Revised departure forecast', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
-  { title: 'Ground fleet dashboard', run: () => useAviationStore.setState({ tab: 'fleet' }) },
+  { title: 'Passengers and bags: impact on handling', run: () => useAviationStore.setState({ tab: 'passengers' }) },
+  { title: 'Audit trail records every decision', run: () => useAviationStore.setState({ tab: 'audit' }) },
 ];
 
 export function openAviation() {
@@ -33,7 +29,7 @@ export function openAviation() {
   useSusStore.getState().setOpen(false);
   usePark.getState().setOpen(false);
   useAviationStore.getState().setOpen(true);
-  useAviationStore.getState().setTab('overview');
+  useAviationStore.getState().setTab('command');
 }
 
 export function AviationPanel() {
@@ -49,9 +45,10 @@ export function AviationPanel() {
   const setStep = useAviationStore((s) => s.setStep);
   const baggageTractorFailed = useAviationStore((s) => s.baggageTractorFailed);
   const replacementAssigned = useAviationStore((s) => s.replacementAssigned);
-  const scen = useMemo(() => ({ baggageTractorFailed, replacementAssigned }), [baggageTractorFailed, replacementAssigned]);
+  const weather = useAviationStore((s) => s.weather);
+  const extraDelay = useAviationStore((s) => s.extraDelay);
   const selected = useAviationStore((s) => s.selectedFlight);
-  const select = useAviationStore((s) => s.select);
+  const scen = useMemo(() => ({ baggageTractorFailed, replacementAssigned }), [baggageTractorFailed, replacementAssigned]);
 
   // aviation is the primary view while open: close the other side panels and return the camera home
   useEffect(() => {
@@ -68,7 +65,6 @@ export function AviationPanel() {
     return () => window.removeEventListener('keydown', k);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const k = useMemo(() => kpis(scen), [scen]);
   if (!open) return null;
 
   const runStep = (n: number) => {
@@ -76,6 +72,7 @@ export function AviationPanel() {
     setStep(i + 1);
     DEMO[i].run();
   };
+  const go = (t: AviationTab) => setTab(t);
 
   return (
     <aside className="ops-panel av-panel" role="dialog" aria-labelledby="av-title">
@@ -91,8 +88,8 @@ export function AviationPanel() {
         </button>
       </header>
 
-      <nav className="ops-tabs" role="tablist" aria-label="Aviation views">
-        {TABS.map(([id, label]) => (
+      <nav className="ops-tabs av-tabs" role="tablist" aria-label="Aviation views">
+        {TAB_LABELS.map(([id, label]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={`ops-tabbtn ${tab === id ? 'is-on' : ''}`} onClick={() => setTab(id)}>
             {label}
           </button>
@@ -100,10 +97,18 @@ export function AviationPanel() {
       </nav>
 
       <div className="ops-scroll">
-        {tab === 'overview' && <Overview k={k} selected={selected} onPick={(id) => (select(id), setTab('turnaround'))} scen={scen} />}
+        {tab === 'command' && <Command scen={scen} weather={weather} extraDelay={extraDelay} go={go} />}
+        {tab === 'control' && <Control weather={weather} extraDelay={extraDelay} scen={scen} />}
+        {tab === 'flights' && <Flights weather={weather} extraDelay={extraDelay} scen={scen} go={go} />}
         {tab === 'turnaround' && <Turnaround flightId={selected} scen={scen} />}
+        {tab === 'passengers' && <Passengers scen={scen} />}
         {tab === 'fleet' && <Fleet />}
-        {tab === 'ai' && <Ai scen={scen} />}
+        {tab === 'cargo' && <Cargo />}
+        {tab === 'safety' && <Safety scen={scen} />}
+        {tab === 'analytics' && <Analytics scen={scen} weather={weather} extraDelay={extraDelay} />}
+        {tab === 'whatif' && <WhatIf scen={scen} />}
+        {tab === 'ai' && <Ai scen={scen} weather={weather} extraDelay={extraDelay} />}
+        {tab === 'audit' && <Audit />}
       </div>
 
       <footer className="av-demo">
@@ -117,142 +122,5 @@ export function AviationPanel() {
         </div>
       </footer>
     </aside>
-  );
-}
-
-function Kpi({ l, v, s }: { l: string; v: string; s?: string }) {
-  return (
-    <div className="sus-kpi">
-      <div className="sus-kpi-top">{l}</div>
-      <div className="sus-kpi-v">{v}</div>
-      {s && <div className="ops-small ops-muted">{s}</div>}
-    </div>
-  );
-}
-
-function flightStatus(f: Flight, scen: { baggageTractorFailed: boolean; replacementAssigned: boolean }) {
-  if (f.id === 'SH204' && scen.baggageTractorFailed && !scen.replacementAssigned) return 'Delayed';
-  return f.status;
-}
-
-function Overview({ k, selected, onPick, scen }: { k: ReturnType<typeof kpis>; selected: string; onPick: (id: string) => void; scen: { baggageTractorFailed: boolean; replacementAssigned: boolean } }) {
-  return (
-    <div className="ops-tab">
-      <div className="sus-kpis">
-        <Kpi l="Flights today" v={String(k.flights)} s={`${k.arrivals} arrive by noon`} />
-        <Kpi l="Stands occupied" v={`${k.onGround} of ${k.stands}`} s={`${k.standsFree} free`} />
-        <Kpi l="Ground equipment" v={`${k.available} available`} s={`${k.busy} busy, ${k.gse} total`} />
-        <Kpi l="SH204 turnaround" v={`${k.sh204Turnaround} min`} s={k.sh204Delay > 0 ? `+${k.sh204Delay} min vs plan` : 'on plan'} />
-        <Kpi l="Passengers (simulated)" v={k.pax.toLocaleString('en-US')} />
-        <Kpi l="Bags (simulated)" v={k.bags.toLocaleString('en-US')} />
-      </div>
-      <section className="ops-sec">
-        <h4>Flight board (fictional)</h4>
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead><tr><th>Flight</th><th>Aircraft</th><th>Route</th><th>Stand</th><th>Arr</th><th>Dep</th><th>Status</th></tr></thead>
-            <tbody>
-              {FLIGHTS.map((f) => (
-                <tr key={f.id} className={selected === f.id ? 'is-on' : ''} onClick={() => onPick(f.id)} style={{ cursor: 'pointer' }}>
-                  <td>{f.id}</td><td>{f.reg} · {f.type}</td><td>{f.route}</td><td>{f.stand}</td><td>{hm(f.arrMin)}</td><td>{hm(f.depMin)}</td><td>{flightStatus(f, scen)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="ops-small ops-muted">Fictional flights and registrations. No real flight tracking is connected.</p>
-      </section>
-    </div>
-  );
-}
-
-function Turnaround({ flightId, scen }: { flightId: string; scen: { baggageTractorFailed: boolean; replacementAssigned: boolean } }) {
-  const f = FLIGHTS.find((x) => x.id === flightId) ?? FLIGHTS[1];
-  const tr = turnaround(f.arrMin, scen);
-  const span = Math.max(1, tr.departAt - f.arrMin);
-  return (
-    <div className="ops-tab">
-      <section className="ops-sec">
-        <h4>{f.id} · {f.reg} · stand {f.stand}</h4>
-        <p className="ops-small">Arrival {hm(f.arrMin)}. Estimated departure {hm(tr.departAt)} ({tr.delayMin > 0 ? `+${tr.delayMin} min vs plan` : 'on plan'}).</p>
-        {scen.baggageTractorFailed && (
-          <p className="ops-note">
-            {scen.replacementAssigned
-              ? 'Replacement tractor assigned. Baggage loading is back on plan.'
-              : `Baggage loading delayed by 8 minutes. Current estimated departure delay: ${tr.delayMin} minutes.`}
-          </p>
-        )}
-        <div className="av-gantt" role="img" aria-label={`Turnaround timeline for ${f.id}`}>
-          {tr.rows.map((r) => (
-            <div key={r.id} className="av-row">
-              <span className="av-label">{r.label}</span>
-              <div className="av-track">
-                <div
-                  className={`av-bar ${r.note ? 'is-alert' : ''}`}
-                  style={{ left: `${((r.start - f.arrMin) / span) * 100}%`, width: `${Math.max(1.5, (r.dur / span) * 100)}%` }}
-                  title={`${hm(r.start)} to ${hm(r.finish)}${r.note ? ` · ${r.note}` : ''}`}
-                />
-              </div>
-              <span className="av-time">{hm(r.start)}–{hm(r.finish)}</span>
-            </div>
-          ))}
-        </div>
-        <p className="ops-small ops-muted">Simulated activity times. Each activity starts when its dependencies finish.</p>
-      </section>
-    </div>
-  );
-}
-
-function Fleet() {
-  return (
-    <div className="ops-tab">
-      <section className="ops-sec">
-        <h4>Ground support equipment (simulated)</h4>
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead><tr><th>ID</th><th>Category</th><th>Status</th><th>Task</th><th>Utilisation</th></tr></thead>
-            <tbody>
-              {FLEET.map((g) => (
-                <tr key={g.id}>
-                  <td>{g.id}</td><td>{g.category}</td><td>{g.status}</td><td>{g.task}</td><td>{Math.round(g.utilisation * 100)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function Ai({ scen }: { scen: { baggageTractorFailed: boolean; replacementAssigned: boolean } }) {
-  const rec = recommendReplacement();
-  const tr = turnaround(FLIGHTS[1].arrMin, scen);
-  const approve = useAviationStore((s) => s.assignReplacement);
-  if (!scen.baggageTractorFailed) {
-    return (
-      <div className="ops-tab">
-        <p className="ops-small">No active issues. Trigger the baggage tractor failure from the demo, or from the Turnaround tab, to see a recommendation.</p>
-      </div>
-    );
-  }
-  return (
-    <div className="ops-tab">
-      <section className="ops-sec">
-        <h4>Detected issue</h4>
-        <p className="ops-small">Baggage tractor BT-01 has failed while serving SH204.</p>
-        <h4>Recommendation</h4>
-        <p className="ops-small">{rec ? rec.text : 'No replacement tractor is available.'}</p>
-        <ul className="ops-small">
-          <li>Expected departure: {hm(tr.departAt)} ({tr.delayMin} min vs plan{scen.replacementAssigned ? ', after replacement' : ''})</li>
-          <li>Confidence: {rec ? Math.round(rec.confidence * 100) : 0}%</li>
-          <li>Approval required: operator must confirm before the tractor is assigned.</li>
-        </ul>
-        <button className="ops-btn primary" disabled={!rec || scen.replacementAssigned} onClick={approve}>
-          {scen.replacementAssigned ? 'Replacement approved' : 'Approve replacement'}
-        </button>
-        <p className="ops-small ops-muted">Simulated decision. The system does not control real vehicles.</p>
-      </section>
-    </div>
   );
 }
