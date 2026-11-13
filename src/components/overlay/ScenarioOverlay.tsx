@@ -164,18 +164,26 @@ export function ScenarioTransport() {
     if (exploded) return null;
     return (
       <div className="transport is-idle">
-        <RunButton onClick={() => (DEFAULT_DEMO === 'guide' ? runGuideDemo() : run())} />
-        {DEFAULT_DEMO === 'guide' && (
-          <button
-            className="link-btn skip-link"
-            onClick={() => {
+        <RunButton
+          onClick={() => {
+            stopGuideDemo();
+            if (DEFAULT_DEMO === 'guide') runGuideDemo();
+            else run();
+          }}
+        />
+        <button
+          className="link-btn skip-link"
+          onClick={() => {
+            if (DEFAULT_DEMO === 'guide') {
               stopGuideDemo();
               run();
-            }}
-          >
-            Demo: pipe failure
-          </button>
-        )}
+            } else {
+              runGuideDemo();
+            }
+          }}
+        >
+          {DEFAULT_DEMO === 'guide' ? 'Demo: water leak' : 'Resident guide demo'}
+        </button>
         <button className="link-btn skip-link" onClick={skip}>
           Skip to the problem
           <SkipForward size={13} />

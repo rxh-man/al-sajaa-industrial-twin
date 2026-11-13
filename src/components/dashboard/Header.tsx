@@ -71,7 +71,7 @@ export function Header() {
   return (
     <header className="hdr panel-enter" style={{ ['--enter-delay' as string]: '0ms' }}>
       <a className="hdr-brand" href="#" aria-label="Sharjah Smart Districts home">
-        <BrandLogo height={34} />
+        <BrandLogo height={30} />
         <div>
           <div className="hdr-title">Sharjah Smart Districts</div>
           <div className="hdr-tagline">The city that fixes itself first</div>

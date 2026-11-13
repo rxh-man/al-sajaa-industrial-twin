@@ -124,3 +124,23 @@ a.hdr-brand {
   display: block;
   max-width: 100%;
 }
+
+/* the longer name must not run under the navigation: truncate the header title instead */
+.hdr-brand > div {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.hdr-brand .hdr-title,
+.hdr-brand .hdr-tagline {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* on narrower screens the logo carries the name; the title text would be squeezed to one letter */
+@media (max-width: 1500px) {
+  .hdr-brand > div {
+    display: none;
+  }
+}

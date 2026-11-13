@@ -10,7 +10,7 @@ export const ALSAJAA_INLAND = true;
 export const ALSAJAA_CENTRE = { lat: 25.3306, lon: 55.6435 } as const;
 
 /** Which demo "Play the demo" runs: the new resident guide script, or the original pipe-failure story. */
-export const DEFAULT_DEMO: 'guide' | 'pipe' = 'guide';
+export const DEFAULT_DEMO: 'guide' | 'pipe' = 'pipe';
 
 /**
  * Which base map the scene uses. 'baseline' (default): the locked procedural Al Sajaa layout, whose simulated
