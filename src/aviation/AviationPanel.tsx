@@ -6,6 +6,7 @@ import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { usePark } from '../parknex/store';
 import { useTwinStore } from '../store/useTwinStore';
+import { AIRPORT_CENTRE } from './AviationScene';
 
 const TABS: [AviationTab, string][] = [
   ['overview', 'Overview'],
@@ -38,6 +39,10 @@ export function openAviation() {
 export function AviationPanel() {
   const open = useAviationStore((s) => s.open);
   const setOpen = useAviationStore((s) => s.setOpen);
+  const close = () => {
+    setOpen(false);
+    useTwinStore.getState().resetView(); // back to the city view
+  };
   const tab = useAviationStore((s) => s.tab);
   const setTab = useAviationStore((s) => s.setTab);
   const step = useAviationStore((s) => s.step);
@@ -54,14 +59,14 @@ export function AviationPanel() {
     useOpsStore.getState().setOpen(false);
     useSusStore.getState().setOpen(false);
     usePark.getState().setOpen(false);
-    useTwinStore.getState().resetView();
+    useTwinStore.getState().focusPlace(AIRPORT_CENTRE.x, AIRPORT_CENTRE.z, 90);
   }, [open]);
   useEffect(() => {
     if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [open, setOpen]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const k = useMemo(() => kpis(scen), [scen]);
   if (!open) return null;
@@ -80,8 +85,8 @@ export function AviationPanel() {
           <h3 id="av-title">SAHRA AVIATION</h3>
           <div className="ops-small ops-muted">{AIRPORT} · simulated</div>
         </div>
-        <button className="ops-chip" onClick={() => setOpen(false)}>Return to Smart City</button>
-        <button className="icon-btn" aria-label="Close" onClick={() => setOpen(false)}>
+        <button className="ops-chip" onClick={close}>Return to Smart City</button>
+        <button className="icon-btn" aria-label="Close" onClick={close}>
           <X size={16} />
         </button>
       </header>

@@ -1,3 +1,5 @@
+import { AviationScene } from '../aviation/AviationScene';
+import { useAviationStore } from '../aviation/store';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { usePerformanceRenderer } from '../hooks/usePerformanceRenderer';
@@ -123,6 +125,7 @@ function EffectsGate({ quality }: { quality: 'high' | 'low' | 'off' }) {
 }
 
 export function CityScene({ quality, effects = quality, details = true }: { quality: 'high' | 'low'; effects?: 'high' | 'low' | 'off'; details?: boolean }) {
+  const aviationOpen = useAviationStore((s) => s.open);
   // Initialize performance renderer with dynamic quality adjustment
   usePerformanceRenderer();
 
@@ -134,6 +137,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
       <SimulationDriver />
       <SceneEnvironment />
       <CameraRig />
+      {aviationOpen && <AviationScene />}
       <SurfaceGroup>
         <Ground />
         <Sea />

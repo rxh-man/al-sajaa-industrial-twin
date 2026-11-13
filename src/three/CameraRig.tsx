@@ -5,6 +5,7 @@ import { Box3, CatmullRomCurve3, PerspectiveCamera, Spherical, Vector3 } from 't
 import { useTwinStore } from '../store/useTwinStore';
 import { POSES, DIVE, type Vec3 } from '../data/cameras';
 import { crewCam } from '../simulation/crew';
+import { useAviationStore } from '../aviation/store';
 
 type Tween =
   | { kind: 'pose'; fromPos: Vector3; fromTgt: Vector3; toPos: Vector3; toTgt: Vector3; t0: number; dur: number; ease: (u: number) => number }
@@ -19,6 +20,11 @@ const easeOut = (u: number) => 1 - Math.pow(1 - u, 3);
 const easeInOutSine = (u: number) => -(Math.cos(Math.PI * u) - 1) / 2;
 
 const v = (a: Vec3) => new Vector3(a[0], a[1], a[2]);
+
+/** The city's camera box (unchanged). */
+const CITY_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(204, 26, 100));
+/** While Sahra Aviation is open the box also covers the airport district east of the city (x up to 360, height to 130). */
+const AVIATION_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(360, 130, 100));
 
 const s0 = new Spherical();
 const s1 = new Spherical();
@@ -60,7 +66,7 @@ export function CameraRig() {
     c.dollyToCursor = true;
     c.infinityDolly = false;
     // the combined world (baseline plus expansion, see DIORAMA in city.ts) so every place can be framed
-    c.setBoundary(new Box3(new Vector3(-320, -48, -240), new Vector3(204, 26, 100)));
+    c.setBoundary(useAviationStore.getState().open ? AVIATION_BOUNDS : CITY_BOUNDS);
     c.boundaryEnclosesCamera = false;
     const p = POSES.intro;
     c.setLookAt(...p.pos, ...p.target, false);
@@ -70,6 +76,14 @@ export function CameraRig() {
     c.addEventListener('controlstart', stop);
     if (import.meta.env.DEV) (window as unknown as { __cc: unknown }).__cc = c;
     return () => c.removeEventListener('controlstart', stop);
+  }, []);
+
+  // widen the camera box only while Sahra Aviation is open; switching back restores the city box exactly
+  useEffect(() => {
+    const apply = (open: boolean) => ref.current?.setBoundary(open ? AVIATION_BOUNDS : CITY_BOUNDS);
+    return useAviationStore.subscribe((s, p) => {
+      if (s.open !== p.open) apply(s.open);
+    });
   }, []);
 
   // respond to shot requests
