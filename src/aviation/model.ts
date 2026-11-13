@@ -1,5 +1,5 @@
 /**
- * SAHRA AVIATION (fictional). Simulated airport and airline state, deterministic so the same actions
+ * MRR AVIATION (fictional). Simulated airport and airline state, deterministic so the same actions
  * always give the same numbers. Nothing here is real flight, airport, passenger or financial data.
  */
 

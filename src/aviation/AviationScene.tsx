@@ -3,17 +3,19 @@ import * as THREE from 'three';
 
 /**
  * SAHRA GATEWAY INTERNATIONAL AIRPORT (fictional). A separate district east of the city diorama, on its own slab,
- * so it cannot overlap existing buildings or roads. Low-poly, shared geometries; only mounted while Sahra Aviation is open.
+ * so it cannot overlap existing buildings or roads. Low-poly, shared geometries; only mounted while MRR AVIATION is open.
  */
 export const AIRPORT_CENTRE = { x: 292, z: -6 } as const;
 
 const C = {
-  slab: '#1b2a33',
-  asphalt: '#2a3238',
-  taxi: '#303a40',
+  slab: '#2c4654',
+  asphalt: '#3c464d',
+  taxi: '#49545b',
   paint: '#e8edf0',
   terminal: '#c9d3d8',
-  glass: '#2b4a58',
+  glass: '#3d6f80',
+  glow: '#9ff3f3',
+  edge: '#ffd27a',
   tower: '#dfe6ea',
   hangar: '#7d8c95',
   navy: '#0f2a4a',
@@ -31,9 +33,19 @@ function Box({ p, s, c, r = [0, 0, 0] }: { p: [number, number, number]; s: [numb
   );
 }
 
+/** Small emissive marker (runway edge light, window glow). Self-lit, so it stays visible without scene lights. */
+function Glow({ p, s, c }: { p: [number, number, number]; s: [number, number, number]; c: string }) {
+  return (
+    <mesh position={p}>
+      <boxGeometry args={s} />
+      <meshStandardMaterial color={c} emissive={c} emissiveIntensity={1.4} toneMapped={false} />
+    </mesh>
+  );
+}
+
 function Aircraft({ x, z, yaw, wide = false }: { x: number; z: number; yaw: number; wide?: boolean }) {
-  const len = wide ? 9 : 7;
-  const r = wide ? 0.55 : 0.42;
+  const len = wide ? 10 : 8;
+  const r = wide ? 0.6 : 0.48;
   const geo = useMemo(() => new THREE.CylinderGeometry(r, r, len, 14), [r, len]);
   return (
     <group position={[x, 0.35, z]} rotation={[0, yaw, 0]}>
@@ -67,13 +79,19 @@ export function AviationScene() {
     { id: 'B1', x: x + 14, z: z + 12, yaw: 0 },
   ];
   return (
-    <group name="sahra-aviation">
+    <group name="mrr-aviation">
       {/* slab */}
       <Box p={[x, -0.4, z]} s={[120, 0.8, 80]} c={C.slab} />
-      {/* runway and centreline */}
-      <Box p={[x, 0.02, z - 26]} s={[100, 0.1, 3.2]} c={C.asphalt} />
+      {/* runway, centreline and edge lights */}
+      <Box p={[x, 0.02, z - 26]} s={[100, 0.1, 4.2]} c={C.asphalt} />
       {[...Array(20)].map((_, i) => (
         <Box key={`rw${i}`} p={[x - 47 + i * 5, 0.08, z - 26]} s={[2.4, 0.04, 0.3]} c={C.paint} />
+      ))}
+      {[...Array(25)].map((_, i) => (
+        <Glow key={`el${i}`} p={[x - 48 + i * 4, 0.12, z - 26 - 2.3]} s={[0.5, 0.1, 0.5]} c={C.edge} />
+      ))}
+      {[...Array(25)].map((_, i) => (
+        <Glow key={`er${i}`} p={[x - 48 + i * 4, 0.12, z - 26 + 2.3]} s={[0.5, 0.1, 0.5]} c={C.edge} />
       ))}
       {/* taxiway */}
       <Box p={[x, 0.02, z - 14]} s={[100, 0.1, 1.6]} c={C.taxi} />
@@ -84,14 +102,21 @@ export function AviationScene() {
       ))}
       {/* passenger terminal, glazed airside face */}
       <Box p={[x - 4, 2.1, z + 22]} s={[46, 4.2, 6]} c={C.terminal} />
-      <Box p={[x - 4, 2.2, z + 18.9]} s={[44, 2.2, 0.2]} c={C.glass} />
+      <Glow p={[x - 4, 2.2, z + 18.9]} s={[44, 2.2, 0.2]} c={C.glow} />
       {/* boarding bridges */}
       {[x - 10, x - 2, x + 6].map((bx, i) => (
         <Box key={`pb${i}`} p={[bx, 1.3, z + 16.6]} s={[0.6, 0.6, 5]} c={C.hangar} />
       ))}
       {/* control tower */}
       <Box p={[x - 30, 3, z + 22]} s={[1, 6, 1]} c={C.tower} />
-      <Box p={[x - 30, 6.4, z + 22]} s={[3, 1.4, 3]} c={C.glass} />
+      <Glow p={[x - 30, 6.4, z + 22]} s={[3, 1.4, 3]} c={C.glow} />
+      {/* apron floodlight masts (emissive tips) */}
+      {[x - 22, x + 26].map((mx, i) => (
+        <group key={`mast${i}`}>
+          <Box p={[mx, 4, z + 6]} s={[0.3, 8, 0.3]} c={C.tower} />
+          <Glow p={[mx, 8.2, z + 6]} s={[1.2, 0.4, 1.2]} c={C.edge} />
+        </group>
+      ))}
       {/* cargo terminal and hangar */}
       <Box p={[x + 40, 1.6, z - 8]} s={[16, 3.2, 12]} c={C.hangar} />
       <Box p={[x + 40, 3.2, z - 24]} s={[20, 6.4, 14]} c={C.hangar} />

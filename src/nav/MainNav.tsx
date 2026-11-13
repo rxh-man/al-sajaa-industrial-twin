@@ -111,9 +111,9 @@ function useGroups(): Group[] {
     },
     {
       id: 'aviation',
-      label: 'Sahra Aviation',
+      label: 'MRR AVIATION',
       icon: <Plane size={16} />,
-      items: [{ label: 'Open Sahra Aviation', hint: '', run: () => openAviation() }],
+      items: [{ label: 'Open MRR AVIATION', hint: '', run: () => openAviation() }],
     },
     {
       id: 'park',

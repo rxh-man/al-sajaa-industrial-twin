@@ -23,7 +23,7 @@ const v = (a: Vec3) => new Vector3(a[0], a[1], a[2]);
 
 /** The city's camera box (unchanged). */
 const CITY_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(204, 26, 100));
-/** While Sahra Aviation is open the box also covers the airport district east of the city (x up to 360, height to 130). */
+/** While MRR AVIATION is open the box also covers the airport district east of the city (x up to 360, height to 130). */
 const AVIATION_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(360, 130, 100));
 
 const s0 = new Spherical();
@@ -78,7 +78,7 @@ export function CameraRig() {
     return () => c.removeEventListener('controlstart', stop);
   }, []);
 
-  // widen the camera box only while Sahra Aviation is open; switching back restores the city box exactly
+  // widen the camera box only while MRR AVIATION is open; switching back restores the city box exactly
   useEffect(() => {
     const apply = (open: boolean) => ref.current?.setBoundary(open ? AVIATION_BOUNDS : CITY_BOUNDS);
     return useAviationStore.subscribe((s, p) => {

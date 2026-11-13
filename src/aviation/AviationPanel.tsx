@@ -18,7 +18,7 @@ const TABS: [AviationTab, string][] = [
 interface DemoStep { title: string; run: () => void }
 
 const DEMO: DemoStep[] = [
-  { title: 'Regional view: Sahra Aviation and Al Sajaa', run: () => useAviationStore.setState({ tab: 'overview', selectedFlight: 'SH204' }) },
+  { title: 'Regional view: MRR AVIATION and Al Sajaa', run: () => useAviationStore.setState({ tab: 'overview', selectedFlight: 'SH204' }) },
   { title: 'Select the arriving aircraft SH204', run: () => useAviationStore.setState({ tab: 'turnaround', selectedFlight: 'SH204' }) },
   { title: 'Review the turnaround timeline', run: () => useAviationStore.setState({ tab: 'turnaround' }) },
   { title: 'Baggage tractor BT-01 fails', run: () => useAviationStore.getState().failBaggageTractor() },
@@ -59,7 +59,7 @@ export function AviationPanel() {
     useOpsStore.getState().setOpen(false);
     useSusStore.getState().setOpen(false);
     usePark.getState().setOpen(false);
-    useTwinStore.getState().focusPlace(AIRPORT_CENTRE.x, AIRPORT_CENTRE.z, 90);
+    useTwinStore.getState().focusPlace(AIRPORT_CENTRE.x + 34, AIRPORT_CENTRE.z, 90);
   }, [open]);
   useEffect(() => {
     if (!open) return;
@@ -82,7 +82,7 @@ export function AviationPanel() {
       <header className="ops-head">
         <Plane size={20} aria-hidden />
         <div>
-          <h3 id="av-title">SAHRA AVIATION</h3>
+          <h3 id="av-title">MRR AVIATION</h3>
           <div className="ops-small ops-muted">{AIRPORT} · simulated</div>
         </div>
         <button className="ops-chip" onClick={close}>Return to Smart City</button>
