@@ -144,3 +144,11 @@ a.hdr-brand {
     display: none;
   }
 }
+
+/* on narrower screens the data-status box moves up so it never covers the centred "Play the demo" button */
+@media (max-width: 1500px) {
+  .provenance {
+    bottom: 160px;
+    max-width: 260px;
+  }
+}
