@@ -635,3 +635,64 @@ export function insights(ops: OpsState) {
   out.push({ title: 'Portfolio', detail: `Estimated investment AED ${Math.round(totCap / 1e6)} M, net operating income AED ${(totNoi / 1e6).toFixed(1)} M a year → ROI ${((totNoi / totCap) * 100).toFixed(1)} %, payback ${(totCap / totNoi).toFixed(1)} years.`, tone: 'info' });
   return { fin, out, totCap, totNoi };
 }
+
+/* ── Live-style ANPR feed (simulated). Deterministic: the same hour always gives the same events. ── */
+export type AnprException = 'none' | 'unrecognised' | 'invalid permit' | 'payment failure' | 'overstay' | 'duplicate' | 'blacklisted' | 'camera offline' | 'barrier malfunction';
+export interface AnprEvent {
+  id: string;
+  minute: number;          // minutes from 00:00
+  facility: string;
+  direction: 'entry' | 'exit';
+  plate: string;           // fictional registration, labelled simulated everywhere
+  category: 'Sedan' | 'SUV' | 'Taxi' | 'Delivery' | 'EV' | 'Premium';
+  confidence: number;      // 0..1 simulated ANPR confidence
+  durationMin: number | null; // exits only
+  payment: 'AutoPay' | 'Paid' | 'Pending' | 'Permit' | 'Not applicable';
+  exception: AnprException;
+}
+
+const ANPR_CATS: AnprEvent['category'][] = ['Sedan', 'Sedan', 'SUV', 'SUV', 'Taxi', 'Delivery', 'EV', 'Premium'];
+const EXCEPTIONS: AnprException[] = ['unrecognised', 'invalid permit', 'payment failure', 'overstay', 'duplicate', 'blacklisted', 'camera offline', 'barrier malfunction'];
+
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fictional plates only (emirate-style code, five digits). They do not match any real registration. */
+const plateFor = (r: () => number) => `SJ ${String(Math.floor(10000 + r() * 89999))}`;
+
+/** Events from 00:00 up to `untilMinute`, newest first. Exceptions are rare (about 1 in 14 movements). */
+export function anprFeed(untilMinute: number, limit = 40): AnprEvent[] {
+  const out: AnprEvent[] = [];
+  FACILITIES.forEach((f, fi) => {
+    const r = rng(7919 * (fi + 1));
+    const movements = Math.round(f.bays.length * 0.9);
+    for (let i = 0; i < movements; i++) {
+      const entry = i % 2 === 0;
+      const minute = Math.floor(r() * 1440);
+      if (minute > untilMinute) continue;
+      const exc = r() < 1 / 14 ? EXCEPTIONS[Math.floor(r() * EXCEPTIONS.length)] : 'none';
+      const payment: AnprEvent['payment'] = entry ? 'Not applicable' : exc === 'payment failure' ? 'Pending' : r() < 0.55 ? 'AutoPay' : r() < 0.5 ? 'Paid' : 'Permit';
+      out.push({
+        id: `${f.id}-${i}`,
+        minute,
+        facility: f.name,
+        direction: entry ? 'entry' : 'exit',
+        plate: plateFor(r),
+        category: ANPR_CATS[Math.floor(r() * ANPR_CATS.length)],
+        confidence: exc === 'unrecognised' ? 0.41 + r() * 0.12 : 0.9 + r() * 0.09,
+        durationMin: entry ? null : Math.round(45 + r() * 300),
+        payment,
+        exception: exc,
+      });
+    }
+  });
+  return out.sort((a, b) => b.minute - a.minute).slice(0, limit);
+}

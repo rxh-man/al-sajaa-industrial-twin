@@ -23,6 +23,7 @@ export const PARKNEX_STEPS: { title: string; body: string; titleAr?: string; bod
   { title: 'A city-wide network', body: `${FACILITIES.length} facilities: ${FACILITIES.map((f) => f.name.replace('PARKNEX ', '')).join(', ')}. Every bay is coloured by its live (simulated) status.`, enter: () => useTwinStore.getState().focusPlace(-40, -60, 140) },
   { title: 'Central Command Centre', body: 'Capacity, occupancy, sessions, sensors, entries and revenue for the whole network, from one model.', enter: () => open('overview') },
   { title: 'Availability now', body: 'Press play to run the simulated clock: occupancy follows each facility’s demand profile through the day.', enter: () => (open('overview'), P().setPlaying(true)) },
+  { title: 'Vehicles entering through ANPR', body: 'Cameras read each plate, check permits, open the barrier or raise an exception. Simulated events with fictional plates.', enter: () => (P().setPlaying(false), open('anpr')) },
   { title: 'Sensors and infrastructure', body: 'Bay sensors (with offline and faulty units), ANPR, barriers, guidance signs and EV chargers.', enter: () => (P().setPlaying(false), open('sensors')) },
   { title: 'Paid parking and revenue', body: 'Tariffs, sessions, revenue per bay and a pricing simulator showing how price moves occupancy and income. Simulated, not transactions.', enter: () => open('revenue') },
   { title: 'Event surge', body: 'A 6,000-person concert at the Event Arena: vehicle demand, capacity within 3 km, shortage, surges and the guidance plan.', enter: () => (open('events'), fly('event', 30)), act: { label: 'Run the event', run: () => { const e = P().event; const p = eventPlan(e, opsFrom(P())); const ve: Record<string, number> = {}; for (const a of p.allocation) ve[a.id] = a.vehicles; P().setOps({ hour: e.startH, eventVehicles: ve }); P().setEvent({ active: true }); }, done: () => P().event.active } },
@@ -39,7 +40,7 @@ export const PARKNEX_STEPS: { title: string; body: string; titleAr?: string; bod
   { title: 'Back to the command centre', body: 'All outcomes stay connected: 3D bays, facility boards, dashboard and the Parking Intelligence Agent.', enter: () => open('overview') },
 ];
 // tenant step text depends on the model
-PARKNEX_STEPS[8] = {
+PARKNEX_STEPS[PARKNEX_STEPS.findIndex((x) => x.title === 'Tenant space optimisation')] = {
   title: 'Tenant space optimisation',
   body: (() => {
     const f = facilityById('residential') ?? FACILITIES[0];

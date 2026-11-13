@@ -5,7 +5,7 @@ import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
 import { plan, approve } from '../opsAgent/runtime';
 import {
-  ALL_BAYS, authorityDecision, bayStatus, cityKpis, constructionCost, COST_DEFAULTS, EVENT_TYPES, eventPlan, facilityById, facilityKpis, FACILITIES, hourlyOccupancy,
+  anprFeed, ALL_BAYS, authorityDecision, bayStatus, cityKpis, constructionCost, COST_DEFAULTS, EVENT_TYPES, eventPlan, facilityById, facilityKpis, FACILITIES, hourlyOccupancy,
   maintenanceImpact, opportunities, insights, pricingScenario, roi, scenarioRoi, stageAt, STATUSES, tenantRelease, type MaintScope,
 } from './model';
 import { opsFrom, usePark, type Proposal } from './store';
@@ -280,6 +280,55 @@ function Occupancy() {
         <h4>Bays by category (occupied / total)</h4>
         <Bars rows={cats.map((c) => ({ k: c, v: ALL_BAYS.filter((x) => x.category === c && ['occupied', 'charging'].includes(bayStatus(x, facilityById(x.facility)!, o))).length }))} />
         <p className="ops-small">Paid vs tenant / complimentary: {n(cityKpis(o).paidOccupied)} paid of {n(cityKpis(o).occupied)} occupied.</p>
+      </section>
+    </div>
+  );
+}
+
+const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/** Live-style ANPR feed. Every plate is fictional and every event is simulated; no camera is connected. */
+function AnprFeed() {
+  const hour = usePark((s) => s.ops.hour);
+  const events = useMemo(() => anprFeed(Math.min(1439, hour * 60 + 59), 30), [hour]);
+  const exceptions = events.filter((e) => e.exception !== 'none');
+  const entries = events.filter((e) => e.direction === 'entry').length;
+  const exits = events.length - entries;
+  return (
+    <div className="ops-tab">
+      <div className="sus-kpis">
+        <Kpi l="Entries (to hour)" v={n(entries)} />
+        <Kpi l="Exits (to hour)" v={n(exits)} />
+        <Kpi l="Exceptions" v={n(exceptions.length)} s="raised for review" />
+        <Kpi l="Median confidence" v={events.length ? `${Math.round(events.map((e) => e.confidence).sort((a, b) => a - b)[Math.floor(events.length / 2)] * 100)}%` : '—'} />
+      </div>
+      <section className="ops-sec">
+        <h4>Activity feed (simulated)</h4>
+        <div className="ops-table-wrap">
+          <table className="ops-table">
+            <thead><tr><th>Time</th><th>Facility</th><th>Move</th><th>Plate (fictional)</th><th>Category</th><th>Duration</th><th>Payment</th><th>Confidence</th><th>Exception</th></tr></thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id}>
+                  <td>{hm(e.minute)}</td>
+                  <td>{e.facility.replace('PARKNEX ', '')}</td>
+                  <td>{e.direction === 'entry' ? 'Entry' : 'Exit'}</td>
+                  <td>{e.plate}</td>
+                  <td>{e.category}</td>
+                  <td>{e.durationMin ? `${Math.floor(e.durationMin / 60)}h ${e.durationMin % 60}m` : '—'}</td>
+                  <td>{e.payment}</td>
+                  <td>{Math.round(e.confidence * 100)}%</td>
+                  <td>{e.exception === 'none' ? '—' : e.exception}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="ops-small ops-muted">Simulated camera-style events. Plates are fictional. No ANPR system is integrated.</p>
+      </section>
+      <section className="ops-sec">
+        <h4>Exception workflow</h4>
+        <p className="ops-small">An exception is held for an operator. Overrides are logged; nothing is charged or opened automatically when the plate is unclear.</p>
       </section>
     </div>
   );
@@ -872,6 +921,7 @@ const TABS: [string, string][] = [
   ['insights', 'ROI Insights'],
   ['facilities', 'Facilities'],
   ['occupancy', 'Occupancy'],
+  ['anpr', 'Live ANPR'],
   ['sensors', 'Sensors & Infrastructure'],
   ['events', 'Events'],
   ['revenue', 'Revenue'],
@@ -948,6 +998,7 @@ export function ParknexPanel() {
         {tab === 'insights' && <Insights />}
         {tab === 'facilities' && <Facilities />}
         {tab === 'occupancy' && <Occupancy />}
+        {tab === 'anpr' && <AnprFeed />}
         {tab === 'sensors' && <Sensors />}
         {tab === 'events' && <Events />}
         {tab === 'revenue' && <Revenue />}

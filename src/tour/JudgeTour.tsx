@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Compass, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Compass, RotateCcw, X } from 'lucide-react';
 import { useTwinStore } from '../store/useTwinStore';
 import { useOpsStore } from '../opsAgent/store';
 import { useSusStore } from '../sustainability/store';
@@ -148,6 +148,9 @@ export function JudgeTour() {
         <span className="ops-small ops-muted">
           {which === 'parknex' ? 'PARKNEX demo' : ar ? 'جولة الحكام' : 'Judge tour'} · {step + 1} / {STEPS_.length}
         </span>
+        <button className="icon-btn sm" aria-label={ar ? 'إعادة الجولة' : 'Restart tour'} title="Restart" onClick={() => go(0)}>
+          <RotateCcw size={13} />
+        </button>
         <button className="icon-btn sm" aria-label={ar ? 'إنهاء الجولة' : 'Exit tour'} onClick={stop}>
           <X size={13} />
         </button>
