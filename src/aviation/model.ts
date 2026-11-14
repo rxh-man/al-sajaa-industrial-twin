@@ -3,7 +3,7 @@
  * always give the same numbers. Nothing here is real flight, airport, passenger or financial data.
  */
 
-export const AIRPORT = 'Sahra Gateway International Airport (fictional)';
+export const AIRPORT = 'MRR Gateway International Airport (fictional)';
 
 export type FlightStatus = 'Scheduled' | 'Approaching' | 'On stand' | 'Turnaround' | 'Ready for departure' | 'Departed' | 'Delayed';
 
