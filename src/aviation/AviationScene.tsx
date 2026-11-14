@@ -172,6 +172,10 @@ export function AviationScene() {
       ))}
       {/* taxiway and apron */}
       <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 14]} s={[100, 0.1, 1.6]} c={C.taxi} />
+      {/* parallel taxiway with rapid-exit connectors to the runway */}
+      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 36]} s={[104, 0.1, 1.6]} c={C.taxi} />
+      <Box p={[AIRPORT_CENTRE.x - 34, 0.02, AIRPORT_CENTRE.z - 31]} s={[1.6, 0.1, 10]} c={C.taxi} />
+      <Box p={[AIRPORT_CENTRE.x + 34, 0.02, AIRPORT_CENTRE.z - 31]} s={[1.6, 0.1, 10]} c={C.taxi} />
       <Box p={[AIRPORT_CENTRE.x + 6, 0.02, AIRPORT_CENTRE.z + 12]} s={[62, 0.1, 10]} c={C.taxi} />
       <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z + 2]} s={[26, 0.1, 6]} c={C.taxi} />
       {/* stands: teal free, amber occupied, white when selected */}
