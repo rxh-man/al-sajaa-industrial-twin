@@ -48,6 +48,8 @@ export function CameraRig() {
   const size = useThree((s) => s.size);
   // own time base: robust to clock resets and long pauses (hidden tabs)
   const now = useRef(0);
+  // once MRR AVIATION has been opened, the city's intro shot must never take the camera back
+  const aviationOpened = useRef(false);
 
   // limits that keep people oriented
   useEffect(() => {
@@ -83,6 +85,7 @@ export function CameraRig() {
     const apply = (open: boolean) => ref.current?.setBoundary(open ? AVIATION_BOUNDS : CITY_BOUNDS);
     return useAviationStore.subscribe((s, p) => {
       if (s.open !== p.open) apply(s.open);
+      if (s.open) aviationOpened.current = true;
     });
   }, []);
 
@@ -117,6 +120,7 @@ export function CameraRig() {
   function startShot(id: string) {
     const c = ref.current;
     if (!c) return;
+    if (id === 'intro' && (aviationOpened.current || useAviationStore.getState().open)) return;
     c.getPosition(tmpPos);
     c.getTarget(tmpTgt);
     const t0 = now.current;

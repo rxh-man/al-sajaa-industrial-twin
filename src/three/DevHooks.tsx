@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { advance, useThree } from '@react-three/fiber';
 import { useTwinStore, type PresetId } from '../store/useTwinStore';
 import { runtime } from '../simulation/runtime';
+import { useAviationStore } from '../aviation/store';
 
 /**
  * Dev-only helpers for deterministic visual QA:
@@ -33,6 +34,7 @@ export function DevHooks() {
     };
     w.__dev = {
       store: useTwinStore,
+      aviation: useAviationStore,
       runtime,
       r3f: get,
       step,

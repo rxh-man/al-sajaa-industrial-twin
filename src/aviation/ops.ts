@@ -2,7 +2,7 @@
  * MRR AVIATION operations layer (Phase 2). Pure functions and fictional data only: no React, no three.js, so it can be unit tested.
  * Every number is simulated and deterministic. Nothing here connects to a real airline, airport, ATC or government system.
  */
-import { FLEET, FLIGHTS, SIM_NOW, hm, type Flight } from './model';
+import { FLEET, FLIGHTS, SIM_NOW, flightTurnaround, hm, type Flight } from './model';
 
 export const DATA_NOTE = 'Simulated data. Fictional airport, airline and flights. No live feeds are connected.';
 
@@ -70,14 +70,16 @@ export interface BoardRow extends Flight { arrEst: number; depEst: number; state
 /** Board with estimated times. Weather adds arrival delay. The scenario flight adds its own delay when the tractor fails. */
 export function flightBoard(weather: Weather, extraDelay: number, scenarioDelay: number, now = SIM_NOW): BoardRow[] {
   return FLIGHTS.map((f) => {
-    const arrDelay = WEATHER_DELAY_MIN[weather] + extraDelay + (f.id === 'SH204' ? scenarioDelay : 0);
+    // arrival moves with weather and manual delay; the turnaround is anchored to it, so the board and the timeline share one schedule.
+    // The baggage scenario only moves SH204's departure (its aircraft arrives on time).
+    const arrDelay = WEATHER_DELAY_MIN[weather] + extraDelay;
     const arrEst = f.arrMin + arrDelay;
-    const depEst = f.depMin + arrDelay;
+    const depEst = flightTurnaround(f, arrDelay, { baggageTractorFailed: false, replacementAssigned: false }).departAt + (f.id === 'SH204' ? scenarioDelay : 0);
     let state: BoardRow['state'] = 'Scheduled';
     if (depEst <= now) state = 'Departed';
     else if (arrEst <= now) state = 'On stand';
     else if (arrEst - 20 <= now) state = 'Approaching';
-    if (arrDelay > 0 && depEst > f.depMin && state !== 'Departed') state = 'Delayed';
+    if (depEst > f.depMin && state !== 'Departed') state = 'Delayed';
     return { ...f, arrEst, depEst, state };
   });
 }

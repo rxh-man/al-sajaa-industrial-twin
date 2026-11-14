@@ -90,7 +90,7 @@ export const TASKS: Task[] = [
 export interface Scenario { baggageTractorFailed: boolean; replacementAssigned: boolean }
 
 /** Schedule every activity from the aircraft's arrival. A failed tractor holds baggage loading for 30 min (a charged or repaired unit) until a replacement arrives (2 min handover). */
-export function turnaround(arrMin: number, s: Scenario) {
+export function turnaround(arrMin: number, s: Scenario, depTarget?: number) {
   const end: Record<string, number> = {};
   const rows = TASKS.map((t) => {
     const start = Math.max(arrMin, ...t.deps.map((d) => end[d]));
@@ -105,9 +105,24 @@ export function turnaround(arrMin: number, s: Scenario) {
     const alert = t.id === 'load' && s.baggageTractorFailed && !s.replacementAssigned;
     return { ...t, start, finish: start + dur, dur, note, alert };
   });
-  const baseline = scheduleBaseline(arrMin);
-  const ready = end.checks;
-  return { rows, readyAt: ready, departAt: end.push, delayMin: end.push - baseline };
+  // Early-ready aircraft hold for the scheduled slot: pushback is placed to finish at the planned departure.
+  // If the activities overrun the slot, the departure is the natural finish (and the delay is shown).
+  const baseline = depTarget ?? scheduleBaseline(arrMin);
+  const push = rows[rows.length - 1];
+  if (depTarget !== undefined && depTarget - push.dur > push.start) {
+    push.start = depTarget - push.dur;
+    push.finish = depTarget;
+    end.push = depTarget;
+  }
+  return { rows, readyAt: end.checks, departAt: end.push, delayMin: end.push - baseline };
+}
+
+/**
+ * Single source of timing for a flight: arrival and departure after a weather/manual arrival delay (arrDelay),
+ * with the turnaround anchored to the actual arrival. `s` applies the SH204 baggage scenario.
+ */
+export function flightTurnaround(f: Flight, arrDelay: number, s: Scenario) {
+  return turnaround(f.arrMin + arrDelay, s, f.depMin + arrDelay);
 }
 
 function scheduleBaseline(arrMin: number) {
@@ -116,9 +131,12 @@ function scheduleBaseline(arrMin: number) {
   return end.push;
 }
 
+/** The flight the baggage scenario is about. Looked up by id, not by list position. */
+export const SCENARIO_FLIGHT: Flight = FLIGHTS.find((f) => f.id === 'SH204')!;
+
 /** Departure delay (min) that the scenario causes for SH204, taken from the turnaround timeline itself. */
 export function scenarioDelayMin(s: Scenario): number {
-  return turnaround(FLIGHTS[1].arrMin, s).delayMin;
+  return flightTurnaround(SCENARIO_FLIGHT, 0, s).delayMin;
 }
 
 export const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -139,7 +157,7 @@ export const STANDS = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'R1', 'R2'];
 /** Dashboard KPIs computed from the same flight list, clock and scenario. */
 export function kpis(s: Scenario) {
   const onGround = FLIGHTS.filter((f) => f.arrMin <= SIM_NOW && SIM_NOW < f.depMin).length;
-  const tr = turnaround(FLIGHTS[1].arrMin, s);
+  const tr = flightTurnaround(SCENARIO_FLIGHT, 0, s);
   return {
     flights: FLIGHTS.length,
     arrivals: FLIGHTS.filter((f) => f.arrMin <= 12 * 60).length,
@@ -151,7 +169,7 @@ export function kpis(s: Scenario) {
     available: FLEET.filter((g) => g.status === 'Available').length,
     busy: FLEET.filter((g) => g.status === 'Busy').length,
     unavailable: FLEET.filter((g) => g.status === 'Unavailable' || g.status === 'Under maintenance').length,
-    sh204Turnaround: tr.departAt - FLIGHTS[1].arrMin,
+    sh204Turnaround: tr.departAt - SCENARIO_FLIGHT.arrMin,
     sh204Delay: tr.delayMin,
     pax: FLIGHTS.reduce((a, f) => a + f.pax, 0),
     bags: FLIGHTS.reduce((a, f) => a + f.bags, 0),

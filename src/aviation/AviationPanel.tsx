@@ -96,7 +96,7 @@ export function AviationPanel() {
         ))}
       </nav>
 
-      <div className="ops-scroll">
+      <div role="tabpanel" className="ops-body">
         {tab === 'command' && <Command scen={scen} weather={weather} extraDelay={extraDelay} go={go} />}
         {tab === 'control' && <Control weather={weather} extraDelay={extraDelay} scen={scen} />}
         {tab === 'flights' && <Flights weather={weather} extraDelay={extraDelay} scen={scen} go={go} />}

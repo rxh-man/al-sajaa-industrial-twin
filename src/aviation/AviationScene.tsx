@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useAviationStore } from './store';
-import { FLIGHTS, STANDS, turnaround, scenarioDelayMin, type Flight } from './model';
+import { FLIGHTS, STANDS, flightTurnaround, scenarioDelayMin, type Flight } from './model';
 import { flightBoard, type Weather } from './ops';
 
 /**
@@ -91,12 +91,13 @@ function Glow({ p, s, c, intensity }: { p: V3; s: V3; c: string; intensity?: num
 }
 
 // ---------- vehicles and aircraft ----------
-export type Equip = 'Baggage tractor' | 'Catering truck' | 'Ground power unit' | 'Fuel bowser';
+export type Equip = 'Baggage tractor' | 'Catering truck' | 'Ground power unit' | 'Fuel bowser' | 'Pushback tractor';
 const EQUIP_SLOT: Record<Equip, V3> = {
   'Baggage tractor': [-5.2, 0, 1],
   'Catering truck': [5.4, 0, -1],
   'Ground power unit': [-5.4, 0, -3],
   'Fuel bowser': [5.6, 0, 3],
+  'Pushback tractor': [-9.5, 0, 0],
 };
 
 function Vehicle({ p, color, kind }: { p: V3; color: string; kind: Equip }) {
@@ -152,6 +153,7 @@ export function AviationScene() {
 
   // flights physically on a stand at the clock, with their turnaround activities
   const onStand = board.filter((r) => r.arrEst <= now && now < r.depEst);
+  // turnaround activities use the same arrival and departure as the board row
   const occupied = new Map(onStand.map((r) => [r.stand, r]));
 
   return (
@@ -204,11 +206,11 @@ export function AviationScene() {
         const f = FLIGHTS.find((x) => x.id === r.id)!;
         const isSel = r.id === selected;
         const delayed = r.id === 'SH204' && scenDelay > 0;
-        const tr = turnaround(f.arrMin, r.id === 'SH204' ? scen : { baggageTractorFailed: false, replacementAssigned: false });
+        const tr = flightTurnaround(f, r.arrEst - f.arrMin, r.id === 'SH204' ? scen : { baggageTractorFailed: false, replacementAssigned: false });
         const active = tr.rows.filter((row) => row.equipment && row.start <= now && now < row.finish);
         return (
-          <group key={r.id}>
-            <Aircraft x={w.x} z={w.z} type={f.type} status={delayed ? 'delay' : 'ok'} selected={isSel} />
+          <group key={r.id} name={`aircraft-${r.id}`} position={[w.x, 0, w.z]}>
+            <Aircraft x={0} z={0} type={f.type} status={delayed ? 'delay' : 'ok'} selected={isSel} />
             {active.map((row) => {
               const eq = row.equipment as Equip;
               const slot = EQUIP_SLOT[eq];
@@ -216,7 +218,7 @@ export function AviationScene() {
               const failedHere = r.id === 'SH204' && tractorFailed && !replaced && row.id === 'load' && eq === 'Baggage tractor';
               const replacementHere = r.id === 'SH204' && tractorFailed && replaced && row.id === 'load' && eq === 'Baggage tractor';
               const color = failedHere ? C.fault : replacementHere ? C.replace : C.gse;
-              return <Vehicle key={`${r.id}-${row.id}`} p={[w.x + slot[0], 0, w.z + slot[2]]} color={color} kind={eq} />;
+              return <group key={`${r.id}-${row.id}`} name={`gse-${r.id}-${row.id}`}><Vehicle p={[slot[0], 0, slot[2]]} color={color} kind={eq} /></group>;
             })}
           </group>
         );

@@ -194,3 +194,27 @@ test('airport scene server-renders in each scenario state without errors', async
   }
   s.getState().reset();
 });
+
+test('board departure equals the turnaround departure for every flight, weather and scenario', () => {
+  const weathers = ['Clear', 'Fog', 'Gusty crosswind', 'Thunderstorm'];
+  for (const w of weathers) for (const extra of [0, 20]) for (const d of [0, 9]) {
+    const board = M.ops.flightBoard(w, extra, d, 0);
+    for (const r of board) {
+      const f = M.model.FLIGHTS.find((x: { id: string }) => x.id === r.id);
+      const failed = r.id === 'SH204' && d > 0;
+      const t = M.model.flightTurnaround(f, r.arrEst - f.arrMin, { baggageTractorFailed: failed, replacementAssigned: false });
+      assert.equal(t.departAt, r.depEst, `${r.id} ${w} +${extra} scenario ${d}`);
+      assert.ok(t.rows[0].start >= r.arrEst, `${r.id} ground work starts before arrival`);
+    }
+  }
+});
+
+test('no two flights share a stand at the same time, under any weather or scenario delay', () => {
+  for (const w of ['Clear', 'Fog', 'Gusty crosswind', 'Thunderstorm']) for (const extra of [0, 20]) for (const d of [0, 9]) {
+    const board = M.ops.flightBoard(w, extra, d, 0);
+    for (const s of M.model.STANDS) {
+      const rs = board.filter((r: { stand: string }) => r.stand === s).sort((a: { arrEst: number }, b: { arrEst: number }) => a.arrEst - b.arrEst);
+      for (let i = 1; i < rs.length; i++) assert.ok(rs[i].arrEst >= rs[i - 1].depEst, `${s}: ${rs[i - 1].id} overlaps ${rs[i].id} (${w}, +${extra}, ${d})`);
+    }
+  }
+});

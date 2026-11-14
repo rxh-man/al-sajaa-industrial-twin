@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAviationStore, type AviationTab } from './store';
 import { AIRCRAFT, baggageTracking, cargoSummary, DATA_NOTE, flightBoard, gseHealth, INCIDENTS, opsKpis, passengerFlow, runwayConflicts, runwayUtilisation, SAFETY_CHECKS, SECURITY_CAPACITY_PER_HOUR, SEPARATION_MIN, standConflicts, standStatus, securityPeak, WEATHER_DELAY_MIN, type Weather } from './ops';
 import { AGENTS, ASSUMPTIONS, emissions, executiveSummary, financials, recommendations, whatIfResult } from './intelligence';
-import { FLEET, FLIGHTS, hm, scenarioDelayMin, turnaround, TASKS, type Flight } from './model';
+import { FLEET, FLIGHTS, hm, scenarioDelayMin, flightTurnaround, TASKS, type Flight } from './model';
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const n = (v: number, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d });
@@ -178,23 +178,30 @@ export function Flights({ weather, extraDelay, scen, go }: { weather: Weather; e
 export function Turnaround({ flightId, scen }: { flightId: string; scen: Scen }) {
   const f = FLIGHTS.find((x) => x.id === flightId) ?? FLIGHTS[1];
   const now = useAviationStore((s) => s.clock);
-  const tr = turnaround(f.arrMin, f.id === 'SH204' ? scen : { baggageTractorFailed: false, replacementAssigned: false });
-  const span = Math.max(1, tr.departAt - f.arrMin);
-  const nowPct = Math.max(0, Math.min(100, ((now - f.arrMin) / span) * 100));
+  const weather = useAviationStore((s) => s.weather) as Weather;
+  const extraDelay = useAviationStore((s) => s.extraDelay);
+  const scenDelay = scenarioDelayMin(scen);
+  // the same arrival delay the board uses, so this timeline and the board row cannot disagree
+  const row = flightBoard(weather, extraDelay, scenDelay, now).find((r) => r.id === f.id)!;
+  const arrDelay = row.arrEst - f.arrMin;
+  const tr = flightTurnaround(f, arrDelay, f.id === 'SH204' ? scen : { baggageTractorFailed: false, replacementAssigned: false });
+  const delayVsPlan = row.depEst - f.depMin;
+  const span = Math.max(1, tr.departAt - row.arrEst);
+  const nowPct = Math.max(0, Math.min(100, ((now - row.arrEst) / span) * 100));
   return (
     <div className="ops-tab">
       <section className="ops-sec">
         <h4>{f.id} · {f.reg} · stand {f.stand}</h4>
-        <p className="ops-small">Arrival {hm(f.arrMin)}. Estimated departure {hm(tr.departAt)} ({tr.delayMin > 0 ? `+${tr.delayMin} min vs plan` : 'on plan'}).</p>
+        <p className="ops-small">Arrival {hm(row.arrEst)}. Estimated departure {hm(row.depEst)} ({delayVsPlan > 0 ? `+${delayVsPlan} min vs plan` : 'on plan'}).</p>
         {scen.baggageTractorFailed && (
-          <p className="ops-note">{scen.replacementAssigned ? 'Replacement tractor assigned. Baggage loading is back on plan.' : `Baggage loading held for a charged tractor. Current estimated departure delay: ${tr.delayMin} minutes.`}</p>
+          <p className="ops-note">{scen.replacementAssigned ? 'Replacement tractor assigned. Baggage loading is back on plan.' : `Baggage loading held for a charged tractor. Current estimated departure delay: ${delayVsPlan} minutes.`}</p>
         )}
         <div className="av-gantt" role="img" aria-label={`Turnaround timeline for ${f.id}`}>
           {tr.rows.map((r) => (
             <div key={r.id} className="av-row">
               <span className="av-label">{r.label}</span>
               <div className="av-track">
-                <div className={`av-bar ${r.alert ? 'is-alert' : ''}`} style={{ left: `${((r.start - f.arrMin) / span) * 100}%`, width: `${Math.max(1.5, (r.dur / span) * 100)}%` }} title={`${hm(r.start)} to ${hm(r.finish)}${r.note ? ` · ${r.note}` : ''}`} />
+                <div className={`av-bar ${r.alert ? 'is-alert' : ''}`} style={{ left: `${((r.start - row.arrEst) / span) * 100}%`, width: `${Math.max(1.5, (r.dur / span) * 100)}%` }} title={`${hm(r.start)} to ${hm(r.finish)}${r.note ? ` · ${r.note}` : ''}`} />
                 <div className="av-now" style={{ left: `${nowPct}%` }} />
               </div>
               <span className="av-time">{hm(r.start)}–{hm(r.finish)}</span>
