@@ -24,8 +24,8 @@ const v = (a: Vec3) => new Vector3(a[0], a[1], a[2]);
 /** The city's camera box (unchanged). */
 const CITY_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(204, 26, 100));
 /** While MRR AVIATION is open the box also covers the airport district east of the city (x up to 360, height to 130). */
-// covers the 10x airport slab (x 92..492, z -141..129) as well as the city view
-const AVIATION_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(540, 130, 160));
+// covers the 10x airport slab (x 220..620, z -141..129) as well as the city view
+const AVIATION_BOUNDS = new Box3(new Vector3(-320, -48, -240), new Vector3(680, 130, 160));
 
 const s0 = new Spherical();
 const s1 = new Spherical();

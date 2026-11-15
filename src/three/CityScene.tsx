@@ -46,6 +46,7 @@ import { InfillBuildings } from './InfillBuildings';
 import { ParknexScene } from '../parknex/ParknexScene';
 import { AssetHealthOverlay } from '../env/AssetHealthOverlay';
 import { SustainabilityOverlay } from '../sustainability/SustainabilityOverlay';
+import { AirportLink } from './AirportLink';
 import { useTwinStore } from '../store/useTwinStore';
 
 /** Everything above ground; lifts away as a single plate in the exploded view. */
@@ -140,6 +141,7 @@ export function CityScene({ quality, effects = quality, details = true }: { qual
       {aviationMounted && <AviationScene />}
       <SurfaceGroup>
         <Ground />
+        <AirportLink />
         <Sea />
         <AbuDhabiBuildings />
         <InfillBuildings />

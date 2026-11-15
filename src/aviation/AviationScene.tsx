@@ -10,7 +10,7 @@ import { flightBoard, type Weather } from './ops';
  * Materials and box geometry are cached and shared, so adding the airport does not multiply GPU state.
  * Only mounted while MRR AVIATION is open.
  */
-export const AIRPORT_CENTRE = { x: 292, z: -6 } as const;
+export const AIRPORT_CENTRE = { x: 420, z: -6 } as const;
 
 /** Stand positions relative to AIRPORT_CENTRE. A-row and B-row on the apron, R-row on the regional strip. */
 export const STAND_OFFSET: Record<string, { x: number; z: number }> = {
@@ -18,6 +18,9 @@ export const STAND_OFFSET: Record<string, { x: number; z: number }> = {
   B1: { x: 22, z: 12 }, B2: { x: 30, z: 12 },
   R1: { x: -6, z: 2 }, R2: { x: 6, z: 2 },
 };
+
+/** Stands on the apron that have a boarding bridge (the regional strip is served from the apron by stairs). */
+const APRON_STANDS = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2'];
 
 export function standWorld(stand: string) {
   const o = STAND_OFFSET[stand];
@@ -194,12 +197,13 @@ export function AviationScene() {
           </group>
         );
       })}
-      {/* passenger terminal with lit airside glazing */}
-      <Box p={[AIRPORT_CENTRE.x - 4, 2.1, AIRPORT_CENTRE.z + 22]} s={[46, 4.2, 6]} c={C.terminal} shadow />
-      <Glow p={[AIRPORT_CENTRE.x - 4, 2.2, AIRPORT_CENTRE.z + 18.9]} s={[44, 2.2, 0.2]} c="#9ff3f3" intensity={0.8} />
-      {[-10, -2, 6].map((dx, i) => (
-        <Box key={`pb${i}`} p={[AIRPORT_CENTRE.x + dx, 1.3, AIRPORT_CENTRE.z + 16.6]} s={[0.6, 0.6, 5]} c={C.hangar} />
-      ))}
+      {/* passenger concourse with lit airside glazing, and one boarding bridge per apron stand */}
+      <Box p={[AIRPORT_CENTRE.x + 6, 2.1, AIRPORT_CENTRE.z + 22]} s={[72, 4.2, 6]} c={C.terminal} shadow />
+      <Glow p={[AIRPORT_CENTRE.x + 6, 2.2, AIRPORT_CENTRE.z + 18.9]} s={[70, 2.2, 0.2]} c="#9ff3f3" intensity={0.8} />
+      {APRON_STANDS.map((id) => {
+        const w = standWorld(id);
+        return <Box key={`pb-${id}`} p={[w.x, 1.3, (AIRPORT_CENTRE.z + 19 + w.z + 3) / 2]} s={[1.2, 1.2, AIRPORT_CENTRE.z + 19 - (w.z + 3)]} c={C.hangar} />;
+      })}
       {/* control tower */}
       <Box p={[AIRPORT_CENTRE.x - 30, 3, AIRPORT_CENTRE.z + 22]} s={[1, 6, 1]} c={C.tower} shadow />
       <Glow p={[AIRPORT_CENTRE.x - 30, 6.4, AIRPORT_CENTRE.z + 22]} s={[3, 1.4, 3]} c="#9ff3f3" intensity={0.8} />
