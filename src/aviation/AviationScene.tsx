@@ -159,23 +159,25 @@ export function AviationScene() {
   return (
     <group name="mrr-aviation" visible={open}>
       {/* slab and runway */}
-      <Box p={[AIRPORT_CENTRE.x, -0.4, AIRPORT_CENTRE.z]} s={[124, 0.8, 84]} c={C.slab} />
-      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 26]} s={[100, 0.1, 4.2]} c={C.asphalt} />
-      {Array.from({ length: 20 }, (_, i) => (
-        <Box key={`rw${i}`} p={[AIRPORT_CENTRE.x - 47 + i * 5, 0.08, AIRPORT_CENTRE.z - 26]} s={[2.4, 0.04, 0.3]} c={C.paint} />
+      {/* airport slab: about 10x the original area (400 x 270), east of the city (city spans x -74..74) */}
+      <Box p={[AIRPORT_CENTRE.x, -0.4, AIRPORT_CENTRE.z]} s={[400, 0.8, 270]} c={C.slab} />
+      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 26]} s={[320, 0.1, 4.2]} c={C.asphalt} />
+      {Array.from({ length: 64 }, (_, i) => (
+        <Box key={`rw${i}`} p={[AIRPORT_CENTRE.x - 157.5 + i * 5, 0.08, AIRPORT_CENTRE.z - 26]} s={[2.4, 0.04, 0.3]} c={C.paint} />
       ))}
-      {Array.from({ length: 25 }, (_, i) => (
-        <Glow key={`el${i}`} p={[AIRPORT_CENTRE.x - 48 + i * 4, 0.12, AIRPORT_CENTRE.z - 28.3]} s={[0.5, 0.1, 0.5]} c={C.gold} intensity={1.6} />
+      {Array.from({ length: 80 }, (_, i) => (
+        <Glow key={`el${i}`} p={[AIRPORT_CENTRE.x - 158 + i * 4, 0.12, AIRPORT_CENTRE.z - 28.3]} s={[0.5, 0.1, 0.5]} c={C.gold} intensity={1.6} />
       ))}
-      {Array.from({ length: 25 }, (_, i) => (
-        <Glow key={`er${i}`} p={[AIRPORT_CENTRE.x - 48 + i * 4, 0.12, AIRPORT_CENTRE.z - 23.7]} s={[0.5, 0.1, 0.5]} c={C.gold} intensity={1.6} />
+      {Array.from({ length: 80 }, (_, i) => (
+        <Glow key={`er${i}`} p={[AIRPORT_CENTRE.x - 158 + i * 4, 0.12, AIRPORT_CENTRE.z - 23.7]} s={[0.5, 0.1, 0.5]} c={C.gold} intensity={1.6} />
       ))}
       {/* taxiway and apron */}
-      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 14]} s={[100, 0.1, 1.6]} c={C.taxi} />
+      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 14]} s={[320, 0.1, 1.6]} c={C.taxi} />
       {/* parallel taxiway with rapid-exit connectors to the runway */}
-      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 36]} s={[104, 0.1, 1.6]} c={C.taxi} />
-      <Box p={[AIRPORT_CENTRE.x - 34, 0.02, AIRPORT_CENTRE.z - 31]} s={[1.6, 0.1, 10]} c={C.taxi} />
-      <Box p={[AIRPORT_CENTRE.x + 34, 0.02, AIRPORT_CENTRE.z - 31]} s={[1.6, 0.1, 10]} c={C.taxi} />
+      <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z - 36]} s={[320, 0.1, 1.6]} c={C.taxi} />
+      {[-150, -110, -34, 34, 110, 150].map((dx) => (
+        <Box key={`rx${dx}`} p={[AIRPORT_CENTRE.x + dx, 0.02, AIRPORT_CENTRE.z - 31]} s={[1.6, 0.1, 10]} c={C.taxi} />
+      ))}
       <Box p={[AIRPORT_CENTRE.x + 6, 0.02, AIRPORT_CENTRE.z + 12]} s={[62, 0.1, 10]} c={C.taxi} />
       <Box p={[AIRPORT_CENTRE.x, 0.02, AIRPORT_CENTRE.z + 2]} s={[26, 0.1, 6]} c={C.taxi} />
       {/* stands: teal free, amber occupied, white when selected */}
