@@ -7,6 +7,7 @@ import { plan, approve } from '../opsAgent/runtime';
 import {
   anprFeed, ALL_BAYS, authorityDecision, bayStatus, cityKpis, constructionCost, COST_DEFAULTS, EVENT_TYPES, eventPlan, facilityById, facilityKpis, FACILITIES, hourlyOccupancy,
   maintenanceImpact, opportunities, insights, pricingScenario, roi, scenarioRoi, stageAt, STATUSES, tenantRelease, type MaintScope,
+  findSpaces, type BayCategory,
 } from './model';
 import { opsFrom, usePark, type Proposal } from './store';
 import { STATUS_COLOR } from './ParknexScene';
@@ -916,11 +917,52 @@ function Intelligence() {
   );
 }
 
+/** Driver-facing discovery: free bays ranked by distance from the entrance; "Show in 3D" highlights the bay. */
+const SPACE_CATS: [('any' | BayCategory), string][] = [['any', 'Any'], ['visitor', 'Visitor'], ['tenant', 'Tenant'], ['ev', 'EV'], ['accessible', 'Accessible'], ['premium', 'Premium']];
+function FindSpace() {
+  const o = useOps();
+  const selectBay = usePark((s) => s.selectBay);
+  const sel = usePark((s) => s.bay);
+  const [cat, setCat] = useState<'any' | BayCategory>('any');
+  const rows = useMemo(() => findSpaces(cat, 8, o), [cat, o]);
+  return (
+    <div className="ops-tab">
+      <div className="ops-tabs" role="group" aria-label="Bay category">
+        {SPACE_CATS.map(([k, l]) => (
+          <button key={k} className={`ops-tabbtn ${cat === k ? 'is-on' : ''}`} aria-pressed={cat === k} onClick={() => setCat(k)}>{l}</button>
+        ))}
+      </div>
+      <p className="ops-small">Free bays only, nearest to each facility entrance first. Bays with a faulty or offline sensor are left out. Distances are straight-line map units, not walking routes.</p>
+      {rows.length === 0 && <p className="ops-note">No free bays match this category right now.</p>}
+      {rows.length > 0 && (
+        <div className="ops-table-wrap">
+          <table className="ops-table">
+            <thead><tr><th>#</th><th>Facility</th><th>Bay</th><th>Category</th><th>Distance (units)</th><th /></tr></thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.bay.id}>
+                  <td>{i + 1}</td>
+                  <td>{r.facility.name}</td>
+                  <td>{r.bay.id}</td>
+                  <td>{r.bay.category}</td>
+                  <td>{r.dist.toFixed(1)}</td>
+                  <td><button className="ops-btn" aria-pressed={sel === r.bay.id} onClick={() => selectBay(r.bay.id)}>{sel === r.bay.id ? 'Shown in 3D' : 'Show in 3D'}</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TABS: [string, string][] = [
   ['overview', 'Overview'],
   ['insights', 'ROI Insights'],
   ['facilities', 'Facilities'],
   ['occupancy', 'Occupancy'],
+  ['find', 'Find a space'],
   ['anpr', 'Live ANPR'],
   ['sensors', 'Sensors & Infrastructure'],
   ['events', 'Events'],
@@ -998,6 +1040,7 @@ export function ParknexPanel() {
         {tab === 'insights' && <Insights />}
         {tab === 'facilities' && <Facilities />}
         {tab === 'occupancy' && <Occupancy />}
+        {tab === 'find' && <FindSpace />}
         {tab === 'anpr' && <AnprFeed />}
         {tab === 'sensors' && <Sensors />}
         {tab === 'events' && <Events />}

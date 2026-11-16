@@ -696,3 +696,30 @@ export function anprFeed(untilMinute: number, limit = 40): AnprEvent[] {
   });
   return out.sort((a, b) => b.minute - a.minute).slice(0, limit);
 }
+
+/* ------------------------------------------------------------------ intelligent parking discovery */
+
+export interface SpaceOption {
+  bay: Bay;
+  facility: Facility;
+  /** straight-line distance from the facility entrance, in map units */
+  dist: number;
+}
+
+/**
+ * Free bays across the network, nearest to each facility's entrance first.
+ * Bays with a faulty or offline sensor are excluded: their status cannot be trusted.
+ */
+export function findSpaces(category: BayCategory | 'any', limit = 8, ops: OpsState = BASE_OPS): SpaceOption[] {
+  const out: SpaceOption[] = [];
+  for (const f of FACILITIES) {
+    const e = entranceFor(f.site);
+    for (const b of f.bays) {
+      if (category !== 'any' && b.category !== category) continue;
+      if (b.sensor !== 'ok') continue;
+      if (bayStatus(b, f, ops) !== 'available') continue;
+      out.push({ bay: b, facility: f, dist: Math.hypot(b.x - e.x, b.z - e.z) });
+    }
+  }
+  return out.sort((a, b) => a.dist - b.dist).slice(0, limit);
+}
